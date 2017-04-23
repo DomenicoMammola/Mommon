@@ -1,0 +1,10 @@
+-----------------------------------------------------------
+
+Checkout: 
+svn checkout https://svn.code.sf.net/p/oxml/code/ oxml-code
+r155
+in folder:
+OXML
+
+For reference and license please see:
+http://www.kluug.net/oxml.php
