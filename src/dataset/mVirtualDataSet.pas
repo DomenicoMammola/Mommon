@@ -173,7 +173,7 @@ type
 
   protected
     procedure ReadBlobData;
-    function Realloc(var NewCapacity: Longint): Pointer; override;
+    function Realloc(var NewCapacity: PtrInt): Pointer; override;
 
   public
     constructor Create(Field: TBlobField; Mode: TBlobStreamMode);
@@ -519,7 +519,7 @@ begin
   end;
 end;
 
-function TBlobStream.Realloc(var NewCapacity: Longint): Pointer;
+function TBlobStream.Realloc(var NewCapacity: PtrInt): Pointer;
 
   procedure VarAlloc(var V: Variant; Field: TFieldType);
   var
