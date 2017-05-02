@@ -49,7 +49,7 @@ type
 implementation
 
 uses
-  SysUtils, mSQLDialectExpertImplRegister;
+  SysUtils, mSQLDialectExpertImplRegister, mSQLDialectExpertImplSQLServer;
 
 { TmSQLBuilder }
 
