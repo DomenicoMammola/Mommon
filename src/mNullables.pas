@@ -134,6 +134,8 @@ type
     procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
     function AsVariant: Variant; override;
 
+    function AsString : String;
+
     property Value : Double read GetValue write SetValue;
   end;
 
@@ -441,6 +443,14 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+function TNullableDouble.AsString: String;
+begin
+  if Self.IsNull then
+    Result := ''
+  else
+    Result := FloatToStr(Self.Value);
 end;
 
 { TNullableAnsiString }
