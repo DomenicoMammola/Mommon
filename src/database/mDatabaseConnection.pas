@@ -188,6 +188,8 @@ uses
   begin
     if not Assigned(FImplementation) then
     begin
+      if not Assigned(FDatabaseConnection) then
+        raise Exception.Create('No database connection was associated to the TmDatabaseCommand');
       FImplementation := GetDataConnectionClassesRegister.GetCommandImpl(FDatabaseConnection.FImplementation.GetName);
       FImplementation.DatabaseConnectionImpl := FDatabaseConnection.FImplementation;
     end;
