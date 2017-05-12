@@ -12,6 +12,16 @@ unit mMathUtility;
 
 interface
 
+uses
+  Math;
+
+type
+  TRoundingMethod = (rmHalfRoundDown, rmHalfRoundUp, rmHalfRoundTowardsZero, rmHalfRoundAwayFromZero, rmHalfRoundToEven, rmBankerRounding, rmHalfRoundToOdd);
+
+// https://en.wikipedia.org/wiki/Rounding
+// http://www.eetimes.com/document.asp?doc_id=1274485
+function RoundToExt (aValue : double; aRoundingMethod : TRoundingMethod; const Digits: integer) : double;
+
 function TryToConvertToDouble(aValue : string; var aOutValue : Double ): boolean;
 function IsNumeric(aValue: string; const aAllowFloat: Boolean): Boolean;
 
@@ -49,6 +59,84 @@ begin
     Result := TryToConvertToDouble(aValue, tmpDouble)
   else
     Result := TryStrToInt(aValue, tmpInt);
+end;
+
+function RoundToExt(aValue: double; aRoundingMethod: TRoundingMethod; const Digits: integer): double;
+var
+  i1, i2, factor : integer;
+
+  function RoundToNearest : double;
+  begin
+    if i2 < 5 then
+      Result := i1 / factor
+    else
+      Result := (i1 + Sign(aValue)) /factor;
+  end;
+
+begin
+
+  if aRoundingMethod  = rmHalfRoundDown then
+  begin
+    if Sign(aValue) = 1 then
+      Result:= RoundToExt(AValue, rmHalfRoundTowardsZero, Digits)
+    else
+      Result := RoundToExt(AValue, rmHalfRoundAwayFromZero, Digits);
+  end
+  else if (aRoundingMethod = rmHalfRoundUp) then
+  begin
+    if Sign(aValue) = 1 then
+      Result:= RoundToExt(AValue, rmHalfRoundAwayFromZero, Digits)
+    else
+      Result := RoundToExt(AValue, rmHalfRoundTowardsZero, Digits);
+  end
+  else
+  begin
+    factor := round(power(10, Digits));
+
+    i1 := trunc(AValue * factor);
+    i2 := Abs(trunc(Math.RoundTo(AValue * (factor * 10), 0)) - (i1 * 10));
+
+    if (aRoundingMethod = rmHalfRoundTowardsZero) then
+    begin
+      if i2 = 5 then
+        Result := i1 / factor
+      else
+        Result := RoundToNearest;
+    end
+    else if (aRoundingMethod = rmHalfRoundAwayFromZero) then
+    begin
+      if i2 = 5 then
+        Result := (i1 + Sign(aValue)) /factor
+      else
+        Result := RoundToNearest;
+    end
+    else if (aRoundingMethod = rmHalfRoundToEven) or (aRoundingMethod = rmBankerRounding) then
+    begin
+      if i2 = 5 then
+      begin
+        if not odd(i1) then
+          Result := i1 / factor
+        else
+          Result := (i1 + Sign(aValue)) / factor;
+      end
+      else
+        Result := RoundToNearest;
+    end
+    else if (aRoundingMethod = rmHalfRoundToOdd) then
+    begin
+      if i2 = 5 then
+      begin
+        if odd(i1) then
+          Result := i1 / factor
+        else
+          Result := (i1 + Sign(aValue)) / factor;
+      end
+      else
+        Result := RoundToNearest;
+    end
+    else
+      raise Exception.Create ('Unsupported rounding method');
+  end;
 end;
 
 end.
