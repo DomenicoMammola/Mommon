@@ -79,7 +79,33 @@ type
     property Value : Variant read FValue write FValue;
   end;
 
+
+  { TDoubleObject }
+
+  TDoubleObject = class
+  strict private
+    FValue : Double;
+  public
+    constructor Create(); overload;
+    constructor Create(aValue : Double); overload;
+
+    property Value : Double read FValue write FValue;
+  end;
+
+
 implementation
+
+{ TDoubleObject }
+
+constructor TDoubleObject.Create;
+begin
+  FValue:= 0;
+end;
+
+constructor TDoubleObject.Create(aValue: Double);
+begin
+  FValue := aValue;
+end;
 
 { TVariantObject }
 
