@@ -10,6 +10,8 @@
 
 unit mMapsImplFPC;
 
+{$mode objfpc}{$H+}
+
 interface
 
 uses
