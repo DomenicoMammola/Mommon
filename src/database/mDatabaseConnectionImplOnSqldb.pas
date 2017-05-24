@@ -119,7 +119,7 @@ type
 implementation
 
 uses
-  mssqlconn,
+  mssqlconn, dblib,
   mDatabaseConnectionImplRegister,
   SysUtils;
 
@@ -357,6 +357,7 @@ end;
 
 { TSqldbDatabaseConnectionImpl }
 
+
 procedure TSqldbDatabaseConnectionImpl.SetConnectionInfo(AValue: TmDatabaseConnectionInfo);
 begin
   inherited SetConnectionInfo(AValue);
@@ -366,6 +367,10 @@ begin
   begin
     FConnection := TMSSQLConnection.Create(nil);
     FTransaction.DataBase := FConnection;
+    if Pos('v2008', FConnectionInfo.ExtraSettings) > 0 then
+      DBLibLibraryName := 'dblib_2008.dll'
+    else
+      DBLibLibraryName := DBLIBDLL;
   end;
 end;
 

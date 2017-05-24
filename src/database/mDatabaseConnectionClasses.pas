@@ -97,13 +97,16 @@ type
     FUserName : String;
     FPassword : String;
     FWindowsIntegratedSecurity : Boolean;
+    FExtraSettings : String;
 
     function GetDatabaseName: String;
+    function GetExtraSettings: string;
     function GetPassword: String;
     function GetServer: String;
     function GetUserName: String;
     function GetWindowsIntegratedSecurity: Boolean;
     procedure SetDatabaseName(AValue: String);
+    procedure SetExtraSettings(AValue: string);
     procedure SetPassword(AValue: String);
     procedure SetServer(AValue: String);
     procedure SetUserName(AValue: String);
@@ -116,6 +119,7 @@ type
     property UserName : String read GetUserName write SetUserName;
     property Password : String read GetPassword write SetPassword;
     property WindowsIntegratedSecurity : Boolean read GetWindowsIntegratedSecurity write SetWindowsIntegratedSecurity;
+    property ExtraSettings : string read GetExtraSettings write SetExtraSettings;
   end;
 
 
@@ -227,6 +231,7 @@ end;
 constructor TmDatabaseConnectionInfo.Create;
 begin
   FVendorType:= dvUnknown;
+  FExtraSettings:= '';
 end;
 
 
@@ -427,6 +432,11 @@ begin
   Result := FDatabaseName;
 end;
 
+function TmDatabaseConnectionInfo.GetExtraSettings: string;
+begin
+  Result := FExtraSettings;
+end;
+
 function TmDatabaseConnectionInfo.GetPassword: String;
 begin
   Result := FPassword;
@@ -450,6 +460,11 @@ end;
 procedure TmDatabaseConnectionInfo.SetDatabaseName(AValue: String);
 begin
   FDatabaseName:= AValue;
+end;
+
+procedure TmDatabaseConnectionInfo.SetExtraSettings(AValue: string);
+begin
+  FExtraSettings:= aValue;
 end;
 
 procedure TmDatabaseConnectionInfo.SetPassword(AValue: String);
