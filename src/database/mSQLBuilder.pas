@@ -115,6 +115,8 @@ end;
 
 function TmSQLBuilder.ParamByName(const Value: string): TmQueryParameter;
 begin
+  if FSQL = '' then
+    raise Exception.Create('Missing SQL. Prepare SQL string command before.');
   Result := FParameters.FindByName(Value);
 end;
 
