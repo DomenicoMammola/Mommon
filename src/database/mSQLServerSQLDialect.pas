@@ -19,7 +19,8 @@ interface
 function DateTimeToSQLString (aValue : TDateTime) : String;
 function DateToSQLString(aValue : TDate; const aAddQuotes : boolean = true) : String;
 function FloatToSQLString(aValue : Double): String;
-function StringToSQLString(aValue : String): String;
+function StringToSQLString(aValue : String): String; overload;
+function StringToSQLString(aValue : WideString): WideString; overload;
 function WideStringToSQLString (aValue : WideString): String;
 
 implementation
@@ -61,6 +62,11 @@ end;
 function StringToSQLString(aValue : String): String;
 begin
   Result := '''' + StringReplace(aValue, '''', '''''', [rfReplaceAll]) + '''';
+end;
+
+function StringToSQLString(aValue: WideString): WideString;
+begin
+  Result := '''' + WideStringReplace(aValue, '''', '''''', [rfReplaceAll]) + '''';
 end;
 
 function WideStringToSQLString(aValue: WideString): String;

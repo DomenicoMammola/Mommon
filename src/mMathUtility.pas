@@ -20,9 +20,10 @@ type
 
 // https://en.wikipedia.org/wiki/Rounding
 // http://www.eetimes.com/document.asp?doc_id=1274485
+// http://ec.europa.eu/economy_finance/publications/pages/publication1224_en.pdf
 function RoundToExt (aValue : double; aRoundingMethod : TRoundingMethod; const Digits: integer) : double;
 
-function TryToConvertToDouble(aValue : string; var aOutValue : Double ): boolean;
+function TryToConvertToDouble(aValue : string; out aOutValue : Double ): boolean;
 function IsNumeric(aValue: string; const aAllowFloat: Boolean): Boolean;
 
 implementation
@@ -30,7 +31,7 @@ implementation
 uses
   SysUtils;
 
-function TryToConvertToDouble(aValue : string; var aOutValue : Double): boolean;
+function TryToConvertToDouble(aValue : string; out aOutValue : Double): boolean;
 var
   tmpValueDouble : double;
   tmp : String;
@@ -63,7 +64,8 @@ end;
 
 function RoundToExt(aValue: double; aRoundingMethod: TRoundingMethod; const Digits: integer): double;
 var
-  i1, i2, factor : integer;
+  i1, i2, factor : Int64;
+  tmpInt, tmpInt2 : Int64;
 
   function RoundToNearest : double;
   begin
@@ -94,7 +96,9 @@ begin
     factor := round(power(10, Digits));
 
     i1 := trunc(AValue * factor);
-    i2 := Abs(trunc(Math.RoundTo(AValue * (factor * 10), 0)) - (i1 * 10));
+    tmpInt:=  (factor * 10);
+    tmpInt2 := (i1 * 10);
+    i2 := Abs(trunc(Math.RoundTo(AValue * tmpInt, 0)) - tmpInt2);
 
     if (aRoundingMethod = rmHalfRoundTowardsZero) then
     begin

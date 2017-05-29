@@ -113,7 +113,7 @@ type
 implementation
 
 uses
-  mDatabaseConnectionImplRegister, mSQLServerSQLDialect,
+  mDatabaseConnectionImplRegister,
   SysUtils;
 
 { TSdacDatabaseCommandImpl }

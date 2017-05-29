@@ -46,7 +46,7 @@ function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 implementation
 
 uses
-  Character, DateUtils, mMathUtility;
+  DateUtils, mMathUtility;
 
 function AddZerosFront (aValue : integer; aLength : integer) : String;
 var

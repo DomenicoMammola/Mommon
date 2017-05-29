@@ -21,7 +21,7 @@ interface
   function ExtFormatDateTime(const Format: String; DateTime: TDateTime): String;
 
   // CREDITS: 11.7.99 - Pascal converting by Thomas Koehler, www.thkoehler.de
-  procedure CalculateEasterDate (const year : word; const method : word; var month, day : word); overload;
+  procedure CalculateEasterDate (const year : word; const method : word; out month, day : word); overload;
   function CalculateEasterDate (const year : word; const method : word) : TDateTime; overload;
 
   function IsItalianPublicHoliday (const aDate : TDateTime) : boolean;
@@ -119,7 +119,7 @@ begin
 end;
 
 
-procedure CalculateEasterDate (const year : word; const method : word; var month, day : word);
+procedure CalculateEasterDate (const year : word; const method : word; out month, day : word);
 var
    FirstDig, Remain19, temp,              {intermediate results}
    tA, tB, tC, tD, tE         : integer;  {table A to E results}

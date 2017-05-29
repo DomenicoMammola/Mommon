@@ -301,12 +301,6 @@ type
       Value: TBookmarkFlag); override;
     procedure SetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); override;
 
-    procedure SetFieldData(
-      Field        : TField;
-      Buffer       : TValueBuffer;
-      NativeFormat : Boolean
-    ); overload; override;
-
     procedure DoAfterOpen; override;
 
     property ModifiedFields: TList read FModifiedFields;
@@ -317,6 +311,12 @@ type
   public
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
+
+    procedure SetFieldData(
+      Field        : TField;
+      Buffer       : TValueBuffer;
+      NativeFormat : Boolean
+    ); overload; override;
 
     { Standard public overrides }
     function BookmarkValid(ABookmark: TBookmark): Boolean; override;
@@ -498,6 +498,8 @@ begin
 end;
 
 procedure TBlobStream.ReadBlobData;
+var
+  l1, l2 : Int64;
 begin
   FDataSet.GetFieldData(FField, @FFieldData, True);
   if not VarIsNull(FFieldData) then
@@ -505,7 +507,11 @@ begin
     if VarType(FFieldData) = varOleStr then
     begin
       if FField.BlobType = ftWideMemo then
-        Size := Length(WideString(FFieldData)) * SizeOf(widechar)
+      begin
+        l1 := Length(WideString(FFieldData));
+        l2 := SizeOf(widechar);
+        Size := l1 * l2;
+      end
       else
       begin
         { Convert OleStr into a pascal string (format used by TBlobField) }

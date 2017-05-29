@@ -182,7 +182,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
 
 { TNullableInteger }
 
@@ -654,7 +654,7 @@ begin
   if aBlankStringMeansNull and (aValue = '') then
     Self.IsNull:= true
   else
-    Self.Value:= aValue;
+    Self.Value:= {$IFDEF FPC}UTF8ToUTF16(aValue){$ELSE}aValue{$ENDIF};
 end;
 
 function TNullableUnicodeString.AsVariant: Variant;
