@@ -142,6 +142,33 @@ type
     BookmarkFlag : TBookmarkFlag;
   end;
 
+  TVirtualFieldSortType = (stAscending, stDescending);
+
+  { TSortByCondition }
+
+  TSortByCondition = class (TCollectionItem)
+  strict private
+    FSortType : TVirtualFieldSortType;
+    FFieldName : String;
+  public
+    constructor Create(Collection: TCollection); override;
+
+    property SortType : TVirtualFieldSortType read FSortType write FSortType;
+    property FieldName : String read FFieldName write FFieldName;
+  end;
+
+  { TSortByConditions }
+
+  TSortByConditions = class (TCollection)
+  private
+    function GetCondition(Index :integer) : TSortByCondition;
+  public
+    constructor Create; reintroduce;
+    function Add : TSortByCondition;
+
+    property Items[index:integer]: TSortByCondition read GetCondition; default;
+  end;
+
   TVirtualDatasetDataProvider = class
   strict private
     FVirtualFieldDefs : TVirtualFieldDefs;
@@ -155,6 +182,7 @@ type
     procedure DeleteRecord (AIndex :integer); virtual; abstract;
     procedure EditRecord (AIndex : integer; AModifiedFields : TList); virtual; abstract;
     procedure InsertRecord (AIndex : integer; AModifiedFields : TList); virtual; abstract;
+    procedure Sort(aConditions : TSortByConditions); virtual; abstract;
 
     property VirtualFieldDefs : TVirtualFieldDefs read FVirtualFieldDefs;
   end;
@@ -456,6 +484,32 @@ begin
   Result   := 0;
   for I    := 0 to Dataset.Fields.Count - 1 do
     Result := Result + (NativeInt(Dataset.Fields[I]) shr (I mod 16));
+end;
+
+{ TSortByConditions }
+
+function TSortByConditions.GetCondition(Index: integer): TSortByCondition;
+begin
+  Result := TSortByCondition(inherited Items[Index]);
+end;
+
+constructor TSortByConditions.Create;
+begin
+  inherited Create(TSortByCondition);
+end;
+
+function TSortByConditions.Add: TSortByCondition;
+begin
+  Result := TSortByCondition(inherited Add);
+end;
+
+{ TSortByCondition }
+
+constructor TSortByCondition.Create(Collection: TCollection);
+begin
+  inherited Create(Collection);
+  FFieldName:= '';
+  FSortType:= stAscending;
 end;
 
 
