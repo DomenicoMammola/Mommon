@@ -16,18 +16,11 @@ unit mVirtualDataSetInterfaces;
 
 interface
 
+uses
+  Classes;
+
 type
 
-(*  TVDDatum = class abstract
-  public
-    function GetPropertyByFieldName(aFieldName : String) : Variant; virtual; abstract;
-  end;
-
-  TVDListDataProvider = class abstract
-  public
-    function Count : integer; virtual; abstract;
-    function GetDatum(aIndex : integer) : TVDDatum; virtual; abstract;
-  end;*)
 
   IVDDatum = interface
     function GetPropertyByFieldName(aFieldName : String) : Variant;
@@ -38,6 +31,27 @@ type
     function GetDatum(aIndex : integer) : IVDDatum;
   end;
 
+function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; aFields : TStrings) : integer; // -1 <, 0 =, +1 >
+
 implementation
+
+uses
+  mUtility;
+
+function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; aFields : TStrings) : integer; // -1 <, 0 =, +1 >
+var
+  i, current : integer;
+  val1, val2 : Variant;
+begin
+  Result := -1;
+  for i := 0 to aFields.Count -1 do
+  begin
+    val1 := aFirstDatum.GetPropertyByFieldName(aFields[i]);
+    val2 := aSecondDatum.GetPropertyByFieldName(aFields[i]);
+    Result := CompareVariants(val1, val2);
+    if Result <> 0 then
+      break;
+  end;
+end;
 
 end.
