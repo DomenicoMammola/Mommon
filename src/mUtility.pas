@@ -16,7 +16,7 @@ interface
   {$MODE DELPHI}
 {$ENDIF}
 
-uses SysUtils;
+uses SysUtils, Variants;
 
 const
   TheDayWhenTimeStarted = 730120; //01/01/2000 (starting from 01/01/01)
@@ -38,6 +38,8 @@ function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string
 
 // https://code.google.com/p/theunknownones/
 function VarRecToVariant (AValue : TVarRec) : Variant;
+
+function CompareVariants (aVal1, aVal2 : variant) : integer;
 
 {$IFDEF FPC}
 function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
@@ -495,6 +497,51 @@ begin
   Result := C in CharSet;
 end;
 {$ENDIF}
+
+function CompareVariants(aVal1, aVal2: variant): integer;
+var
+  valtype1, valtype2 : TVarType;
+begin
+  valtype1 := VarType(aVal1);
+  valtype2 := VarType(aVal2);
+
+  if valtype2 = varempty then
+  begin
+    if valtype1 = varempty then
+      Result := 0
+    else
+      Result := -1;
+    exit;
+  end
+  else if (valtype1 = varempty) then
+  begin
+    Result := 1;
+    exit;
+  end;
+
+
+  if valtype2 = varnull then
+  begin
+    if valtype1 = varnull then
+      Result := 0
+    else
+      Result := -1;
+    exit;
+  end
+  else if (valtype1 = varnull) then
+  begin
+    Result := 1;
+    exit;
+  end;
+
+  if aVal1 = aVal2 then
+    Result := 0
+  else if aVal1 < aVal2 then
+    Result := -1
+  else
+    Result := 1;
+end;
+
 
 initialization
   Randomize;
