@@ -10,11 +10,15 @@
 
 unit mQuickReadOnlyVirtualDataSet;
 
+{$IFDEF FPC}
+{$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses
   DB, Classes,
-  mVirtualDataSet, mVirtualDataSetInterfaces;
+  mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions;
 
 const
   KEY_FIELD_NAME = 'KEY';
@@ -25,55 +29,79 @@ type
 
   TReadOnlyVirtualDatasetProvider = class (TVirtualDatasetDataProvider)
   strict private
-//    FDataProvider : TVDListDataProvider;
     FIDataProvider : IVDListDataProvider;
+    FSortedIndex : TFPList;
+
+    FCurrentSortConditions : TSortByConditions;
+    FCurrentSortFields : TStringList;
+
+    function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
   public
     constructor Create; override;
     destructor Destroy; override;
 
-//    procedure Init (aDataProvider : TVDListDataProvider); overload;
-    procedure Init (aDataProvider : IVDListDataProvider); //overload;
+    procedure Init (aDataProvider : IVDListDataProvider);
 
-    procedure GetFieldValue (AField: TField; AIndex: Integer; var AValue: variant); override;
-    procedure DeleteRecord (AIndex :integer); override;
-    procedure EditRecord (AIndex : integer; AModifiedFields : TList); override;
-    procedure InsertRecord (AIndex : integer; AModifiedFields : TList); override;
+    procedure GetFieldValue (const AField: TField; const AIndex: Integer; out AValue: variant); override;
+    procedure DeleteRecord (const AIndex :integer); override;
+    procedure EditRecord (const AIndex : integer; AModifiedFields : TList); override;
+    procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); override;
     function GetRecordCount : integer; override;
+    function Sort(const aConditions : TSortByConditions): boolean; override;
+    procedure ClearSort; override;
   end;
 
 implementation
 
 uses
-  SysUtils;
+  SysUtils,
+  mUtility;
+
 
 { TReadOnlyVirtualDatasetProvider }
+
+function TReadOnlyVirtualDatasetProvider.OnCompare(Item1: Pointer;Item2: Pointer):Integer;
+var
+  d1, d2 : IVDDatum;
+  tmpCondIndex : integer;
+begin
+  d1 := IVDDatum(Item1);
+  d2 := IVDDatum(Item2);
+
+  Result := CompareByProperties(d1, d2, FCurrentSortFields, tmpCondIndex);
+
+  if Result <> 0 then
+  begin
+    if FCurrentSortConditions.Items[tmpCondIndex].SortType = stDescending then
+      Result := -1 * Result;
+  end;
+end;
+
 
 constructor TReadOnlyVirtualDatasetProvider.Create;
 begin
   inherited Create;
-  //FDataProvider := nil;
+  FSortedIndex := TFPList.Create;
+  FCurrentSortFields := TStringList.Create;
+
 end;
 
 destructor TReadOnlyVirtualDatasetProvider.Destroy;
 begin
+  FSortedIndex.Free;
+  FCurrentSortFields.Free;
   inherited Destroy;
 end;
 
-(*
-procedure TReadOnlyVirtualDatasetProvider.Init(aDataProvider: TVDListDataProvider);
-begin
-  FDataProvider := aDataProvider;
-end;*)
 
 procedure TReadOnlyVirtualDatasetProvider.Init(aDataProvider: IVDListDataProvider);
 begin
-//  FDataProvider := nil;
   FIDataProvider := aDataProvider;
+  FSortedIndex.Clear;
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(AField: TField; AIndex: Integer; var AValue: variant);
+procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(const AField: TField; const AIndex: Integer; out AValue: variant);
 var
-  //tmp : TVDDatum;
   tmpI : IVDDatum;
 begin
   AValue := Null;
@@ -83,41 +111,69 @@ begin
      aValue := aIndex
    else
    begin
-(*     if Assigned(FDataProvider) then
+     if FSortedIndex.Count > 0 then
      begin
-       tmp := FDataProvider.GetDatum(AIndex);
-       aValue := tmp.GetPropertyByFieldName(AField.FieldName);
+       tmpI := IVDDatum(FSortedIndex.Items[aIndex]);
      end
      else
-     begin*)
+     begin
        tmpI := FIDataProvider.GetDatum(aIndex);
-       aValue := tmpI.GetPropertyByFieldName(AField.FieldName);
-//     end;
+     end;
+     aValue := tmpI.GetPropertyByFieldName(AField.FieldName);
    end;
   end;
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.DeleteRecord(AIndex: integer);
+procedure TReadOnlyVirtualDatasetProvider.DeleteRecord(const AIndex: integer);
 begin
   // do nothing
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.EditRecord(AIndex: integer; AModifiedFields: TList);
+procedure TReadOnlyVirtualDatasetProvider.EditRecord(const AIndex: integer; AModifiedFields: TList);
 begin
   // do nothing
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.InsertRecord(AIndex: integer; AModifiedFields: TList);
+procedure TReadOnlyVirtualDatasetProvider.InsertRecord(const AIndex: integer; AModifiedFields: TList);
 begin
   // do nothing
 end;
 
 function TReadOnlyVirtualDatasetProvider.GetRecordCount: integer;
 begin
-(*  if Assigned(FDataProvider) then
-    Result := FDataProvider.Count
-  else*)
     Result := FIDataProvider.Count;
+end;
+
+function TReadOnlyVirtualDatasetProvider.Sort(const aConditions: TSortByConditions) : boolean;
+var
+  i : integer;
+begin
+  if not Assigned(FIDataProvider) then
+    Result := false
+  else
+  begin
+    // http://lazarus-ccr.sourceforge.net/docs/rtl/classes/tfplist.html
+    // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
+    if (not Assigned(aConditions)) or  (aConditions.Count =  0) then
+      Self.ClearSort
+    else
+    begin
+      FSortedIndex.Clear;
+      for i := 0 to Self.GetRecordCount -1 do
+        FSortedIndex.Add(FIDataProvider.GetDatum(i));
+      FCurrentSortConditions := aConditions;
+      FCurrentSortFields.Clear;
+      for i := 0 to aConditions.Count - 1 do
+        FCurrentSortFields.Append(aConditions.Items[i].FieldName);
+      mUtility.MergeSort(FSortedIndex, OnCompare);
+      FCurrentSortFields.Clear;
+    end;
+  end;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.ClearSort;
+begin
+  FSortedIndex.Clear;
 end;
 
 end.

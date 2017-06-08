@@ -20,8 +20,9 @@ uses
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
-  Forms, DB, mVirtualFieldDefs, mDatasetStandardSetup
-  ;
+  Forms, DB,
+  mVirtualFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
+  mInterfaces;
 
 {$REGION 'Documentation'}
 {
@@ -142,33 +143,6 @@ type
     BookmarkFlag : TBookmarkFlag;
   end;
 
-  TVirtualFieldSortType = (stAscending, stDescending);
-
-  { TSortByCondition }
-
-  TSortByCondition = class (TCollectionItem)
-  strict private
-    FSortType : TVirtualFieldSortType;
-    FFieldName : String;
-  public
-    constructor Create(Collection: TCollection); override;
-
-    property SortType : TVirtualFieldSortType read FSortType write FSortType;
-    property FieldName : String read FFieldName write FFieldName;
-  end;
-
-  { TSortByConditions }
-
-  TSortByConditions = class (TCollection)
-  private
-    function GetCondition(Index :integer) : TSortByCondition;
-  public
-    constructor Create; reintroduce;
-    function Add : TSortByCondition;
-
-    property Items[index:integer]: TSortByCondition read GetCondition; default;
-  end;
-
   TVirtualDatasetDataProvider = class
   strict private
     FVirtualFieldDefs : TVirtualFieldDefs;
@@ -177,12 +151,13 @@ type
     destructor Destroy; override;
 
     function GetRecordCount : integer; virtual; abstract;
-    procedure GetFieldValue (AField: TField; AIndex: Integer;
-      var AValue: variant); virtual; abstract;
-    procedure DeleteRecord (AIndex :integer); virtual; abstract;
-    procedure EditRecord (AIndex : integer; AModifiedFields : TList); virtual; abstract;
-    procedure InsertRecord (AIndex : integer; AModifiedFields : TList); virtual; abstract;
-    procedure Sort(aConditions : TSortByConditions); virtual; abstract;
+    procedure GetFieldValue (const AField: TField; const AIndex: Integer;
+      out AValue: variant); virtual; abstract;
+    procedure DeleteRecord (const AIndex :integer); virtual; abstract;
+    procedure EditRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
+    procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
+    function Sort(const aConditions : TSortByConditions): boolean; virtual; abstract;
+    procedure ClearSort; virtual; abstract;
 
     property VirtualFieldDefs : TVirtualFieldDefs read FVirtualFieldDefs;
   end;
@@ -215,6 +190,8 @@ type
     procedure ActiveChanged; override;
   end;
 
+  TVirtualDatasetSortableManager = class;
+
   { TCustomVirtualDataset }
 
   TCustomVirtualDataset = class(TDataSet)
@@ -239,6 +216,7 @@ type
     FAutomaticInitFieldsFormat : boolean;
 
     FVirtualDatasetProvider : TVirtualDatasetDataProvider;
+    FSortManager : TVirtualDatasetSortableManager;
 
     procedure DateTimeToNative(
       ADataType : TFieldType;
@@ -251,45 +229,31 @@ type
     function GetTopRecNo: Integer;
     procedure SetTopIndex(Value: Integer);
     procedure SetMasterSource(Value: TDataSource);
-
   protected
+    FSorted : boolean;
+    FSortConditions : TSortByConditions;
+
+    function Sort : boolean;
+    procedure ClearSort;
+
+
     // event dispatch methods
     procedure DoDeleteRecord(AIndex: Integer); virtual;
-    procedure DoGetFieldValue(
-          AField : TField;
-          AIndex : Integer;
-      var AValue : variant
-    ); virtual;
+    procedure DoGetFieldValue(AField : TField; AIndex : Integer; var AValue : variant); virtual;
     procedure DoPostData(AIndex: Integer); virtual;
 
-    function InternalGetRecord(
-      ABuffer  : TRecordBuffer;
-      AGetMode : TGetMode;
-      ADoCheck : Boolean
-    ): TGetResult; virtual;
+    function InternalGetRecord(ABuffer  : TRecordBuffer; AGetMode : TGetMode; ADoCheck : Boolean): TGetResult; virtual;
 
     procedure MasterChanged(Sender: TObject); virtual;
     procedure MasterDisabled(Sender: TObject); virtual;
 
-    function GetActiveRecBuf(var ARecBuf: TRecordBuffer): Boolean;
+    function GetActiveRecBuf(out ARecBuf: TRecordBuffer): Boolean;
 
-    procedure InternalSetFieldData(AField: TField; ABuffer: Pointer;
-      ANativeFormat: Boolean); virtual;
+    procedure InternalSetFieldData(AField: TField; ABuffer: Pointer; ANativeFormat: Boolean); virtual;
 
     procedure LoadFieldDefsFromVirtualFields; virtual;
-
-    procedure VariantToBuffer(
-          AField        : TField;
-          AVariant      : Variant;
-      out ABuffer       : Pointer;
-          ANativeFormat : Boolean = True
-    );
-    procedure BufferToVariant(
-          AField        : TField;
-          ABuffer       : Pointer;
-      out AVariant      : Variant;
-          ANativeFormat : Boolean = True
-    );
+    procedure VariantToBuffer(AField : TField; AVariant : Variant; out ABuffer : Pointer; ANativeFormat : Boolean = True);
+    procedure BufferToVariant(AField : TField; ABuffer : Pointer; out AVariant : Variant; ANativeFormat : Boolean = True);
 
     // Standard overrides
     function GetCanModify: Boolean; override;
@@ -339,6 +303,7 @@ type
   public
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
+    procedure Refresh; reintroduce;
 
     procedure SetFieldData(
       Field        : TField;
@@ -355,10 +320,9 @@ type
     {$IFNDEF FPC}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData) : Integer; override;
     {$ENDIF}
-    function Locate(const KeyFields: string; const KeyValues: Variant;
-      Options: TLocateOptions): Boolean; override;
-    function Lookup(const KeyFields: string; const KeyValues: Variant;
-      const ResultFields: string): Variant; override;
+    function Locate(const KeyFields: string; const KeyValues: Variant; Options: TLocateOptions): Boolean; override;
+    function Lookup(const KeyFields: string; const KeyValues: Variant; const ResultFields: string): Variant; override;
+    function SortManager : ISortableDatasetManager;
 
     function GetFieldData(Field: TField; {$IFNDEF FPC}var{$ENDIF} Buffer: TValueBuffer): Boolean; override;
 
@@ -372,24 +336,18 @@ type
 
     property TopRecNo: Integer read GetTopRecNo;
 
-    property DatasetDataProvider : TVirtualDatasetDataProvider read FVirtualDatasetProvider write FVirtualDatasetProvider;
 
-    property OnDeleteRecord: TDeleteRecordEvent read FOnDeleteRecord
-      write FOnDeleteRecord;
-
-    property OnGetFieldValue: TGetFieldValueEvent read FOnGetFieldValue
-      write FOnGetFieldValue;
-
-    property OnGetRecordCount: TGetRecordCountEvent read FOnGetRecordCount
-      write FOnGetRecordCount;
-
+    property OnDeleteRecord: TDeleteRecordEvent read FOnDeleteRecord write FOnDeleteRecord;
+    property OnGetFieldValue: TGetFieldValueEvent read FOnGetFieldValue write FOnGetFieldValue;
+    property OnGetRecordCount: TGetRecordCountEvent read FOnGetRecordCount write FOnGetRecordCount;
     property OnLocate: TLocateEvent read FOnLocate write FOnLocate;
 
-    property OnLookupValue: TLookupValueEvent read FOnLookupValue
-      write FOnLookupValue;
+    property OnLookupValue: TLookupValueEvent read FOnLookupValue write FOnLookupValue;
 
     property OnPostData: TPostDataEvent read FOnPostData write FOnPostData;
     property AutomaticInitFieldsFormat : boolean read FAutomaticInitFieldsFormat write FAutomaticInitFieldsFormat;
+
+    property DatasetDataProvider : TVirtualDatasetDataProvider read FVirtualDatasetProvider write FVirtualDatasetProvider;
   end;
 
   TVirtualDataset = class(TCustomVirtualDataset)
@@ -432,6 +390,19 @@ type
     property OnPostError;
   end;
 
+  { TVirtualDatasetSortableManager }
+
+  TVirtualDatasetSortableManager = class (TJavaInterfacedObject, ISortableDatasetManager)
+  protected
+    FVirtualDataset : TCustomVirtualDataset;
+  public
+    function GetSorted : boolean;
+    function GetSortByConditions : TSortByConditions;
+    function Sort : boolean;
+    procedure ClearSort;
+  end;
+
+
 procedure VirtualDatasetError(
   const AMessage : string;
         ADataset : TCustomVirtualDataset = nil
@@ -442,6 +413,8 @@ procedure VirtualDatasetErrorFmt(
   const AArgs    : array of const;
         ADataset : TCustomVirtualDataset = nil
 );
+
+
 
 implementation
 
@@ -477,39 +450,35 @@ end;
 {$ENDREGION}
 
 {$REGION 'non-interfaced routines'}
-function FieldListCheckSum(Dataset: TDataSet): NativeInt;
+function FieldListCheckSum(Dataset: TDataSet): NativeUInt;
 var
   I: Integer;
 begin
   Result   := 0;
   for I    := 0 to Dataset.Fields.Count - 1 do
-    Result := Result + (NativeInt(Dataset.Fields[I]) shr (I mod 16));
+    Result := Result + (NativeUInt(Dataset.Fields[I]) shr (I mod 16));
 end;
 
-{ TSortByConditions }
+{ TVirtualDatasetSortableManager }
 
-function TSortByConditions.GetCondition(Index: integer): TSortByCondition;
+function TVirtualDatasetSortableManager.GetSorted: boolean;
 begin
-  Result := TSortByCondition(inherited Items[Index]);
+  Result := FVirtualDataset.FSorted;
 end;
 
-constructor TSortByConditions.Create;
+function TVirtualDatasetSortableManager.GetSortByConditions: TSortByConditions;
 begin
-  inherited Create(TSortByCondition);
+  Result := FVirtualDataset.FSortConditions;
 end;
 
-function TSortByConditions.Add: TSortByCondition;
+function TVirtualDatasetSortableManager.Sort: boolean;
 begin
-  Result := TSortByCondition(inherited Add);
+  Result := FVirtualDataset.Sort;
 end;
 
-{ TSortByCondition }
-
-constructor TSortByCondition.Create(Collection: TCollection);
+procedure TVirtualDatasetSortableManager.ClearSort;
 begin
-  inherited Create(Collection);
-  FFieldName:= '';
-  FSortType:= stAscending;
+  FVirtualDataset.ClearSort;
 end;
 
 
@@ -680,14 +649,33 @@ begin
   MasterDataLink.OnMasterChange  := MasterChanged;
   MasterDataLink.OnMasterDisable := MasterDisabled;
   FAutomaticInitFieldsFormat := true;
+  FSortManager := TVirtualDatasetSortableManager.Create;
+  FSortManager.FVirtualDataset := Self;
+  FSorted := false;
+  FSortConditions := TSortByConditions.Create;
 end;
 
 procedure TCustomVirtualDataset.BeforeDestruction;
 begin
   FModifiedFields.Free;
   FMasterDataLink.Free;
+  FSortConditions.Free;
+  FSortManager.Free;
   inherited;
 end;
+
+procedure TCustomVirtualDataset.Refresh;
+begin
+  if Assigned(FVirtualDatasetProvider) then
+  begin
+    if Self.FSorted then
+      FVirtualDatasetProvider.Sort(FSortConditions)
+    else
+      FVirtualDatasetProvider.ClearSort;
+  end;
+  inherited Refresh;
+end;
+
 {$ENDREGION}
 
 {$REGION 'property access methods'}
@@ -883,7 +871,7 @@ begin
   case Event of
     deLayoutChange:
       if Active and Assigned(FReserved) and
-        (FieldListCheckSum(Self) <> NativeInt(FReserved)) then
+        (FieldListCheckSum(Self) <> NativeUInt(FReserved)) then
         FReserved := nil;
   end;
   inherited;
@@ -961,7 +949,7 @@ begin
   FreeMem(Buffer);
 end;
 
-function TCustomVirtualDataset.GetActiveRecBuf(var ARecBuf: TRecordBuffer)
+function TCustomVirtualDataset.GetActiveRecBuf(out ARecBuf: TRecordBuffer)
   : Boolean;
 begin
 //  Logger.EnterMethod(Self, 'GetActiveRecBuf');
@@ -1026,7 +1014,6 @@ var
   {$IFDEF FPC}
   TempWideStr : WideString;
   TempWideChar: WideChar;
-  TempVariant : Variant;
   {$ENDIF}
 begin
 //  Logger.EnterMethod(Self, 'VariantToBuffer');
@@ -1464,6 +1451,38 @@ begin
   end
   else
     Result := inherited Lookup(KeyFields, KeyValues, ResultFields);
+end;
+
+function TCustomVirtualDataset.SortManager: ISortableDatasetManager;
+begin
+  Result := FSortManager;
+end;
+
+
+function TCustomVirtualDataset.Sort : boolean;
+begin
+  Result := false;
+  if not Active then
+    Exit;
+  Result := FVirtualDatasetProvider.Sort(FSortConditions);
+  if Result then
+  begin
+    FSorted := true;
+    Resync([]);
+  end
+  else
+  begin
+    FSorted := false;
+  end;
+end;
+
+procedure TCustomVirtualDataset.ClearSort;
+begin
+  FSorted := false;
+  FSortConditions.Clear;
+  if not Active then
+    Exit;
+  FVirtualDatasetProvider.ClearSort;
 end;
 
 procedure TCustomVirtualDataset.MasterChanged(Sender: TObject);

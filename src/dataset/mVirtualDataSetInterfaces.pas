@@ -31,24 +31,26 @@ type
     function GetDatum(aIndex : integer) : IVDDatum;
   end;
 
-function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; aFields : TStrings) : integer; // -1 <, 0 =, +1 >
+function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >
 
 implementation
 
 uses
   mUtility;
 
-function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; aFields : TStrings) : integer; // -1 <, 0 =, +1 >
+function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >
 var
   i, current : integer;
   val1, val2 : Variant;
 begin
   Result := -1;
+  aLastCheckedConditionIndex := 0;
   for i := 0 to aFields.Count -1 do
   begin
     val1 := aFirstDatum.GetPropertyByFieldName(aFields[i]);
     val2 := aSecondDatum.GetPropertyByFieldName(aFields[i]);
     Result := CompareVariants(val1, val2);
+    aLastCheckedConditionIndex := i;
     if Result <> 0 then
       break;
   end;
