@@ -16,10 +16,13 @@ interface
   {$MODE DELPHI}
 {$ENDIF}
 
-uses SysUtils, Variants;
+uses Classes, SysUtils, Variants;
 
 const
   TheDayWhenTimeStarted = 730120; //01/01/2000 (starting from 01/01/01)
+
+type
+  TListSortCompare = function (Item1, Item2: Pointer): Integer of object; // cloned from LCLProc but with 'of object'
 
 function GenerateRandomIdString : string; overload;
 function GenerateRandomIdString(aLength : integer): string; overload;
@@ -29,7 +32,7 @@ function AddZerosFront (aValue : integer; aLength : integer) : String;
 function DateTimeToSeconds(const aDateTime : TDateTime; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted) : integer;
 function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted): TDateTime;
 
-// try to understand the input text from the user as a date value, if it fails it returns a blank string
+// try to convert the input text from the user as a date value, if it fails it returns a blank string
 // user can edit date as ddmmyy or ddmmyyyy or dmyy or with separators like '/', '\', '-', ....
 function TryToUnderstandDateString(const aInputString : String; var aValue : TDateTime) : boolean;
 
@@ -40,6 +43,12 @@ function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string
 function VarRecToVariant (AValue : TVarRec) : Variant;
 
 function CompareVariants (aVal1, aVal2 : variant) : integer;
+
+// cloned from LCLProc unit but with OnCompare procedure that can be a method of a class
+// this to avoid singleton dilemma when comparing operations needs extra data
+// as in virtualdataset Sort method and it is possible to write thread-safe code without shared singleton resources
+// http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
+procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare);
 
 {$IFDEF FPC}
 function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
@@ -540,6 +549,99 @@ begin
     Result := -1
   else
     Result := 1;
+end;
+
+// http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
+procedure _MergeSort(List: TFPList; StartIndex, EndIndex: integer; const OnCompare: TListSortCompare);
+// sort so that for each i is OnCompare(List[i],List[i+1])<=0
+var
+  MergeList: PPointer;
+
+  procedure SmallSort(StartPos, EndPos: PtrInt);
+  // use insertion sort for small lists
+  var
+    i: PtrInt;
+    Best: PtrInt;
+    j: PtrInt;
+    Item: Pointer;
+  begin
+    for i:=StartPos to EndPos-1 do begin
+      Best:=i;
+      for j:=i+1 to EndPos do
+        if OnCompare(List[Best],List[j])>0 then
+          Best:=j;
+      if Best>i then begin
+        Item:=List[i];
+        List[i]:=List[Best];
+        List[Best]:=Item;
+      end;
+    end;
+  end;
+
+  procedure Merge(Pos1, Pos2, Pos3: PtrInt);
+  // merge two sorted arrays
+  // the first array ranges Pos1..Pos2-1, the second ranges Pos2..Pos3
+  var Src1Pos,Src2Pos,DestPos,cmp,a:PtrInt;
+  begin
+    while (Pos3>=Pos2) and (OnCompare(List[Pos2-1],List[Pos3])<=0) do
+      dec(Pos3);
+    if (Pos1>=Pos2) or (Pos2>Pos3) then exit;
+    Src1Pos:=Pos2-1;
+    Src2Pos:=Pos3;
+    DestPos:=Pos3;
+    while (Src2Pos>=Pos2) and (Src1Pos>=Pos1) do begin
+      cmp:=OnCompare(List[Src1Pos],List[Src2Pos]);
+      if cmp>0 then begin
+        MergeList[DestPos]:=List[Src1Pos];
+        dec(Src1Pos);
+      end else begin
+        MergeList[DestPos]:=List[Src2Pos];
+        dec(Src2Pos);
+      end;
+      dec(DestPos);
+    end;
+    while Src2Pos>=Pos2 do begin
+      MergeList[DestPos]:=List[Src2Pos];
+      dec(Src2Pos);
+      dec(DestPos);
+    end;
+    for a:=DestPos+1 to Pos3 do
+      List[a]:=MergeList[a];
+  end;
+
+  procedure Sort(StartPos, EndPos: PtrInt);
+  // sort an interval in List. Use MergeList as work space.
+  var
+    mid: integer;
+  begin
+    if EndPos-StartPos<6 then begin
+      SmallSort(StartPos,EndPos);
+    end else begin
+      mid:=(StartPos+EndPos) shr 1;
+      Sort(StartPos,mid);
+      Sort(mid+1,EndPos);
+      Merge(StartPos,mid+1,EndPos);
+    end;
+  end;
+
+var
+  Cnt: Integer;
+begin
+  if (List=nil) then exit;
+  Cnt:=List.Count;
+  if StartIndex<0 then StartIndex:=0;
+  if EndIndex>=Cnt then EndIndex:=Cnt-1;
+  if StartIndex>=EndIndex then exit;
+  MergeList:=GetMem(List.Count*SizeOf(Pointer));
+  Sort(StartIndex,EndIndex);
+  Freemem(MergeList);
+end;
+
+// http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
+procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare);
+begin
+  if List=nil then exit;
+  _MergeSort(List,0,List.Count-1,OnCompare);
 end;
 
 
