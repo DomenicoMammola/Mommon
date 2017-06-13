@@ -22,7 +22,7 @@ uses
 type
 
   TVirtualFieldDefType = (vftUnknown, vftInteger, vftBoolean, vftString, vftFloat, vftCurrency,
-    vftDate, vftTime, vftDateTime, vftWideString, vftLargeInt, vftTimeStamp, vftBCD);
+    vftDate, vftTime, vftDateTime, vftWideString, vftTimeStamp, vftBCD);
 
 
   { TVirtualFieldDef }
@@ -72,7 +72,6 @@ begin
     vftTime : Result := ftTime;
     vftDateTime : Result := ftDateTime;
     vftWideString : Result := ftWideString;
-    vftLargeInt : Result := ftLargeint;
     vftTimeStamp : Result := ftTimeStamp;
     vftBCD : Result := ftBCD;
   end;
