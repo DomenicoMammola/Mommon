@@ -17,11 +17,11 @@ unit mQuickReadOnlyVirtualDataSet;
 interface
 
 uses
-  DB, Classes,
+  DB, Classes, contnrs,
   mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions;
 
 const
-  KEY_FIELD_NAME = 'KEY';
+  KEY_FIELD_NAME = '_KEY';
 
 type
 
@@ -34,6 +34,7 @@ type
 
     FCurrentSortConditions : TSortByConditions;
     FCurrentSortFields : TStringList;
+    FGarbage : TObjectList;
 
     function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
   public
@@ -56,6 +57,13 @@ implementation
 uses
   SysUtils,
   mUtility;
+
+type
+  TDatumShell = class
+  public
+    Datum : IVDDatum;
+    Idx : integer;
+  end;
 
 
 { TReadOnlyVirtualDatasetProvider }
@@ -83,13 +91,14 @@ begin
   inherited Create;
   FSortedIndex := TFPList.Create;
   FCurrentSortFields := TStringList.Create;
-
+  FGarbage := TObjectList.Create(true);
 end;
 
 destructor TReadOnlyVirtualDatasetProvider.Destroy;
 begin
   FSortedIndex.Free;
   FCurrentSortFields.Free;
+  FGarbage.Free;
   inherited Destroy;
 end;
 
@@ -98,29 +107,33 @@ procedure TReadOnlyVirtualDatasetProvider.Init(aDataProvider: IVDListDataProvide
 begin
   FIDataProvider := aDataProvider;
   FSortedIndex.Clear;
+  FGarbage.Clear;
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(const AField: TField; const AIndex: Integer; out AValue: variant);
 var
   tmpI : IVDDatum;
+  idx : integer;
 begin
-  AValue := Null;
   if (aIndex >= 0) then
   begin
+
+    if FSortedIndex.Count > 0 then
+    begin
+      tmpI := TDatumShell(FSortedIndex.Items[aIndex]).Datum;
+      idx := TDatumShell(FSortedIndex.Items[aIndex]).Idx;
+    end
+    else
+    begin
+      tmpI := FIDataProvider.GetDatum(aIndex);
+      idx := aIndex;
+    end;
+    AValue := Null;
+
    if CompareText(aField.FieldName, KEY_FIELD_NAME) = 0 then
-     aValue := aIndex
+     aValue := idx
    else
-   begin
-     if FSortedIndex.Count > 0 then
-     begin
-       tmpI := IVDDatum(FSortedIndex.Items[aIndex]);
-     end
-     else
-     begin
-       tmpI := FIDataProvider.GetDatum(aIndex);
-     end;
      aValue := tmpI.GetPropertyByFieldName(AField.FieldName);
-   end;
   end;
 end;
 
@@ -147,6 +160,7 @@ end;
 function TReadOnlyVirtualDatasetProvider.Sort(const aConditions: TSortByConditions) : boolean;
 var
   i : integer;
+  tmp : TDatumShell;
 begin
   if not Assigned(FIDataProvider) then
     Result := false
@@ -159,8 +173,15 @@ begin
     else
     begin
       FSortedIndex.Clear;
+      FGarbage.Clear;
       for i := 0 to Self.GetRecordCount -1 do
-        FSortedIndex.Add(FIDataProvider.GetDatum(i));
+      begin
+        tmp := TDatumShell.Create;
+        FGarbage.Add(tmp);
+        tmp.Datum := FIDataProvider.GetDatum(i);
+        tmp.Idx:= i;
+        FSortedIndex.Add(tmp);
+      end;
       FCurrentSortConditions := aConditions;
       FCurrentSortFields.Clear;
       for i := 0 to aConditions.Count - 1 do
@@ -174,6 +195,7 @@ end;
 procedure TReadOnlyVirtualDatasetProvider.ClearSort;
 begin
   FSortedIndex.Clear;
+  FGarbage.Clear;
 end;
 
 end.
