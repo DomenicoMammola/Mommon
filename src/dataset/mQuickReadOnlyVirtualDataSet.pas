@@ -70,18 +70,36 @@ type
 
 function TReadOnlyVirtualDatasetProvider.OnCompare(Item1: Pointer;Item2: Pointer):Integer;
 var
-  d1, d2 : IVDDatum;
+  d1, d2 : TDatumShell;
   tmpCondIndex : integer;
+  i : integer;
+  val1, val2 : Variant;
 begin
-  d1 := IVDDatum(Item1);
-  d2 := IVDDatum(Item2);
 
-  Result := CompareByProperties(d1, d2, FCurrentSortFields, tmpCondIndex);
+  d1 := TDatumShell(Item1);
+  d2 := TDatumShell(Item2);
 
-  if Result <> 0 then
+
+  Result := -1;
+  for i := 0 to FCurrentSortConditions.Count -1 do
   begin
-    if FCurrentSortConditions.Items[tmpCondIndex].SortType = stDescending then
-      Result := -1 * Result;
+    if CompareText(FCurrentSortConditions.Items[i].FieldName, KEY_FIELD_NAME) = 0 then
+    begin
+      val1 := d1.Idx;
+      val2 := d2.Idx;
+    end
+    else
+    begin
+      val1 := d1.Datum.GetPropertyByFieldName(FCurrentSortConditions.Items[i].FieldName);
+      val2 := d2.Datum.GetPropertyByFieldName(FCurrentSortConditions.Items[i].FieldName);
+    end;
+    Result := CompareVariants(val1, val2);
+    if Result <> 0 then
+    begin
+      if FCurrentSortConditions.Items[i].SortType = stDescending then
+        Result := -1 * Result;
+      break;
+    end;
   end;
 end;
 
@@ -117,7 +135,6 @@ var
 begin
   if (aIndex >= 0) then
   begin
-
     if FSortedIndex.Count > 0 then
     begin
       tmpI := TDatumShell(FSortedIndex.Items[aIndex]).Datum;
