@@ -89,6 +89,7 @@ type
 
     FVCLThread : TThread;
     FVCLEndThreadEvent : TEvent;
+    FLogs : TObjectList;
   private
     procedure PushMessage (aLevel : TmLogMessageLevel; aContext, aMessage : string);
   public
@@ -178,6 +179,8 @@ begin
 
   FVCLEndThreadEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, ''){$ENDIF};
   FVCLThread := TmLogPublisherThread.Create(FVCLEndThreadEvent, Self);
+
+  FLogs := TObjectList.Create(true);
 end;
 
 procedure TmLogManager.AddPublisher(aPublisher:TmLogPublisher);
@@ -193,6 +196,7 @@ begin
   Result := TmLog.Create;
   Result.FContext := loggerContext;
   Result.FLogManager := LogManager;
+  FLogs.Add(Result);
 end;
 
 
@@ -207,6 +211,8 @@ begin
   (FVCLThread as TmLogPublisherThread).StartEvent.SetEvent;
   FVCLEndThreadEvent.WaitFor(INFINITE);
   FVCLEndThreadEvent.Free;
+
+  FLogs.Free;
 
   inherited;
 end;

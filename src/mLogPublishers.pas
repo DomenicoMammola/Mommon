@@ -89,6 +89,7 @@ begin
     FMemo := TMemo.Create(FForm);
     FMemo.Parent := FForm;
     FMemo.Align := alClient;
+    FMemo.ScrollBars:= ssAutoVertical;
     FForm.Show;
   end;
   FMemo.Lines.Append(Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
