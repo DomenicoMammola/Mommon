@@ -152,7 +152,7 @@ begin
     vtString:
       Result:=AValue.VString^;
     vtPointer:
-      Result:=Integer(AValue.VPointer);
+      Result:=NativeInt(AValue.VPointer);
     vtPChar:
       Result:=StrPas(AValue.VPChar);
     vtAnsiString:
