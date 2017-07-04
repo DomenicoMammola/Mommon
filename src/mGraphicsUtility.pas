@@ -17,7 +17,7 @@ unit mGraphicsUtility;
 interface
 
 uses
-  Windows, Graphics, Types;
+  {$IFDEF WINDOWS}Windows,{$ELSE}LCLIntf, LCLType,{$ENDIF}  Graphics, Types;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
@@ -111,15 +111,23 @@ const
 
 procedure GetScreenShot (aBitmap : Graphics.TBitmap);
 var
-  DC : HDC;
+  DC : {$IFDEF LINUX}LCLType.{$ENDIF}HDC;
 begin
-  DC := GetDC (GetDesktopWindow) ;
+  DC := {$IFDEF LINUX}LCLIntf.GetDC(0){$ELSE}GetDC (GetDesktopWindow){$ENDIF};
   try
+    {$IFDEF LINUX}
+    aBitmap.LoadFromDevice(DC);
+    {$ELSE}
     aBitmap.Width := GetDeviceCaps (DC, HORZRES) ;
     aBitmap.Height := GetDeviceCaps (DC, VERTRES) ;
     BitBlt(aBitmap.Canvas.Handle, 0, 0, aBitmap.Width, aBitmap.Height, DC, 0, 0, SRCCOPY) ;
+    {$ENDIF}
   finally
+    {$IFDEF LINUX}
+    LCLIntf.ReleaseDC(0, DC);
+    {$ELSE}
     ReleaseDC (GetDesktopWindow, DC) ;
+    {$ENDIF}
   end;
 end;
 
