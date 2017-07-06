@@ -17,18 +17,39 @@ unit mSQLDialectExpertImpl;
 interface
 
 uses
-  mDatabaseConnectionClasses;
+  Variants,
+  mDatabaseConnectionClasses, mFilter;
 
 type
+
+  { TSQLDialectExpertImpl }
+
   TSQLDialectExpertImpl = class abstract
   public
     constructor Create; virtual; abstract;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; virtual; abstract;
+    function GetSQLForConditionOperator (const aOperator : TmFilterOperator) : string; virtual;
   end;
 
   TSQLDialectExpertImplementationClass = class of TSQLDialectExpertImpl;
 
 implementation
 
+
+{ TSQLDialectExpertImpl }
+
+function TSQLDialectExpertImpl.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
+begin
+  if aOperator = foEq then
+    Result := '='
+  else if aOperator = foGtOrEq then
+    Result := '>='
+  else if aOperator = foLtOrEq then
+    Result := '<='
+  else if (aOperator = foLike) or (aOperator = foStartWith) or (aOperator = foEndWith) then
+    Result := 'LIKE'
+  else if aOperator = foNotEq then
+    Result := '<>';
+end;
 
 end.

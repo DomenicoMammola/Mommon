@@ -17,7 +17,7 @@ unit mSQLBuilder;
 interface
 
 uses
-  mDatabaseConnectionClasses,
+  mDatabaseConnectionClasses, mFilter,
   mSQLDialectExpertImpl;
 
 const
@@ -39,6 +39,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    function SQLSnippetForCondition(const aFieldName : String; const aOperator : TmFilterOperator; const aParamNameWithoutDelimiter : String) : String;
     procedure PrepareSQL (aSQL : string);
     function ParamByName(const Value: string): TmQueryParameter;
     function BuildSQL : string;
@@ -79,6 +80,14 @@ begin
   if Assigned(FSQLDialectExpert) then
     FreeAndNil(FSQLDialectExpert);
   inherited Destroy;
+end;
+
+function TmSQLBuilder.SQLSnippetForCondition(const aFieldName: String; const aOperator: TmFilterOperator; const aParamNameWithoutDelimiter: String): String;
+begin
+  if not Assigned(FSQLDialectExpert) then
+    raise TmDataConnectionException.Create('No database vendor was set. Unable to build definitive sql command');
+
+  Result := '(' + aFieldName + ' ' + FSQLDialectExpert.GetSQLForConditionOperator(aOperator) + ' ' + PARAMETER_DELIMITER + aParamNameWithoutDelimiter + PARAMETER_DELIMITER +')';
 end;
 
 procedure TmSQLBuilder.PrepareSQL(aSQL: string);
