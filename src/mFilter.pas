@@ -17,10 +17,10 @@ unit mFilter;
 interface
 
 uses
-  Contnrs;
+  Contnrs, Variants;
 
 type
-  TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foLike);
+  TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foLike, foNotEq, foStartWith, foEndWith);
 
   { TmFilter }
 
@@ -32,6 +32,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
+    function GetFormattedValue : Variant;
 
     property FieldName : string read FFieldName write FFieldName;
     property FilterOperator : TmFilterOperator read FFilterOperator write FFilterOperator;
@@ -53,6 +55,7 @@ type
     function Count : integer;
     function Get(aIndex : integer) : TmFilter;
   end;
+
 implementation
 
 { TmFilters }
@@ -104,6 +107,23 @@ end;
 destructor TmFilter.Destroy;
 begin
   inherited Destroy;
+end;
+
+function TmFilter.GetFormattedValue: Variant;
+begin
+  if not VarIsNull(FValue) then
+  begin
+    if FFilterOperator = foLike then
+      Result := '%' + FValue + '%'
+    else if FFilterOperator = foStartWith then
+      Result := FValue + '%'
+    else if FFilterOperator = foEndWith then
+      Result := '%' + FValue
+    else
+      Result := FValue;
+  end
+  else
+    Result := FValue;
 end;
 
 end.
