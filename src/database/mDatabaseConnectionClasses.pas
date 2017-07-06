@@ -17,7 +17,7 @@ unit mDatabaseConnectionClasses;
 interface
 
 uses
-  DB, Contnrs, SysUtils,
+  DB, Contnrs, SysUtils, Variants,
   mNullables;
 
 type
@@ -60,6 +60,7 @@ type
     procedure Assign(aValue : TNullableInteger); overload;
     procedure Assign(aValue : TNullableDateTime); overload;
     procedure Assign(aValue : TNullableDouble); overload;
+    procedure Assign(aValue : Variant; const aDataType : TmParameterDataType); overload;
 
     property Name : String read FName write FName;
     property DataType : TmParameterDataType read GetParameterDataType write SetParameterDataType;
@@ -424,6 +425,15 @@ begin
     Self.SetNull
   else
     Self.AsFloat:= aValue.Value;
+end;
+
+procedure TmQueryParameter.Assign(aValue: Variant; const aDataType: TmParameterDataType);
+begin
+  FDataType:= aDataType;
+  if VarIsNull(aValue) then
+    Self.SetNull
+  else
+    FValue := aValue;
 end;
 
 
