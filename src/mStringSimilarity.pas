@@ -87,7 +87,7 @@ begin
   if (trim(tmpStr1) = '') then
   begin
     if (trim(tmpStr2) = '') then
-      Result := 9999999
+      Result := 1
     else
       Result := 0;
     exit;
