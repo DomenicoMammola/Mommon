@@ -41,6 +41,8 @@ type
     procedure LoadFromFile(FileName: string);
   end;
 
+  { TmXmlElement }
+
   TmXmlElement = class
   private
     FImpl : TImpl_mXmlElement;
@@ -52,13 +54,16 @@ type
     function HasAttribute(const Name: TmXMLString): boolean;
     procedure SetAttribute(Name, Value: TmXmlString);
     function GetAttribute(Name: TmXmlString): TmXmlString; overload;
-    function GetAttribute(Name: TmXmlString; Default: TmXmlString): TmXmlString; overload;
+    function GetAttribute(Name: TmXmlString; DefaultValue: TmXmlString): TmXmlString; overload;
     procedure SetDateTimeAttribute(Name : TmXmlString; Value: TDateTime);
     function GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload;
-    function GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload;
+    function GetDateTimeAttribute(Name: TmXmlString; DefaultValue : TDateTime): TDateTime; overload;
     procedure SetIntegerAttribute(Name : TmXmlString; Value: integer);
     function GetIntegerAttribute(Name: TmXmlString): integer; overload;
-    function GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload;
+    function GetIntegerAttribute(Name: TmXmlString; DefaultValue : integer): integer; overload;
+    procedure SetBooleanAttribute(Name : TmXmlString; Value : Boolean);
+    function GetBooleanAttribute(Name: TmXMLString): boolean; overload;
+    function GetBooleanAttribute(Name: TmXMLString; DefaultValue : boolean): boolean; overload;
   end;
 
   TmXmlElementCursor = class
@@ -150,9 +155,10 @@ begin
   inherited;
 end;
 
-function TmXmlElement.GetAttribute(Name, Default: TmXmlString): TmXmlString;
+function TmXmlElement.GetAttribute(Name: TmXmlString; DefaultValue: TmXmlString
+  ): TmXmlString;
 begin
-  Result := FImpl._GetAttribute(Name, Default);
+  Result := FImpl._GetAttribute(Name, DefaultValue);
 end;
 
 function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString): TDateTime;
@@ -160,9 +166,9 @@ begin
   Result := FImpl._GetDateTimeAttribute(Name);
 end;
 
-function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString; Default: TDateTime): TDateTime;
+function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString; DefaultValue: TDateTime): TDateTime;
 begin
-  Result := FImpl._GetDateTimeAttribute(Name, Default);
+  Result := FImpl._GetDateTimeAttribute(Name, DefaultValue);
 end;
 
 function TmXmlElement.GetIntegerAttribute(Name: TmXmlString): integer;
@@ -170,9 +176,24 @@ begin
   Result := FImpl._GetIntegerAttribute(Name);
 end;
 
-function TmXmlElement.GetIntegerAttribute(Name: TmXmlString; Default: integer): integer;
+function TmXmlElement.GetIntegerAttribute(Name: TmXmlString; DefaultValue: integer): integer;
 begin
-  Result := FImpl._GetIntegerAttribute(Name, Default)
+  Result := FImpl._GetIntegerAttribute(Name, DefaultValue)
+end;
+
+procedure TmXmlElement.SetBooleanAttribute(Name: TmXmlString; Value: Boolean);
+begin
+  Self.SetAttribute(Name, BoolToStr(Value, true));
+end;
+
+function TmXmlElement.GetBooleanAttribute(Name: TmXMLString): boolean;
+begin
+  Result := StrToBool(Self.GetAttribute(Name));
+end;
+
+function TmXmlElement.GetBooleanAttribute(Name: TmXMLString; DefaultValue: boolean): boolean;
+begin
+  Result := StrToBool(Self.GetAttribute(Name, BoolToStr(DefaultValue, true)));
 end;
 
 function TmXmlElement.GetAttribute(Name: TmXmlString): TmXmlString;
