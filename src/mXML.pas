@@ -58,6 +58,9 @@ type
     procedure SetDateTimeAttribute(Name : TmXmlString; Value: TDateTime);
     function GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload;
     function GetDateTimeAttribute(Name: TmXmlString; DefaultValue : TDateTime): TDateTime; overload;
+    procedure SetFloatAttribute(Name : TmXmlString; Value: Double);
+    function GetFloatAttribute(Name: TmXmlString): Double; overload;
+    function GetFloatAttribute(Name: TmXmlString; DefaultValue : Double): Double; overload;
     procedure SetIntegerAttribute(Name : TmXmlString; Value: integer);
     function GetIntegerAttribute(Name: TmXmlString): integer; overload;
     function GetIntegerAttribute(Name: TmXmlString; DefaultValue : integer): integer; overload;
@@ -91,6 +94,9 @@ type
     procedure _SetDateTimeAttribute(Name : TmXmlString; Value : TDateTime); virtual; abstract;
     function _GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload; virtual; abstract;
     function _GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; virtual; abstract;
+    procedure _SetFloatAttribute(Name : TmXmlString; Value : double); virtual; abstract;
+    function _GetFloatAttribute(Name: TmXmlString): double; overload; virtual; abstract;
+    function _GetFloatAttribute(Name: TmXmlString; Default : double): double; overload; virtual; abstract;
     procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString): integer; overload; virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; virtual; abstract;
@@ -169,6 +175,21 @@ end;
 function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString; DefaultValue: TDateTime): TDateTime;
 begin
   Result := FImpl._GetDateTimeAttribute(Name, DefaultValue);
+end;
+
+procedure TmXmlElement.SetFloatAttribute(Name: TmXmlString; Value: Double);
+begin
+  FImpl._SetFloatAttribute(Name, Value);
+end;
+
+function TmXmlElement.GetFloatAttribute(Name: TmXmlString): Double;
+begin
+  Result := FImpl._GetFloatAttribute(Name);
+end;
+
+function TmXmlElement.GetFloatAttribute(Name: TmXmlString; DefaultValue: Double): Double;
+begin
+  Result := FImpl._GetFloatAttribute(Name, DefaultValue);
 end;
 
 function TmXmlElement.GetIntegerAttribute(Name: TmXmlString): integer;

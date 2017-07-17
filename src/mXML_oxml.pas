@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, Contnrs,
-  mXML, OXmlPDOM;
+  mXML, OXmlPDOM, mMathUtility;
 
 type
   Tmxml_oxml_PointerShell = class
@@ -35,6 +35,7 @@ type
     FGarbage : TObjectList;
     procedure RaiseMissingAttributeException(Name :TmXMLString);
     procedure RaiseWrongDateTimeException(Name, Value :TmXMLString);
+    procedure RaiseWrongFloatException(Name, Value : TmXMLString);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -48,6 +49,9 @@ type
     procedure _SetDateTimeAttribute(Name : TmXmlString; Value: TDateTime); override;
     function _GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload; override;
     function _GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; override;
+    procedure _SetFloatAttribute(Name : TmXmlString; Value : double); override;
+    function _GetFloatAttribute(Name: TmXmlString): double; overload; override;
+    function _GetFloatAttribute(Name: TmXmlString; Default : double): double; overload; override;
     procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); override;
     function _GetIntegerAttribute(Name: TmXmlString): integer; overload; override;
     function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; override;
@@ -115,6 +119,11 @@ begin
   raise EmXmlError.Create('XML attribute ' + Name + ' has value ' + Value + ' not in correct ISO format!');
 end;
 
+procedure TImpl_oxml_mXmlElement.RaiseWrongFloatException(Name, Value: TmXMLString);
+begin
+  raise EmXmlError.Create('XML attribute ' + Name + ' has value ' + Value + ' that is not a valid float number!');
+end;
+
 function TImpl_oxml_mXmlElement._AddElement(Name: TmXMLString): TmXmlElement;
 var
   NewNode : PXMLNode;
@@ -162,6 +171,45 @@ begin
       Result := tempValue
     else
       RaiseWrongDateTimeException(Name, tmp);
+  end
+  else
+    Result := Default;
+end;
+
+procedure TImpl_oxml_mXmlElement._SetFloatAttribute(Name: TmXmlString;Value: double);
+begin
+  FNode^.SetAttribute(Name, FloatToStr(Value));
+end;
+
+function TImpl_oxml_mXmlElement._GetFloatAttribute(Name: TmXmlString): double;
+var
+  tmp : string;
+  tempValue : double;
+begin
+  if FNode^.HasAttribute(Name) then
+  begin
+    tmp := FNode^.GetAttribute(Name);
+    if TryToConvertToDouble(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongFloatException(Name, tmp);
+  end
+  else
+    RaiseMissingAttributeException(Name);
+end;
+
+function TImpl_oxml_mXmlElement._GetFloatAttribute(Name: TmXmlString; Default: double): double;
+var
+  tmp : string;
+  tempValue : double;
+begin
+  if FNode^.HasAttribute(Name) then
+  begin
+    tmp := FNode^.GetAttribute(Name);
+    if TryToConvertToDouble(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongFloatException(Name, tmp);
   end
   else
     Result := Default;
