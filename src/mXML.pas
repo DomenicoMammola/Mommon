@@ -41,6 +41,8 @@ type
     procedure LoadFromFile(FileName: string);
   end;
 
+  { TmXmlElement }
+
   TmXmlElement = class
   private
     FImpl : TImpl_mXmlElement;
@@ -52,13 +54,19 @@ type
     function HasAttribute(const Name: TmXMLString): boolean;
     procedure SetAttribute(Name, Value: TmXmlString);
     function GetAttribute(Name: TmXmlString): TmXmlString; overload;
-    function GetAttribute(Name: TmXmlString; Default: TmXmlString): TmXmlString; overload;
+    function GetAttribute(Name: TmXmlString; DefaultValue: TmXmlString): TmXmlString; overload;
     procedure SetDateTimeAttribute(Name : TmXmlString; Value: TDateTime);
     function GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload;
-    function GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload;
+    function GetDateTimeAttribute(Name: TmXmlString; DefaultValue : TDateTime): TDateTime; overload;
+    procedure SetFloatAttribute(Name : TmXmlString; Value: Double);
+    function GetFloatAttribute(Name: TmXmlString): Double; overload;
+    function GetFloatAttribute(Name: TmXmlString; DefaultValue : Double): Double; overload;
     procedure SetIntegerAttribute(Name : TmXmlString; Value: integer);
     function GetIntegerAttribute(Name: TmXmlString): integer; overload;
-    function GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload;
+    function GetIntegerAttribute(Name: TmXmlString; DefaultValue : integer): integer; overload;
+    procedure SetBooleanAttribute(Name : TmXmlString; Value : Boolean);
+    function GetBooleanAttribute(Name: TmXMLString): boolean; overload;
+    function GetBooleanAttribute(Name: TmXMLString; DefaultValue : boolean): boolean; overload;
   end;
 
   TmXmlElementCursor = class
@@ -86,6 +94,9 @@ type
     procedure _SetDateTimeAttribute(Name : TmXmlString; Value : TDateTime); virtual; abstract;
     function _GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload; virtual; abstract;
     function _GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; virtual; abstract;
+    procedure _SetFloatAttribute(Name : TmXmlString; Value : double); virtual; abstract;
+    function _GetFloatAttribute(Name: TmXmlString): double; overload; virtual; abstract;
+    function _GetFloatAttribute(Name: TmXmlString; Default : double): double; overload; virtual; abstract;
     procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString): integer; overload; virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; virtual; abstract;
@@ -150,9 +161,10 @@ begin
   inherited;
 end;
 
-function TmXmlElement.GetAttribute(Name, Default: TmXmlString): TmXmlString;
+function TmXmlElement.GetAttribute(Name: TmXmlString; DefaultValue: TmXmlString
+  ): TmXmlString;
 begin
-  Result := FImpl._GetAttribute(Name, Default);
+  Result := FImpl._GetAttribute(Name, DefaultValue);
 end;
 
 function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString): TDateTime;
@@ -160,9 +172,24 @@ begin
   Result := FImpl._GetDateTimeAttribute(Name);
 end;
 
-function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString; Default: TDateTime): TDateTime;
+function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString; DefaultValue: TDateTime): TDateTime;
 begin
-  Result := FImpl._GetDateTimeAttribute(Name, Default);
+  Result := FImpl._GetDateTimeAttribute(Name, DefaultValue);
+end;
+
+procedure TmXmlElement.SetFloatAttribute(Name: TmXmlString; Value: Double);
+begin
+  FImpl._SetFloatAttribute(Name, Value);
+end;
+
+function TmXmlElement.GetFloatAttribute(Name: TmXmlString): Double;
+begin
+  Result := FImpl._GetFloatAttribute(Name);
+end;
+
+function TmXmlElement.GetFloatAttribute(Name: TmXmlString; DefaultValue: Double): Double;
+begin
+  Result := FImpl._GetFloatAttribute(Name, DefaultValue);
 end;
 
 function TmXmlElement.GetIntegerAttribute(Name: TmXmlString): integer;
@@ -170,9 +197,24 @@ begin
   Result := FImpl._GetIntegerAttribute(Name);
 end;
 
-function TmXmlElement.GetIntegerAttribute(Name: TmXmlString; Default: integer): integer;
+function TmXmlElement.GetIntegerAttribute(Name: TmXmlString; DefaultValue: integer): integer;
 begin
-  Result := FImpl._GetIntegerAttribute(Name, Default)
+  Result := FImpl._GetIntegerAttribute(Name, DefaultValue)
+end;
+
+procedure TmXmlElement.SetBooleanAttribute(Name: TmXmlString; Value: Boolean);
+begin
+  Self.SetAttribute(Name, BoolToStr(Value, true));
+end;
+
+function TmXmlElement.GetBooleanAttribute(Name: TmXMLString): boolean;
+begin
+  Result := StrToBool(Self.GetAttribute(Name));
+end;
+
+function TmXmlElement.GetBooleanAttribute(Name: TmXMLString; DefaultValue: boolean): boolean;
+begin
+  Result := StrToBool(Self.GetAttribute(Name, BoolToStr(DefaultValue, true)));
 end;
 
 function TmXmlElement.GetAttribute(Name: TmXmlString): TmXmlString;
