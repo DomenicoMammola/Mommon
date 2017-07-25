@@ -147,6 +147,7 @@ var
   tmp : string;
   tempValue : TDateTime;
 begin
+  Result := 0;
   if FNode^.HasAttribute(Name) then
   begin
     tmp := FNode^.GetAttribute(Name);
@@ -164,6 +165,7 @@ var
   tmp : string;
   tempValue : TDateTime;
 begin
+  Result := 0;
   if FNode^.HasAttribute(Name) then
   begin
     tmp := FNode^.GetAttribute(Name);
@@ -186,6 +188,7 @@ var
   tmp : string;
   tempValue : double;
 begin
+  Result := 0;
   if FNode^.HasAttribute(Name) then
   begin
     tmp := FNode^.GetAttribute(Name);
@@ -203,6 +206,7 @@ var
   tmp : string;
   tempValue : double;
 begin
+  Result := 0;
   if FNode^.HasAttribute(Name) then
   begin
     tmp := FNode^.GetAttribute(Name);
