@@ -95,3 +95,7 @@ lib/
 
 # Application bundle for Mac OS
 *.app/
+
+#Lazarus test configuration files
+*.fpcunit.ini
+
