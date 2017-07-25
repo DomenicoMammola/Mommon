@@ -8,3 +8,16 @@ OXML
 
 For reference and license please see:
 http://www.kluug.net/oxml.php
+
+-----------------------------------------------------------
+
+Checkout
+https://svn.atozed.com:444/svn/Indy10/Lib
+(User ID: Indy-Public-RO)
+in folder:
+Indy10
+
+http://www.indyproject.org/Sockets/Download/svn.EN.aspx
+rev.5432
+
+to remove "voluntary" memory leaks : http://forum.lazarus.freepascal.org/index.php?topic=14556.0
