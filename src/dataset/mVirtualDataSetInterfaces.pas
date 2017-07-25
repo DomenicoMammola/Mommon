@@ -40,7 +40,7 @@ uses
 
 function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >
 var
-  i, current : integer;
+  i : integer;
   val1, val2 : Variant;
 begin
   Result := -1;

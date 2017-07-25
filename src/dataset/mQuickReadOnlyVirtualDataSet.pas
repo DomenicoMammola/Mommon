@@ -71,7 +71,6 @@ type
 function TReadOnlyVirtualDatasetProvider.OnCompare(Item1: Pointer;Item2: Pointer):Integer;
 var
   d1, d2 : TDatumShell;
-  tmpCondIndex : integer;
   i : integer;
   val1, val2 : Variant;
 begin
@@ -179,8 +178,9 @@ var
   i : integer;
   tmp : TDatumShell;
 begin
+  Result := false;
   if not Assigned(FIDataProvider) then
-    Result := false
+    exit
   else
   begin
     // http://lazarus-ccr.sourceforge.net/docs/rtl/classes/tfplist.html
