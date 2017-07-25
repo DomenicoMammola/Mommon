@@ -107,7 +107,7 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure RefreshStructure (aUser : String; aContext : String); virtual; abstract;
+    procedure Refresh; virtual; abstract;
     procedure ReadStream (aFile : TmFile; aStream : TStream); virtual; abstract;
     procedure WriteStream (aFile : TmFile; aStream : TStream); virtual; abstract;
 
