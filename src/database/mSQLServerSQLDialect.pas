@@ -37,7 +37,7 @@ var
   TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli : word;
 begin
   DecodeDateTime(aValue, TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli);
-  Result := '''' + AddZerosFront(TempYear, 4) + '/' + AddZerosFront(TempMonth, 2) + '/' + AddZerosFront(TempDay, 2) + ' ' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + '''';
+  Result := 'convert(datetime, ''' + AddZerosFront(TempYear, 4) + '-' + AddZerosFront(TempMonth, 2) + '-' + AddZerosFront(TempDay, 2) + ' ' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + ''', 120)';
 end;
 
 function DateToSQLString (aValue : TDate; const aAddQuotes : boolean = true) : String;
