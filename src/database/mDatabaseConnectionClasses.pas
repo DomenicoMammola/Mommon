@@ -18,7 +18,7 @@ interface
 
 uses
   DB, Contnrs, SysUtils, Variants,
-  mNullables;
+  mNullables, mXML;
 
 type
   TmDataConnectionException = class (Exception);
@@ -114,6 +114,10 @@ type
     procedure SetWindowsIntegratedSecurity(AValue: Boolean);
   public
     constructor Create;
+
+    procedure SaveToXMLElement (aXMLElement : TmXmlElement);
+    procedure LoadFromXMLElement (const aXMLElement : TmXmlElement);
+
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
     property Server : String read GetServer write SetServer;
     property DatabaseName : String read GetDatabaseName write SetDatabaseName;
@@ -126,6 +130,9 @@ type
 
 function DataTypeToParameterDataType (aValue : TFieldType) : TmParameterDataType;
 function ParameterDataTypeToDataType(aValue : TmParameterDataType) : TFieldType;
+
+function DatabaseVendorToString (aValue : TmDatabaseVendor) : string;
+function StringToDatabaseVendor (aValue : String) : TmDatabaseVendor;
 
 implementation
 
@@ -169,12 +176,29 @@ begin
     end;
 end;
 
+function DatabaseVendorToString(aValue: TmDatabaseVendor): string;
+begin
+  if aValue = dvUnknown then
+    Result := 'dvUnknown'
+  else if aValue = dvSQLServer then
+    Result := 'dvSQLServer'
+  else
+    Result := '';
+end;
+
+function StringToDatabaseVendor(aValue: String): TmDatabaseVendor;
+begin
+  if aValue = 'dvSQLServer' then
+    Result := dvSQLServer
+  else
+    Result := dvUnknown;
+end;
+
 { TmQueryParameters }
 
 constructor TmQueryParameters.Create;
 begin
   FList:= TObjectList.Create;
-
 end;
 
 destructor TmQueryParameters.Destroy;
@@ -235,6 +259,27 @@ begin
   FExtraSettings:= '';
 end;
 
+procedure TmDatabaseConnectionInfo.SaveToXMLElement(aXMLElement: TmXmlElement);
+begin
+  aXMLElement.SetAttribute('vendorType', DatabaseVendorToString(Self.VendorType));
+  aXMLElement.SetAttribute('server', Self.Server);
+  aXMLElement.SetAttribute('databaseName', Self.DatabaseName);
+  aXMLElement.SetAttribute('userName', Self.UserName);
+  aXMLElement.SetAttribute('password', Self.Password);
+  aXMLElement.SetAttribute('extraSettings', Self.ExtraSettings);
+  aXMLElement.SetBooleanAttribute('windowsIntegratedSecurity', Self.WindowsIntegratedSecurity);
+end;
+
+procedure TmDatabaseConnectionInfo.LoadFromXMLElement(const aXMLElement: TmXmlElement);
+begin
+  VendorType := StringToDatabaseVendor(aXMLElement.GetAttribute('vendorType');
+  Self.Server := aXMLElement.GetAttribute('server');
+  Self.DatabaseName := aXMLElement.GetAttribute('databaseName');
+  Self.UserName := aXMLElement.GetAttribute('userName');
+  Self.Password := aXMLElement.GetAttribute('password');
+  Self.ExtraSettings := aXMLElement.GetAttribute('extraSettings');
+  Self.WindowsIntegratedSecurity := aXMLElement.GetBooleanAttribute('windowsIntegratedSecurity');
+end;
 
 { TmQueryParameter }
 
