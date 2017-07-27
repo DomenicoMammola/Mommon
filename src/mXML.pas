@@ -25,6 +25,9 @@ type
   TImpl_mXmlElementCursor = class;
 
   TmXmlElement = class;
+
+  { TmXmlDocument }
+
   TmXmlDocument = class
   private
     FImpl : TImpl_mXmlDocument;
@@ -39,6 +42,8 @@ type
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToFile(FileName: string);
     procedure LoadFromFile(FileName: string);
+    procedure SaveToFileEncrypted (FileName : string; Password : String);
+    procedure LoadFromFileEncrypted (FileName : string; Password : String);
   end;
 
   { TmXmlElement }
@@ -114,6 +119,8 @@ type
     procedure _LoadFromStream(Stream: TStream); virtual; abstract;
     procedure _SaveToFile(FileName: string); virtual; abstract;
     procedure _LoadFromFile(FileName: string); virtual; abstract;
+    procedure _SaveToFileEncrypted (FileName : string; Password : String); virtual; abstract;
+    procedure _LoadFromFileEncrypted (FileName : string; Password : String); virtual; abstract;
   end;
 
   TImpl_mXmlElementCursor = class
@@ -269,6 +276,16 @@ end;
 procedure TmXmlDocument.LoadFromFile(FileName: string);
 begin
   FImpl._LoadFromFile(FileName);
+end;
+
+procedure TmXmlDocument.SaveToFileEncrypted(FileName: string; Password: String);
+begin
+  FImpl._SaveToFileEncrypted(FileName, Password);
+end;
+
+procedure TmXmlDocument.LoadFromFileEncrypted(FileName: string; Password: String);
+begin
+  FImpl._LoadFromFileEncrypted(FileName, Password);
 end;
 
 procedure TmXmlDocument.LoadFromStream(Stream: TStream);

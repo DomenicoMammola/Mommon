@@ -17,8 +17,8 @@ unit mXML_oxml;
 interface
 
 uses
-  Classes, Contnrs,
-  mXML, OXmlPDOM, mMathUtility;
+  Classes, Contnrs, BlowFish,
+  mXML, OXmlPDOM, mMathUtility, mUtility;
 
 type
   Tmxml_oxml_PointerShell = class
@@ -59,6 +59,8 @@ type
     procedure _SetOwner(aOwner : TObject); override;
   end;
 
+  { TImpl_oxml_mXmlDocument }
+
   TImpl_oxml_mXmlDocument = class (TImpl_mXmlDocument)
   private
     FXML: IXMLDocument;
@@ -75,6 +77,8 @@ type
     procedure _LoadFromStream(Stream: TStream); override;
     procedure _SaveToFile(FileName: string); override;
     procedure _LoadFromFile(FileName: string); override;
+    procedure _SaveToFileEncrypted (FileName : string; Password : String); override;
+    procedure _LoadFromFileEncrypted (FileName : string; Password : String); override;
   end;
 
   TImpl_oxml_mXmlElementCursor = class (TImpl_mXmlElementCursor)
@@ -308,6 +312,68 @@ begin
     FRootElement.Free;
   FRootElement := nil;
   FRoot := FXML.DocumentElement;
+end;
+
+procedure TImpl_oxml_mXmlDocument._SaveToFileEncrypted(FileName: string; Password: String);
+var
+  stream : TMemoryStream;
+  fileStream : TFileStream;
+  en: TBlowFishEncryptStream;
+  buf : TBytes;
+  bytesRead : integer;
+begin
+  stream := TMemoryStream.Create;
+  fileStream := TFileStream.Create(Filename, fmCreate or fmOpenReadWrite);
+  en:= TBlowFishEncryptStream.Create(Password, fileStream);
+  try
+    Self._SaveToStream(stream);
+    stream.Position:= 0;
+
+    SetLength(buf, 1000);
+    bytesRead := stream.Read(buf[0], 1000);
+    while bytesRead > 0 do
+    begin
+      en.Write(buf[0], bytesRead);
+      bytesRead := stream.Read(buf[0], 1000);
+    end;
+  finally
+    en.Free;
+    fileStream.Free;
+    stream.Free;
+  end;
+end;
+
+procedure TImpl_oxml_mXmlDocument._LoadFromFileEncrypted(FileName: string; Password: String);
+var
+  de: TBlowFishDeCryptStream;
+  fileStream: TFileStream;
+  stream : TMemoryStream;
+  buf : TBytes;
+  bytesRead : integer;
+begin
+  stream := TMemoryStream.Create;
+  fileStream := TFileStream.Create(Filename, fmOpenRead);
+  try
+    de := TBlowFishDecryptStream.Create(Password, fileStream);
+    try
+      stream.SetSize(fileStream.Size);
+      SetLength(buf, 1000);
+      bytesRead := de.Read(buf[0], 1000);
+      while bytesRead > 0 do
+      begin
+        stream.Write(buf[0], bytesRead);
+        bytesRead := de.Read(buf[0], 1000);
+      end;
+    finally
+      de.Free;
+    end;
+    stream.Position:= 0;
+    Self._LoadFromStream(stream);
+  finally
+    fileStream.Free;
+    stream.Free;
+  end;
+
 end;
 
 procedure TImpl_oxml_mXmlDocument._LoadFromStream(Stream: TStream);

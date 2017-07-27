@@ -21,6 +21,8 @@ uses
 type
   // Test methods for class TmXmlDocument
 
+  { TestTmXmlDocument }
+
   TestTmXmlDocument = class(TTestCase)
   strict private
   public
@@ -28,6 +30,7 @@ type
     procedure TearDown; override;
   published
     procedure TestSimpleSaveAndLoad;
+    procedure TestEncryptedSaveAndLoad;
     procedure TestCursor;
   end;
 
@@ -132,6 +135,48 @@ begin
     FmXmlDocument.Free;
   end;
 
+end;
+
+procedure TestTmXmlDocument.TestEncryptedSaveAndLoad;
+var
+  FmXmlDocument : TmXmlDocument;
+  TempFileName : string;
+  DateTimeValue : TDateTime;
+begin
+  FmXmlDocument := TmXmlDocument.Create;
+  try
+    FmXmlDocument.CreateRootElement('root_element').SetAttribute('key', 'value');
+    CheckTrue(FmXmlDocument.RootElement <> nil);
+    CheckTrue(FmXMLDocument.RootElement.HasAttribute('key'));
+    CheckEquals('value', FmXmlDocument.RootElement.GetAttribute('key'));
+    DateTimeValue := Now;
+    FmXmlDocument.RootElement.SetDateTimeAttribute('time', DateTimeValue);
+    CheckTrue(DoublesAreEqual(DateTimeValue, FmXmlDocument.RootElement.GetDateTimeAttribute('time'), 4),
+      FloatToStr(DateTimeValue) + ' is not ' + FloatToStr(FmXmlDocument.RootElement.GetDateTimeAttribute('time')));
+    FmXmlDocument.RootElement.AddElement('child1').SetAttribute('key1', 'value1');
+    FmXmlDocument.RootElement.AddElement('child2').SetAttribute('key2', 'value2');
+    {$IFDEF FPC}
+    TempFileName := SysUtils.GetTempFileName;
+    {$ELSE}
+    TempFileName := TPath.GetTempFileName;
+    {$ENDIF}
+    FmXMLDocument.SaveToFileEncrypted(TempFileName, 'password');
+    {$IFNDEF FPC}
+    Status(TempFileName);
+    {$ENDIF}
+  finally
+    FmXmlDocument.Free;
+  end;
+  FmXmlDocument := TmXmlDocument.Create;
+  try
+    FmXmlDocument.LoadFromFileEncrypted(TempFileName, 'password');
+    CheckTrue(FmXmlDocument.RootElement <> nil);
+    CheckTrue(FmXMLDocument.RootElement.HasAttribute('key'));
+    CheckEquals('value', FmXmlDocument.RootElement.GetAttribute('key'));
+    CheckTrue(DoublesAreEqual(DateTimeValue, FmXmlDocument.RootElement.GetDateTimeAttribute('time'),4));
+  finally
+    FmXmlDocument.Free;
+  end;
 end;
 
 initialization
