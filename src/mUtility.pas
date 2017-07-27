@@ -54,6 +54,11 @@ procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare);
 function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 {$ENDIF}
 
+function ExtractLastFolderFromPath (aFullPath : string) : string;
+
+// https://forum.lazarus.freepascal.org/index.php/topic,33013.msg213197.html#msg213197
+function SillyCryptDecrypt (const aText, aPassword: string): string;
+
 implementation
 
 uses
@@ -505,6 +510,32 @@ function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 begin
   Result := C in CharSet;
 end;
+
+function ExtractLastFolderFromPath(aFullPath: string): string;
+var
+  tmp : TStringList;
+begin
+  tmp := TStringList.Create;
+  try
+    ExtractStrings(AllowDirectorySeparators, [], PChar(aFullPath), tmp, false );
+    Result := tmp.Strings[tmp.Count - 1];
+  finally
+    tmp.Free;
+  end;
+end;
+
+function SillyCryptDecrypt(const aText, aPassword: string): string;
+var
+  i, len: integer;
+begin
+  len := Length(aText);
+  if len > Length(aPassword) then
+    len := Length(aPassword);
+  SetLength(result, len);
+  for i := 1 to len do
+    result[i] := Chr(Ord(aText[i]) xor Ord(aPassword[i]));
+end;
+
 {$ENDIF}
 
 function CompareVariants(aVal1, aVal2: variant): integer;
