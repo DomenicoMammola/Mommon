@@ -117,6 +117,7 @@ type
 
     procedure SaveToXMLElement (aXMLElement : TmXmlElement);
     procedure LoadFromXMLElement (const aXMLElement : TmXmlElement);
+    procedure Assign (aSource : TmDatabaseConnectionInfo);
 
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
     property Server : String read GetServer write SetServer;
@@ -279,6 +280,17 @@ begin
   Self.Password := aXMLElement.GetAttribute('password');
   Self.ExtraSettings := aXMLElement.GetAttribute('extraSettings');
   Self.WindowsIntegratedSecurity := aXMLElement.GetBooleanAttribute('windowsIntegratedSecurity');
+end;
+
+procedure TmDatabaseConnectionInfo.Assign(aSource: TmDatabaseConnectionInfo);
+begin
+  Self.VendorType := aSource.VendorType;
+  Self.Server := aSource.Server;
+  Self.DatabaseName := aSource.DatabaseName;
+  Self.UserName := aSource.UserName;
+  Self.Password := aSource.Password;
+  Self.WindowsIntegratedSecurity := aSource.WindowsIntegratedSecurity;
+  Self.ExtraSettings := aSource.ExtraSettings;
 end;
 
 { TmQueryParameter }
