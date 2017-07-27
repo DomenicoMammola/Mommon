@@ -17,28 +17,45 @@ unit mVirtualFileSystem;
 interface
 
 uses
-  Contnrs, Classes;
+  Contnrs, Classes, SysUtils;
 
 type
+
+  { TmFileData }
+
+  TmFileData = class
+  protected
+    FName : String;
+    FID : String;
+    FOwner : String;
+    FFileName : String;
+    FPath : String;
+    FTags : TStringList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function GetFullPath : string;
+    procedure Assign(aSource : TmFileData);
+
+    property ID : string read FID write FID;
+    property Name : String read FName write FName;
+    property Owner : String read FOwner write FOwner;
+    property FileName : String read FFileName write FFileName;
+    property Path : String read FPath write FPath;
+    property Tags : TStringList read FTags;
+  end;
 
   { TmFile }
 
   TmFile = class (TCollectionItem)
   protected
-    FName : String;
-    FID : String;
-    FOwner : String;
-    FFileDescriptor : String;
-    FTags : TStringList;
+    FFileData : TmFileData;
   public
     constructor Create(ACollection: TCollection); override;
     destructor Destroy; override;
 
-    property ID : string read FID write FID;
-    property Name : String read FName write FName;
-    property Owner : String read FOwner write FOwner;
-    property FileDescriptor : String read FFileDescriptor write FFileDescriptor;
-    property Tags : TStringList read FTags;
+    property FileData : TmFileData read FFileData;
   end;
 
 
@@ -108,13 +125,47 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     procedure Refresh; virtual; abstract;
-    procedure ReadStream (aFile : TmFile; aStream : TStream); virtual; abstract;
-    procedure WriteStream (aFile : TmFile; aStream : TStream); virtual; abstract;
+    procedure ReadStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
+    procedure WriteStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
 
     property Roots : TmFolders read FRoots;
   end;
 
 implementation
+
+{ TmFileData }
+
+constructor TmFileData.Create;
+begin
+  FTags:= TStringList.Create;
+  FName := '';
+  FID := '';
+  FOwner := '';
+  FFileName := '';
+  FPath := '';
+end;
+
+destructor TmFileData.Destroy;
+begin
+  FTags.Free;
+  inherited Destroy;
+end;
+
+function TmFileData.GetFullPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(FPath) + FFileName;
+end;
+
+procedure TmFileData.Assign(aSource: TmFileData);
+begin
+  Self.ID := aSource.ID;
+  Self.Name := aSource.Name;
+  Self.Owner := aSource.Owner;
+  Self.FileName := aSource.FileName;
+  Self.Path := aSource.Path;
+  Self.Tags.Clear;
+  Self.Tags.AddStrings(aSource.Tags);
+end;
 
 { TmFolders }
 
@@ -181,15 +232,14 @@ end;
 constructor TmFile.Create(ACollection: TCollection);
 begin
   inherited Create(ACollection);
-  FTags:= TStringList.Create;
+  FFileData := TmFileData.Create;
 end;
 
 destructor TmFile.Destroy;
 begin
-  FTags.Free;
+  FFileData.Free;
   inherited Destroy;
 end;
-
 
 
 { TmFolder }

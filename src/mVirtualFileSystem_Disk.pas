@@ -7,7 +7,7 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-unit mVirtualFileSystem_Disk_SingleFolder;
+unit mVirtualFileSystem_Disk;
 
 {$IFDEF FPC}
 {$MODE DELPHI}
@@ -17,17 +17,30 @@ interface
 
 uses
   Classes,
-  mVirtualFileSystem;
-
+  mVirtualFileSystem, mUtility;
 
 type
 
+  { TDiskFileSystemManager }
+
+  TDiskFileSystemManager = class (TmAbstractFileSystemManager)
+  protected
+    FFileMask: string;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+
+    procedure ReadStream (aFile : TmFileData; aStream : TStream); override;
+    procedure WriteStream (aFile : TmFileData; aStream : TStream); override;
+
+    property FileMask : string read FFileMask write FFileMask;
+  end;
+
   { TDiskSingleFolderFileSystemManager }
 
-  TDiskSingleFolderFileSystemManager = class(TmAbstractFileSystemManager)
+  TDiskSingleFolderFileSystemManager = class(TDiskFileSystemManager)
   strict private
     FExplodeSubFolders: boolean;
-    FFileMask: string;
     FFullPathRootFolder : string;
 
     procedure FindFolder(aFolder: TmFolder);
@@ -36,14 +49,10 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    procedure ReadStream (aFile : TmFile; aStream : TStream); override;
-    procedure WriteStream (aFile : TmFile; aStream : TStream); override;
-
     procedure Refresh; override;
 
     property FullPathRootFolder : string read FFullPathRootFolder write FFullPathRootFolder;
     property ExplodeSubFolders : boolean read FExplodeSubFolders write FExplodeSubFolders;
-    property FileMask : string read FFileMask write FFileMask;
   end;
 
 implementation
@@ -55,7 +64,6 @@ uses
 constructor TDiskSingleFolderFileSystemManager.Create;
 begin
   inherited Create;
-  FFileMask:= '*.*';
   FExplodeSubFolders := true;
 end;
 
@@ -64,12 +72,22 @@ begin
   inherited Destroy;
 end;
 
+constructor TDiskFileSystemManager.Create;
+begin
+  inherited Create;
+  FFileMask:= '*.*';
+end;
 
-procedure TDiskSingleFolderFileSystemManager.ReadStream(aFile: TmFile; aStream: TStream);
+destructor TDiskFileSystemManager.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TDiskFileSystemManager.ReadStream(aFile: TmFileData; aStream: TStream);
 var
   fs : TFileStream;
 begin
-  fs := TFileStream.Create(aFile.FileDescriptor, fmOpenRead or fmShareDenyNoneFlags);
+  fs := TFileStream.Create(IncludeTrailingPathDelimiter(aFile.Path) +  aFile.FileName, fmOpenRead or fmShareDenyNoneFlags);
   try
     aStream.CopyFrom(fs, fs.Size);
     aStream.Position:= 0;
@@ -78,11 +96,11 @@ begin
   end;
 end;
 
-procedure TDiskSingleFolderFileSystemManager.WriteStream(aFile: TmFile; aStream: TStream);
+procedure TDiskFileSystemManager.WriteStream(aFile: TmFileData; aStream: TStream);
 var
   fs : TFileStream;
 begin
-  fs := TFileStream.Create(aFile.FileDescriptor, fmCreate);
+  fs := TFileStream.Create(IncludeTrailingPathDelimiter(aFile.Path) +  aFile.FileName, fmCreate);
   try
     fs.Position:= 0;
     fs.CopyFrom(aStream, aStream.Position);
@@ -93,21 +111,13 @@ end;
 
 procedure TDiskSingleFolderFileSystemManager.Refresh;
 var
-  tmp : TStringList;
   root : TmFolder;
 begin
   FRoots.Clear;
   root := FRoots.Add;
   root.Path:= FFullPathRootFolder;
 
-  tmp := TStringList.Create;
-  try
-    ExtractStrings(AllowDirectorySeparators, [], PChar(FFullPathRootFolder), tmp, false );
-    root.Name:= tmp.Strings[tmp.Count - 1];
-  finally
-    tmp.Free;
-  end;
-
+  root.Name:= ExtractLastFolderFromPath(FFullPathRootFolder);
   ReloadFilesInFolder(root);
 
   if FExplodeSubFolders then
@@ -155,8 +165,9 @@ begin
       if (F.Attr and faDirectory = 0) then
       begin
         newFile := aFolder.Files.Add;
-        newFile.FileDescriptor:= fld + F.Name;
-        newFile.Name:= F.Name;
+        newFile.FileData.Path:= fld;
+        newFile.FileData.FileName:= F.Name;
+        newFile.FileData.Name:= F.Name;
       end;
     until FindNext(F) <> 0;
   finally
