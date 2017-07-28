@@ -17,8 +17,8 @@ unit mDatabaseConnectionClasses;
 interface
 
 uses
-  DB, Contnrs, SysUtils, Variants,
-  mNullables, mXML;
+  DB, Contnrs, SysUtils, Variants, {$IFDEF FPC}base64,{$ELSE}EncdDecd, {$ENDIF}
+  mNullables, mXML, mUtility;
 
 type
   TmDataConnectionException = class (Exception);
@@ -115,8 +115,8 @@ type
   public
     constructor Create;
 
-    procedure SaveToXMLElement (aXMLElement : TmXmlElement);
-    procedure LoadFromXMLElement (const aXMLElement : TmXmlElement);
+    procedure SaveToXMLElement (aXMLElement : TmXmlElement; const aCryptPassword : string);
+    procedure LoadFromXMLElement (const aXMLElement : TmXmlElement; const aCryptPassword : string);
     procedure Assign (aSource : TmDatabaseConnectionInfo);
 
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
@@ -260,24 +260,24 @@ begin
   FExtraSettings:= '';
 end;
 
-procedure TmDatabaseConnectionInfo.SaveToXMLElement(aXMLElement: TmXmlElement);
+procedure TmDatabaseConnectionInfo.SaveToXMLElement(aXMLElement: TmXmlElement; const aCryptPassword : string);
 begin
   aXMLElement.SetAttribute('vendorType', DatabaseVendorToString(Self.VendorType));
   aXMLElement.SetAttribute('server', Self.Server);
   aXMLElement.SetAttribute('databaseName', Self.DatabaseName);
   aXMLElement.SetAttribute('userName', Self.UserName);
-  aXMLElement.SetAttribute('password', Self.Password);
+  aXMLElement.SetAttribute('password', EncodeStringBase64(SillyCryptDecrypt(Self.Password, aCryptPassword)));
   aXMLElement.SetAttribute('extraSettings', Self.ExtraSettings);
   aXMLElement.SetBooleanAttribute('windowsIntegratedSecurity', Self.WindowsIntegratedSecurity);
 end;
 
-procedure TmDatabaseConnectionInfo.LoadFromXMLElement(const aXMLElement: TmXmlElement);
+procedure TmDatabaseConnectionInfo.LoadFromXMLElement(const aXMLElement: TmXmlElement; const aCryptPassword : string);
 begin
-  VendorType := StringToDatabaseVendor(aXMLElement.GetAttribute('vendorType');
+  VendorType := StringToDatabaseVendor(aXMLElement.GetAttribute('vendorType'));
   Self.Server := aXMLElement.GetAttribute('server');
   Self.DatabaseName := aXMLElement.GetAttribute('databaseName');
   Self.UserName := aXMLElement.GetAttribute('userName');
-  Self.Password := aXMLElement.GetAttribute('password');
+  Self.Password := SillyCryptDecrypt(DecodeStringBase64(aXMLElement.GetAttribute('password')), aCryptPassword);
   Self.ExtraSettings := aXMLElement.GetAttribute('extraSettings');
   Self.WindowsIntegratedSecurity := aXMLElement.GetBooleanAttribute('windowsIntegratedSecurity');
 end;
