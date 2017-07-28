@@ -112,6 +112,7 @@ end;
 procedure TDiskSingleFolderFileSystemManager.Refresh(const aShowHourGlassCursor : boolean);
 var
   root : TmFolder;
+  tmpCursor : TCursor;
 begin
   if aShowHourGlassCursor then
   begin
