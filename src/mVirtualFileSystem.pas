@@ -124,7 +124,7 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure Refresh; virtual; abstract;
+    procedure Refresh (const aShowHourGlassCursor : boolean); virtual; abstract;
     procedure ReadStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
     procedure WriteStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
 

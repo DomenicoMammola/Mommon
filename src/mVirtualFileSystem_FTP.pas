@@ -16,7 +16,7 @@ unit mVirtualFileSystem_FTP;
 interface
 
 uses
-  Classes, SysUtils,
+  Classes, SysUtils, Forms, Controls,
 
   IdTCPClient, IdFTP, IdFTPCommon,
 
@@ -55,7 +55,7 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-    procedure Refresh; override;
+    procedure Refresh(const aShowHourGlassCursor : boolean); override;
 
     property FTPFolders : TStringList read FFTPFolders;
   end;
@@ -77,7 +77,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TFTPFlatListFileSystem.Refresh;
+procedure TFTPFlatListFileSystem.Refresh(const aShowHourGlassCursor : boolean);
 var
   FTPClient : TIdFTP;
   i, k : integer;
@@ -85,44 +85,56 @@ var
   tmpFile : TmFile;
   tmpFileType : TFTPFileType;
   tmpFileName : string;
+  tmpCursor : TCursor;
 begin
-  FRoots.Clear;
-  FTPClient := TIdFTP.Create(nil);
+  if aShowHourGlassCursor then
+  begin
+    tmpCursor := Screen.Cursor;
+    Screen.Cursor:= crHourGlass;
+  end;
   try
-    FTPClient.Host:= FHost;
-    FTPClient.Username:= FUsername;
-    FTPClient.Password:= FPassword;
-    FTPClient.Connect;
-    if FTPClient.Connected then
-    begin
-      for i := 0 to FFTPFolders.Count - 1 do
+    FRoots.Clear;
+    FTPClient := TIdFTP.Create(nil);
+    try
+      FTPClient.Host:= FHost;
+      FTPClient.Username:= FUsername;
+      FTPClient.Password:= FPassword;
+      FTPClient.Connect;
+      if FTPClient.Connected then
       begin
-        FTPClient.ChangeDir('/');
-        FTPClient.ChangeDir(FFTPFolders.Strings[i]);
-
-        tmpFolder := FRoots.Add;
-        tmpFolder.Name:= ExtractLastFolderFromPath(FFTPFolders.Strings[i]);
-        tmpFolder.Path:= FFTPFolders.Strings[i];
-
-        FTPClient.List(FFileMask);
-        for k := 0 to FTPClient.ListResult.Count - 1 do
+        for i := 0 to FFTPFolders.Count - 1 do
         begin
-          if ExtractTypeAndName(FTPClient.ListResult[k], tmpFileType, tmpFileName) then
+          FTPClient.ChangeDir('/');
+          FTPClient.ChangeDir(FFTPFolders.Strings[i]);
+
+          tmpFolder := FRoots.Add;
+          tmpFolder.Name:= ExtractLastFolderFromPath(FFTPFolders.Strings[i]);
+          tmpFolder.Path:= FFTPFolders.Strings[i];
+
+          FTPClient.List(FFileMask);
+          for k := 0 to FTPClient.ListResult.Count - 1 do
           begin
-            if tmpFileType = ftFile then
+            if ExtractTypeAndName(FTPClient.ListResult[k], tmpFileType, tmpFileName) then
             begin
-              tmpFile := tmpFolder.Files.Add;
-              tmpFile.FileData.Name:= tmpFileName;
-              tmpFile.FileData.FileName:= tmpFileName;
-              tmpFile.FileData.Path:= FFTPFolders.Strings[i];
+              if tmpFileType = ftFile then
+              begin
+                tmpFile := tmpFolder.Files.Add;
+                tmpFile.FileData.Name:= tmpFileName;
+                tmpFile.FileData.FileName:= tmpFileName;
+                tmpFile.FileData.Path:= FFTPFolders.Strings[i];
+              end;
             end;
           end;
         end;
       end;
+      FTPClient.Disconnect;
+    finally
+      FTPClient.Free;
     end;
-    FTPClient.Disconnect;
+
   finally
-    FTPClient.Free;
+    if aShowHourGlassCursor then
+      Screen.Cursor:= tmpCursor;
   end;
 end;
 

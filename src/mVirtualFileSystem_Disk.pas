@@ -16,7 +16,7 @@ unit mVirtualFileSystem_Disk;
 interface
 
 uses
-  Classes,
+  Classes, Forms, Controls,
   mVirtualFileSystem, mUtility;
 
 type
@@ -49,7 +49,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    procedure Refresh; override;
+    procedure Refresh(const aShowHourGlassCursor : boolean); override;
 
     property FullPathRootFolder : string read FFullPathRootFolder write FFullPathRootFolder;
     property ExplodeSubFolders : boolean read FExplodeSubFolders write FExplodeSubFolders;
@@ -109,19 +109,29 @@ begin
   end;
 end;
 
-procedure TDiskSingleFolderFileSystemManager.Refresh;
+procedure TDiskSingleFolderFileSystemManager.Refresh(const aShowHourGlassCursor : boolean);
 var
   root : TmFolder;
 begin
-  FRoots.Clear;
-  root := FRoots.Add;
-  root.Path:= FFullPathRootFolder;
+  if aShowHourGlassCursor then
+  begin
+    tmpCursor := Screen.Cursor;
+    Screen.Cursor:= crHourGlass;
+  end;
+  try
+    FRoots.Clear;
+    root := FRoots.Add;
+    root.Path:= FFullPathRootFolder;
 
-  root.Name:= ExtractLastFolderFromPath(FFullPathRootFolder);
-  ReloadFilesInFolder(root);
+    root.Name:= ExtractLastFolderFromPath(FFullPathRootFolder);
+    ReloadFilesInFolder(root);
 
-  if FExplodeSubFolders then
-    FindFolder(root);
+    if FExplodeSubFolders then
+      FindFolder(root);
+  finally
+    if aShowHourGlassCursor then
+      Screen.Cursor:= tmpCursor;
+  end;
 end;
 
 procedure TDiskSingleFolderFileSystemManager.FindFolder(aFolder: TmFolder);
