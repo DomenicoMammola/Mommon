@@ -113,6 +113,7 @@ end;
 
 destructor TReadOnlyVirtualDatasetProvider.Destroy;
 begin
+  FIDataProvider := nil;
   FSortedIndex.Free;
   FCurrentSortFields.Free;
   FGarbage.Free;
@@ -207,6 +208,7 @@ begin
       FCurrentSortFields.Clear;
     end;
   end;
+  Result := true;
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.ClearSort;
