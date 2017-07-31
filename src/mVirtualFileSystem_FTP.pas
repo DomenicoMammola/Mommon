@@ -40,6 +40,7 @@ type
     destructor Destroy; override;
     procedure ReadStream (aFile : TmFileData; aStream : TStream); override;
     procedure WriteStream (aFile : TmFileData; aStream : TStream); override;
+    function ValidateFileName (aFileName : string) : string; override;
 
     property Host : string read FHost write FHost;
     property Username : string read FUsername write FUsername;
@@ -226,12 +227,20 @@ begin
       FTPClient.TransferType := ftBinary;
       FTPClient.Passive:= true;
       FTPClient.ChangeDir(aFile.Path);
+      FTPClient.Delete(aFile.FileName);
       FTPClient.Put(aStream, aFile.FileName);
     end;
     FTPClient.Disconnect;
   finally
     FTPClient.Free;
   end;
+end;
+
+function TFTPFileSystemManager.ValidateFileName(aFileName: string): string;
+begin
+  Result := trim(aFileName);
+  if Result <> '' then
+    Result := ChangeFileExt(Result, FFileMask);
 end;
 
 end.

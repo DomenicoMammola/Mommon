@@ -127,6 +127,7 @@ type
     procedure Refresh (const aShowHourGlassCursor : boolean); virtual; abstract;
     procedure ReadStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
     procedure WriteStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
+    function ValidateFileName (aFileName : string) : string; virtual; abstract;
 
     property Roots : TmFolders read FRoots;
   end;
