@@ -25,6 +25,7 @@ interface
   function CalculateEasterDate (const year : word; const method : word) : TDateTime; overload;
 
   function IsItalianPublicHoliday (const aDate : TDateTime) : boolean;
+  function MoveToWorkingDayInItaly (const aDate : TDateTime; const aDirection : integer; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
 
 implementation
 
@@ -106,8 +107,23 @@ begin
     ((month = 11) and ((day = 1) or (day = 8))) or // 1 November All Saints' Day Tutti i santi (or Ognissanti) - 8 December Immaculate Conception Immacolata Concezione (or just Immacolata)
     ((month = 12) and ((day = 25) or (day = 26))); // 25 December Christmas Day Natale - 26 December St. Stephen's Day Santo Stefano
 
-//Monday after Easter 	Easter Monday 	Lunedì dell'Angelo, Lunedì in Albis or more commonly Pasquetta
 
+  //Monday after Easter or Easter Monday or Lunedì dell'Angelo or Lunedì in Albis or more commonly Pasquetta
+  if not Result then
+    Result := (trunc(aDate) = trunc(CalculateEasterDate(YearOf(aDate), 3)) + 1);
+end;
+
+function MoveToWorkingDayInItaly (const aDate : TDateTime; const aDirection : integer; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
+var
+  tmpDayOfWeek : word;
+begin
+  Result := aDate;
+  tmpDayOfWeek := DayOf(Result);
+  while (tmpDayOfWeek = DaySunday) or (aSaturdayIsWorkingDay and (tmpDayOfWeek = DaySaturday)) or IsItalianPublicHoliday(Result) do
+  begin
+    Result := Result + aDirection;
+    tmpDayOfWeek := DayOf(Result);
+  end;
 end;
 
 function CalculateEasterDate(const year: word; const method: word): TDateTime;
