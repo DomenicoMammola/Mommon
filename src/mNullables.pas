@@ -135,6 +135,7 @@ type
     function AsVariant: Variant; override;
 
     function AsString : String;
+    function AsFloat : Double;
 
     property Value : Double read GetValue write SetValue;
   end;
@@ -451,6 +452,14 @@ begin
     Result := ''
   else
     Result := FloatToStr(Self.Value);
+end;
+
+function TNullableDouble.AsFloat: Double;
+begin
+  if Self.IsNull then
+    Result := 0
+  else
+    Result := Self.Value;
 end;
 
 { TNullableAnsiString }
