@@ -12,6 +12,7 @@ unit mDatasetInterfaces;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$interfaces corba}
 {$ENDIF}
 
 interface
@@ -21,6 +22,7 @@ uses
 
 type
   ISortableDatasetManager = interface
+    ['{481EA485-3F80-46B1-BF24-587EF48EFE11}']
     function GetSorted : boolean;
     function GetSortByConditions : TSortByConditions;
     function Sort : boolean;

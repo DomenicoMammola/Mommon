@@ -12,6 +12,7 @@ unit mVirtualDataSetInterfaces;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$interfaces corba}
 {$ENDIF}
 
 interface
