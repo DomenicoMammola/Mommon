@@ -227,7 +227,8 @@ begin
       FTPClient.TransferType := ftBinary;
       FTPClient.Passive:= true;
       FTPClient.ChangeDir(aFile.Path);
-      FTPClient.Delete(aFile.FileName);
+      if FTPClient.Size(aFile.FileName) > 0 then
+        FTPClient.Delete(aFile.FileName);
       FTPClient.Put(aStream, aFile.FileName);
     end;
     FTPClient.Disconnect;
@@ -240,7 +241,7 @@ function TFTPFileSystemManager.ValidateFileName(aFileName: string): string;
 begin
   Result := trim(aFileName);
   if Result <> '' then
-    Result := ChangeFileExt(Result, FFileMask);
+    Result := ChangeFileExt(Result, ExtractFileExt(FFileMask));
 end;
 
 end.
