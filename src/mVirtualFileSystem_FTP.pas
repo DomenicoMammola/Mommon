@@ -26,6 +26,13 @@ type
 
   TFTPFileType = (ftFile, ftDir);
 
+  { TFTPThread }
+
+  TFTPThread = class (TThread)
+  public
+    procedure Execute; override;
+  end;
+
   { TFTPFileSystemManager }
 
   TFTPFileSystemManager = class(TmAbstractFileSystemManager)
@@ -56,13 +63,20 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-    procedure Refresh(const aShowHourGlassCursor : boolean); override;
+    procedure Refresh(const aIsGUIApplication : boolean); override;
 
     property FTPFolders : TStringList read FFTPFolders;
   end;
 
 
 implementation
+
+{ TFTPThread }
+
+procedure TFTPThread.Execute;
+begin
+
+end;
 
 { TFTPFlatListFileSystem }
 
@@ -78,7 +92,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TFTPFlatListFileSystem.Refresh(const aShowHourGlassCursor : boolean);
+procedure TFTPFlatListFileSystem.Refresh(const aIsGUIApplication : boolean);
 var
   FTPClient : TIdFTP;
   i, k : integer;
@@ -88,7 +102,7 @@ var
   tmpFileName : string;
   tmpCursor : TCursor;
 begin
-  if aShowHourGlassCursor then
+  if aIsGUIApplication then
   begin
     tmpCursor := Screen.Cursor;
     Screen.Cursor:= crHourGlass;
@@ -100,7 +114,14 @@ begin
       FTPClient.Host:= FHost;
       FTPClient.Username:= FUsername;
       FTPClient.Password:= FPassword;
-      FTPClient.Connect;
+      try
+        FTPClient.Connect;
+      except
+        on e: Exception do
+        begin
+          raise Exception.Create('Unable to connect to the ftp server. Error:' + sLineBreak + e.Message);
+        end;
+      end;
       if FTPClient.Connected then
       begin
         for i := 0 to FFTPFolders.Count - 1 do
@@ -132,9 +153,8 @@ begin
     finally
       FTPClient.Free;
     end;
-
   finally
-    if aShowHourGlassCursor then
+    if aIsGUIApplication then
       Screen.Cursor:= tmpCursor;
   end;
 end;
