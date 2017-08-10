@@ -16,7 +16,9 @@ interface
   {$MODE DELPHI}
 {$ENDIF}
 
-uses Classes, SysUtils, Variants;
+uses
+  Classes, SysUtils, Variants,
+  mIntList, mDoubleList;
 
 const
   TheDayWhenTimeStarted = 730120; //01/01/2000 (starting from 01/01/01)
@@ -58,6 +60,12 @@ function ExtractLastFolderFromPath (aFullPath : string) : string;
 
 // https://forum.lazarus.freepascal.org/index.php/topic,33013.msg213197.html#msg213197
 function SillyCryptDecrypt (const aText, aPassword: string): string;
+
+procedure ConvertVariantToStringList (const aValue : variant; aList : TStringList);
+procedure ConvertVariantToIntegerList (const aValue : variant; aList : TIntegerList);
+procedure ConvertVariantToDoubleList (const aValue : variant; aList : TDoubleList);
+procedure ConvertVariantToDateList (const aValue : variant; aList : TIntegerList);
+procedure ConvertVariantToDateTimeList (const aValue : variant; aList : TDoubleList);
 
 implementation
 
@@ -536,6 +544,81 @@ begin
     result[i] := Chr(Ord(aText[i]) xor Ord(aPassword[i]));
 end;
 
+procedure ConvertVariantToStringList(const aValue: variant; aList: TStringList);
+var
+  i : integer;
+begin
+  if VarIsArray(aValue) then
+  begin
+    for i := 0 to VarArrayHighBound(aValue, 1) do
+    begin
+      aList.Add(VarToStr(aValue[i]));
+    end;
+  end
+  else
+    aList.Append(VarToStr(aValue));
+end;
+
+procedure ConvertVariantToIntegerList(const aValue: variant; aList: TIntegerList);
+var
+  i : integer;
+begin
+  if VarIsArray(aValue) then
+  begin
+    for i := 0 to VarArrayHighBound(aValue, 1) do
+    begin
+      aList.Add(VarAsType(aValue[i], varinteger));
+    end;
+  end
+  else
+    aList.Add(VarAsType(aValue, varinteger));
+end;
+
+procedure ConvertVariantToDoubleList(const aValue: variant; aList: TDoubleList);
+var
+  i : integer;
+begin
+  if VarIsArray(aValue) then
+  begin
+    for i := 0 to VarArrayHighBound(aValue, 1) do
+    begin
+      aList.Add(VarAsType(aValue[i], vardouble));
+    end;
+  end
+  else
+    aList.Add(VarAsType(aValue, vardouble));
+end;
+
+procedure ConvertVariantToDateList(const aValue: variant; aList: TIntegerList);
+var
+  i : integer;
+begin
+  if VarIsArray(aValue) then
+  begin
+    for i := 0 to VarArrayHighBound(aValue, 1) do
+    begin
+      aList.Add(trunc(VarAsType(aValue[i], vardate)));
+    end;
+  end
+  else
+    aList.Add(trunc(VarAsType(aValue, vardate)));
+end;
+
+procedure ConvertVariantToDateTimeList(const aValue: variant; aList: TDoubleList);
+var
+  i : integer;
+begin
+  if VarIsArray(aValue) then
+  begin
+    for i := 0 to VarArrayHighBound(aValue, 1) do
+    begin
+      aList.Add(VarAsType(aValue[i], vardate));
+    end;
+  end
+  else
+    aList.Add(VarAsType(aValue, vardate));
+end;
+
 {$ENDIF}
 
 function CompareVariants(aVal1, aVal2: variant): integer;
@@ -558,7 +641,6 @@ begin
     Result := 1;
     exit;
   end;
-
 
   if valtype2 = varnull then
   begin
