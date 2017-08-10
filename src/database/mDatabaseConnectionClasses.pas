@@ -17,8 +17,8 @@ unit mDatabaseConnectionClasses;
 interface
 
 uses
-  DB, Contnrs, SysUtils, Variants, {$IFDEF FPC}base64,{$ELSE}EncdDecd, {$ENDIF}
-  mNullables, mXML, mUtility;
+  DB, Contnrs, SysUtils, Variants, Classes, {$IFDEF FPC}base64,{$ELSE}EncdDecd, {$ENDIF}
+  mNullables, mXML, mUtility, mIntList, mDoubleList;
 
 type
   TmDataConnectionException = class (Exception);
@@ -55,12 +55,19 @@ type
 
     procedure SetNull;
     function IsNull : boolean;
+    function HasMultipleValues : boolean;
 
     procedure Assign(aValue : TNullableString); overload;
     procedure Assign(aValue : TNullableInteger); overload;
     procedure Assign(aValue : TNullableDateTime); overload;
     procedure Assign(aValue : TNullableDouble); overload;
     procedure Assign(aValue : Variant; const aDataType : TmParameterDataType); overload;
+
+    procedure AsStringList (aList : TStringList);
+    procedure AsIntegerList (aList : TIntegerList);
+    procedure AsFloatList (aList : TDoubleList);
+    procedure AsDateList (aList : TIntegerList);
+    procedure AsDateTimeList (aList : TDoubleList);
 
     property Name : String read FName write FName;
     property DataType : TmParameterDataType read GetParameterDataType write SetParameterDataType;
@@ -452,6 +459,11 @@ begin
   Result := (FValue = Null);
 end;
 
+function TmQueryParameter.HasMultipleValues: boolean;
+begin
+  Result := (not Self.IsNull) and VarisArray(FValue);
+end;
+
 procedure TmQueryParameter.Assign(aValue: TNullableString);
 begin
   if aValue.IsNull then
@@ -493,6 +505,35 @@ begin
     FValue := aValue;
 end;
 
+procedure TmQueryParameter.AsStringList(aList: TStringList);
+begin
+  if not IsNull then
+    ConvertVariantToStringList(FValue, aList);
+end;
+
+procedure TmQueryParameter.AsIntegerList(aList: TIntegerList);
+begin
+  if not IsNull then
+    ConvertVariantToIntegerList(FValue, aList);
+end;
+
+procedure TmQueryParameter.AsFloatList(aList: TDoubleList);
+begin
+  if not IsNull then
+    ConvertVariantToDoubleList(FValue, aList);
+end;
+
+procedure TmQueryParameter.AsDateList(aList: TIntegerList);
+begin
+  if not IsNull then
+    ConvertVariantToDateList(FValue, aList);
+end;
+
+procedure TmQueryParameter.AsDateTimeList(aList: TDoubleList);
+begin
+  if not IsNull then
+    ConvertVariantToDateTimeList(FValue, aList);
+end;
 
 function TmDatabaseConnectionInfo.GetDatabaseName: String;
 begin

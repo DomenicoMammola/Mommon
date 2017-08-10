@@ -18,6 +18,7 @@ unit mDatasetInterfaces;
 interface
 
 uses
+  Classes,
   mSortConditions;
 
 type
@@ -27,6 +28,11 @@ type
     function GetSortByConditions : TSortByConditions;
     function Sort : boolean;
     procedure ClearSort;
+  end;
+
+  IFilterDatasetManager = interface
+    ['{6BCEF289-FCB4-4EFE-B594-8D08DBC1B09A}']
+    procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
   end;
 
 implementation

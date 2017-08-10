@@ -49,7 +49,9 @@ begin
   else if (aOperator = foLike) or (aOperator = foStartWith) or (aOperator = foEndWith) then
     Result := 'LIKE'
   else if aOperator = foNotEq then
-    Result := '<>';
+    Result := '<>'
+  else if aOperator = foIn then
+    Result := 'IN';
 end;
 
 end.

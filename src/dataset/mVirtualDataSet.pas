@@ -22,7 +22,7 @@ uses
   {$ENDIF}
   Forms, DB,
   mVirtualFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
-  mInterfaces;
+  mInterfaces, mFilter;
 
 {$REGION 'Documentation'}
 {
@@ -146,20 +146,30 @@ type
   TVirtualDatasetDataProvider = class
   strict private
     FVirtualFieldDefs : TVirtualFieldDefs;
+    FSortConditions : TSortByConditions;
+    FFilterConditions : TmFilters;
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
     function GetRecordCount : integer; virtual; abstract;
-    procedure GetFieldValue (const AField: TField; const AIndex: Integer;
-      out AValue: variant); virtual; abstract;
+    procedure GetFieldValue (const AField: TField; const AIndex: Integer; out AValue: variant); virtual; abstract;
     procedure DeleteRecord (const AIndex :integer); virtual; abstract;
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
+
+    function Refresh (const aDoSort, aDoFilter : boolean): boolean; virtual; abstract;
+    procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); virtual; abstract;
+    (*
     function Sort(const aConditions : TSortByConditions): boolean; virtual; abstract;
     procedure ClearSort; virtual; abstract;
+    function Filter(const aFilterConditions : TmFilters) : boolean; virtual; abstract;
+    procedure ClearFilter; virtual; abstract;
+    *)
 
     property VirtualFieldDefs : TVirtualFieldDefs read FVirtualFieldDefs;
+    property SortConditions : TSortByConditions read FSortConditions;
+    property FilterConditions : TmFilters read FFilterConditions;
   end;
 
   { TBlobStream }
@@ -191,6 +201,7 @@ type
   end;
 
   TVirtualDatasetSortableManager = class;
+  TVirtualDatasetFilterManager = class;
 
   { TCustomVirtualDataset }
 
@@ -217,6 +228,7 @@ type
 
     FVirtualDatasetProvider : TVirtualDatasetDataProvider;
     FSortManager : TVirtualDatasetSortableManager;
+    FFilterManager : TVirtualDatasetFilterManager;
 
     procedure DateTimeToNative(
       ADataType : TFieldType;
@@ -231,10 +243,13 @@ type
     procedure SetMasterSource(Value: TDataSource);
   protected
     FSorted : boolean;
-    FSortConditions : TSortByConditions;
+    FFiltered : boolean;
 
     function Sort : boolean;
     procedure ClearSort;
+
+    function Filter : boolean;
+    procedure ClearFilter;
 
 
     // event dispatch methods
@@ -323,6 +338,7 @@ type
     function Locate(const KeyFields: string; const KeyValues: Variant; Options: TLocateOptions): Boolean; override;
     function Lookup(const KeyFields: string; const KeyValues: Variant; const ResultFields: string): Variant; override;
     function SortManager : ISortableDatasetManager;
+    function FilterManager : IFilterDatasetManager;
 
     function GetFieldData(Field: TField; {$IFNDEF FPC}var{$ENDIF} Buffer: TValueBuffer): Boolean; override;
 
@@ -392,7 +408,7 @@ type
 
   { TVirtualDatasetSortableManager }
 
-  TVirtualDatasetSortableManager = class (TJavaInterfacedObject, ISortableDatasetManager)
+  TVirtualDatasetSortableManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}ISortableDatasetManager)
   protected
     FVirtualDataset : TCustomVirtualDataset;
   public
@@ -402,6 +418,14 @@ type
     procedure ClearSort;
   end;
 
+  { TVirtualDatasetFilterManager }
+
+  TVirtualDatasetFilterManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IFilterDatasetManager)
+  protected
+    FVirtualDataset : TCustomVirtualDataset;
+  public
+    procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
+  end;
 
 procedure VirtualDatasetError(
   const AMessage : string;
@@ -459,6 +483,13 @@ begin
     Result := Result + (NativeUInt(Dataset.Fields[I]) shr (I mod 16));
 end;
 
+{ TVirtualDatasetFilterManager }
+
+procedure TVirtualDatasetFilterManager.GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList);
+begin
+  FVirtualDataset.DatasetDataProvider.GetUniqueStringValuesForField(aFieldName, aList);
+end;
+
 { TVirtualDatasetSortableManager }
 
 function TVirtualDatasetSortableManager.GetSorted: boolean;
@@ -468,7 +499,7 @@ end;
 
 function TVirtualDatasetSortableManager.GetSortByConditions: TSortByConditions;
 begin
-  Result := FVirtualDataset.FSortConditions;
+  Result := FVirtualDataset.DatasetDataProvider.SortConditions;
 end;
 
 function TVirtualDatasetSortableManager.Sort: boolean;
@@ -651,15 +682,16 @@ begin
   FAutomaticInitFieldsFormat := true;
   FSortManager := TVirtualDatasetSortableManager.Create;
   FSortManager.FVirtualDataset := Self;
+  FFilterManager := TVirtualDatasetFilterManager.Create;
+  FFilterManager.FVirtualDataset := Self;
   FSorted := false;
-  FSortConditions := TSortByConditions.Create;
+  FFiltered:= false;
 end;
 
 procedure TCustomVirtualDataset.BeforeDestruction;
 begin
   FModifiedFields.Free;
   FMasterDataLink.Free;
-  FSortConditions.Free;
   FSortManager.Free;
   inherited;
 end;
@@ -667,12 +699,7 @@ end;
 procedure TCustomVirtualDataset.Refresh;
 begin
   if Assigned(FVirtualDatasetProvider) then
-  begin
-    if Self.FSorted then
-      FVirtualDatasetProvider.Sort(FSortConditions)
-    else
-      FVirtualDatasetProvider.ClearSort;
-  end;
+    FVirtualDatasetProvider.Refresh(FSorted, FFiltered);
   inherited Refresh;
 end;
 
@@ -1458,13 +1485,18 @@ begin
   Result := FSortManager;
 end;
 
+function TCustomVirtualDataset.FilterManager: IFilterDatasetManager;
+begin
+  Result := FFilterManager;
+end;
+
 
 function TCustomVirtualDataset.Sort : boolean;
 begin
   Result := false;
   if not Active then
     Exit;
-  Result := FVirtualDatasetProvider.Sort(FSortConditions);
+  Result := FVirtualDatasetProvider.Refresh(true, FFiltered);
   if Result then
   begin
     FSorted := true;
@@ -1479,10 +1511,34 @@ end;
 procedure TCustomVirtualDataset.ClearSort;
 begin
   FSorted := false;
-  FSortConditions.Clear;
+  FVirtualDatasetProvider.SortConditions.Clear;
+  if Assigned(FVirtualDatasetProvider) then
+    FVirtualDatasetProvider.Refresh(false, FFiltered);
+end;
+
+function TCustomVirtualDataset.Filter: boolean;
+begin
+  Result := false;
   if not Active then
     Exit;
-  FVirtualDatasetProvider.ClearSort;
+  Result := FVirtualDatasetProvider.Refresh(FSorted, true);
+  if Result then
+  begin
+    FFiltered := true;
+    Resync([]);
+  end
+  else
+  begin
+    FFiltered := false;
+  end;
+end;
+
+procedure TCustomVirtualDataset.ClearFilter;
+begin
+  FFiltered := false;
+  FVirtualDatasetProvider.FilterConditions.Clear;
+  if Assigned(FVirtualDatasetProvider) then
+    FVirtualDatasetProvider.Refresh(FSorted, false);
 end;
 
 procedure TCustomVirtualDataset.MasterChanged(Sender: TObject);
@@ -1649,10 +1705,14 @@ end;
 constructor TVirtualDatasetDataProvider.Create;
 begin
   FVirtualFieldDefs := TVirtualFieldDefs.Create;
+  FSortConditions := TSortByConditions.Create;
+  FFilterConditions := TmFilters.Create;
 end;
 
 destructor TVirtualDatasetDataProvider.Destroy;
 begin
+  FSortConditions.Free;
+  FFilterConditions.Free;
   FVirtualFieldDefs.Free;
   inherited;
 end;

@@ -17,8 +17,9 @@ unit mSQLDialectExpertImplSQLServer;
 interface
 
 uses
+  Classes,
   mDatabaseConnectionClasses,
-  mSQLDialectExpertImpl, mSQLDialectExpertImplRegister;
+  mSQLDialectExpertImpl, mSQLDialectExpertImplRegister, mIntList, mDoubleList;
 
 type
 
@@ -45,7 +46,15 @@ begin
 end;
 
 function TSQLDialectExpertImplSQLServer.GetSQLForParameter(aParam: TmQueryParameter): string;
+var
+  StringList : TStringList;
+  DoubleList : TDoubleList;
+  IntegerList : TIntegerList;
+  i : integer;
+  Separator : string;
 begin
+  Result := '';
+  Separator := '';
   if aParam.IsNull then
   begin
     Result := 'NULL';
@@ -54,17 +63,119 @@ begin
   begin
     case aParam.DataType of
       ptDate:
-        Result := DateToSQLString(aParam.AsDate);
+        begin
+          if aParam.HasMultipleValues then
+          begin
+            IntegerList := TIntegerList.Create;
+            try
+              aParam.AsDateList(IntegerList);
+              for i := 0 to IntegerList.Count -1 do
+              begin
+                Result := Result + Separator + DateToSQLString(IntegerList.Nums[i]);
+                Separator := ',';
+              end;
+            finally
+              IntegerList.Free;
+            end;
+          end
+          else
+            Result := DateToSQLString(aParam.AsDate);
+        end;
       ptDateTime:
-        Result := DateTimeToSQLString(aParam.AsDateTime);
+        begin
+          if aParam.HasMultipleValues then
+          begin
+            DoubleList := TDoubleList.Create;
+            try
+              aParam.AsDateTimeList(DoubleList);
+              for i := 0 to DoubleList.Count -1 do
+              begin
+                Result := Result + Separator + DateTimeToSQLString(DoubleList.Nums[i]);
+                Separator := ',';
+              end;
+            finally
+              DoubleList.Free;
+            end;
+          end
+          else
+            Result := DateTimeToSQLString(aParam.AsDateTime);
+        end;
       ptString:
-        Result := StringToSQLString(aParam.AsString);
+        begin
+          if aParam.HasMultipleValues then
+          begin
+            StringList := TStringList.Create;
+            try
+              aParam.AsStringList(StringList);
+              for i := 0 to StringList.Count -1 do
+              begin
+                Result := Result + Separator + StringToSQLString(StringList.Strings[i]);
+                Separator := ',';
+              end;
+            finally
+              StringList.Free;
+            end;
+          end
+          else
+            Result := StringToSQLString(aParam.AsString);
+        end;
       ptWideString:
-        Result := StringToSQLString(aParam.AsWideString);
+        begin
+          if aParam.HasMultipleValues then
+          begin
+            StringList := TStringList.Create;
+            try
+              aParam.AsStringList(StringList);
+              for i := 0 to StringList.Count -1 do
+              begin
+                Result := Result + Separator + StringToSQLString(StringList.Strings[i]);
+                Separator := ',';
+              end;
+            finally
+              StringList.Free;
+            end;
+          end
+          else
+            Result := StringToSQLString(aParam.AsWideString);
+        end;
       ptInteger:
-        Result := IntToStr(aParam.AsInteger);
+        begin
+          if aParam.HasMultipleValues then
+          begin
+            IntegerList := TIntegerList.Create;
+            try
+              aParam.AsIntegerList(IntegerList);
+              for i := 0 to IntegerList.Count -1 do
+              begin
+                Result := Result + Separator + IntToStr(IntegerList.Nums[i]);
+                Separator := ',';
+              end;
+            finally
+              IntegerList.Free;
+            end;
+          end
+          else
+            Result := IntToStr(aParam.AsInteger);
+        end;
       ptFloat:
-        Result := FloatToSQLString(aParam.AsFloat);
+        begin
+          if aParam.HasMultipleValues then
+          begin
+            DoubleList := TDoubleList.Create;
+            try
+              aParam.AsFloatList(DoubleList);
+              for i := 0 to DoubleList.Count -1 do
+              begin
+                Result := Result + Separator + FloatToSQLString(DoubleList.Nums[i]);
+                Separator := ',';
+              end;
+            finally
+              DoubleList.Free;
+            end;
+          end
+          else
+            Result := FloatToSQLString(aParam.AsFloat);
+        end;
     end;
   end;
 end;
