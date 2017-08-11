@@ -38,7 +38,9 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    procedure StartEvaluation;
     function Evaluate (aActualValue : Variant) : boolean;
+    procedure EndEvaluation;
     procedure CopyFrom (aSource : TmFilter);
 
     function GetFormattedValueForSQL : Variant;
@@ -60,9 +62,12 @@ type
     function Add : TmFilter; overload;
     procedure Add(aFilter : TmFilter); overload;
     procedure Clear;
+    procedure ClearForField (const aFieldName : string);
     function Count : integer;
     function Get(aIndex : integer) : TmFilter;
     procedure CopyFrom (aSource : TmFilters);
+    procedure StartEvaluation;
+    procedure EndEvaluation;
   end;
 
 implementation
@@ -96,6 +101,20 @@ begin
   FList.Clear;
 end;
 
+procedure TmFilters.ClearForField(const aFieldName: string);
+var
+  i : integer;
+begin
+  for i := 0 to FList.Count -1 do
+  begin
+    if CompareText((FList.Items[i] as TmFilter).FieldName, aFieldName) = 0 then
+    begin
+      FList.Delete(i);
+      exit;
+    end;
+  end;
+end;
+
 function TmFilters.Count: integer;
 begin
   Result := FList.Count;
@@ -115,11 +134,28 @@ begin
     Self.Add.CopyFrom(aSource.Get(i));
 end;
 
+procedure TmFilters.StartEvaluation;
+var
+  i : integer;
+begin
+  for i := 0 to Self.Count -1 do
+    Self.Get(i).StartEvaluation;
+end;
+
+procedure TmFilters.EndEvaluation;
+var
+  i : integer;
+begin
+  for i := 0 to Self.Count -1 do
+    Self.Get(i).EndEvaluation;
+end;
+
 { TmFilter }
 
 procedure TmFilter.SetValue(AValue: Variant);
 begin
-  if FValue=AValue then Exit;
+  if CompareVariants(FValue, AValue ) = 0 then
+    exit;
   FValue:=AValue;
   FreeAndNil(FValuesAsStrings);
   FreeAndNil(FValuesDictionary);
@@ -134,7 +170,17 @@ end;
 
 destructor TmFilter.Destroy;
 begin
+  FreeAndNil(FValuesAsStrings);
+  FreeAndNil(FValuesDictionary);
   inherited Destroy;
+end;
+
+procedure TmFilter.StartEvaluation;
+begin
+  FreeAndNil(FValuesAsStrings);
+  FreeAndnil(FValuesDictionary);
+  FValuesAsStrings := TStringList.Create;
+  FValuesDictionary := TmStringDictionary.Create();
 end;
 
 function TmFilter.Evaluate(aActualValue: Variant): boolean;
@@ -147,18 +193,16 @@ begin
     foUnknown:
       Result := false;
     foEq:
-      Result := (VarCompareValue(aActualValue, FValue) = vrEqual);
+      Result := mUtility.CompareVariants(aActualValue, FValue) = 0;
     foNotEq:
-      Result := (VarCompareValue(aActualValue, FValue) = vrNotEqual);
+      Result := mUtility.CompareVariants(aActualValue, FValue) <> 0;
     foGtOrEq:
       begin
-        rl := VarCompareValue(aActualValue, FValue);
-        Result := (rl = vrEqual) or (rl = vrGreaterThan);
+        Result := mUtility.CompareVariants(aActualValue, FValue) >= 0;
       end;
     foLtOrEq:
       begin
-        rl := VarCompareValue(aActualValue, FValue);
-        Result := (rl = vrEqual) or (rl = vrLessThan);
+        Result := mUtility.CompareVariants(aActualValue, FValue) <= 0;
       end;
     foLike:
       begin
@@ -195,12 +239,9 @@ begin
       end;
     foIn:
       begin
-        if not Assigned(FValuesAsStrings) then
+        if (FValuesAsStrings.Count = 0) then
         begin
-          FValuesAsStrings := TStringList.Create;
-          FValuesDictionary := TmStringDictionary.Create();
-
-          ConvertVariantToStringList(aActualValue, FValuesAsStrings);
+          ConvertVariantToStringList(FValue, FValuesAsStrings);
           for i := 0 to FValuesAsStrings.Count - 1 do
           begin
             str := lowercase(FValuesAsStrings.Strings[i]);
@@ -208,9 +249,15 @@ begin
               FValuesDictionary.Add(str, FValuesAsStrings); // FValuesAsString is just a placeholder, to be able to check return value of find as nil
           end;
         end;
-        Result := FValuesDictionary.Find(lowercase(VarToStr(FValue))) <> nil;
+        Result := FValuesDictionary.Find(lowercase(VarToStr(aActualValue))) <> nil;
       end;
   end;
+end;
+
+procedure TmFilter.EndEvaluation;
+begin
+  FreeAndNil(FValuesAsStrings);
+  FreeAndnil(FValuesDictionary);
 end;
 
 procedure TmFilter.CopyFrom(aSource: TmFilter);
