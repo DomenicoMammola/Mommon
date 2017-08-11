@@ -19,7 +19,7 @@ interface
 
 uses
   Classes,
-  mSortConditions;
+  mSortConditions, mFilter;
 
 type
   ISortableDatasetManager = interface
@@ -33,6 +33,10 @@ type
   IFilterDatasetManager = interface
     ['{6BCEF289-FCB4-4EFE-B594-8D08DBC1B09A}']
     procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
+    function Filter : boolean;
+    function GetFiltered : boolean;
+    function GetFilters : TmFilters;
+    procedure ClearFilter;
   end;
 
 implementation
