@@ -118,7 +118,7 @@ var
   tmpDayOfWeek : word;
 begin
   Result := aDate;
-  tmpDayOfWeek := DayOf(Result);
+  tmpDayOfWeek := DayOfTheWeek(Result);
   while (tmpDayOfWeek = DaySunday) or (aSaturdayIsWorkingDay and (tmpDayOfWeek = DaySaturday)) or IsItalianPublicHoliday(Result) do
   begin
     Result := Result + aDirection;
