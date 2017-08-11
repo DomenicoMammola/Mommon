@@ -18,7 +18,8 @@ interface
 
 uses
   DB, Classes, contnrs, Variants,
-  mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList;
+  mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList, mMaps, mLog,
+  mJoins;
 
 const
   KEY_FIELD_NAME = '_KEY';
@@ -52,11 +53,6 @@ type
 
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; override;
     procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); override;
-
-(*    function Sort(const aConditions : TSortByConditions): boolean; override;
-    procedure ClearSort; override;
-    function Filter(const aFilterConditions : TmFilters) : boolean; override;
-    procedure ClearFilter; override;*)
   end;
 
 implementation
@@ -72,6 +68,8 @@ type
     Idx : integer;
   end;
 
+var
+  logger : TmLog;
 
 { TReadOnlyVirtualDatasetProvider }
 
@@ -112,8 +110,11 @@ end;
 procedure TReadOnlyVirtualDatasetProvider.InternalGetFieldValue(const aFieldName: string; const AIndex: Integer; out AValue: variant);
 var
   tmpI : IVDDatum;
-  idx : integer;
+  idx, i : integer;
   actualIndex : integer;
+  tmpPrefix, tmpFieldName : string;
+  tmpBuiltinJoin : TmBuiltInJoin;
+  tmpJoinKey : TObject;
 begin
   if (aIndex >= 0) then
   begin
@@ -136,8 +137,29 @@ begin
    if CompareText(aFieldName, KEY_FIELD_NAME) = 0 then
      aValue := idx
    else
-     aValue := tmpI.GetPropertyByFieldName(aFieldName);
-  end;
+   begin
+     if BuiltInJoins.Count > 0 then
+     begin
+       ExtractPrefixAndFieldName(aFieldName, tmpPrefix, tmpFieldName);
+       tmpBuiltinJoin := BuiltInJoins.FindByPrefix(tmpPrefix);
+       if Assigned(tmpBuiltinJoin) then
+       begin
+         tmpJoinKey := tmpBuiltinJoin.BuildExternalEntityKeyFunction(tmpI);
+         try
+           aValue := tmpBuiltinJoin.Provider.GetDatumByKey(tmpJoinKey).GetPropertyByFieldName(tmpFieldName);
+         finally
+           tmpJoinKey.Free;
+         end;
+       end
+       else
+         aValue := tmpI.GetPropertyByFieldName(aFieldName);
+     end
+     else
+       aValue := tmpI.GetPropertyByFieldName(aFieldName);
+   end;
+  end
+  else
+    aValue := null;
 end;
 
 
@@ -202,6 +224,7 @@ var
   i, k : integer;
   tmp : TDatumShell;
   visibleRow : boolean;
+  currentDatum : IVDDatum;
 begin
   Result := false;
   if not Assigned(FIDataProvider) then
@@ -242,19 +265,47 @@ begin
     begin
       FFilteredIndex.Clear;
       FFiltered := true;
+      logger.Debug('[TReadOnlyVirtualDatasetProvider.Refresh] - start evaluation to apply filter');
 
-      for i := 0 to FIDataProvider.Count -1 do
-      begin
-        visibleRow := true;
-        for k := 0 to FilterConditions.Count -1 do
+      FilterConditions.StartEvaluation;
+      try
+        logger.Debug('[TReadOnlyVirtualDatasetProvider.Refresh] - total row:' + IntToStr(FIDataProvider.Count));
+        if FSortedIndex.Count > 0 then
         begin
-          visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(FIDataProvider.GetDatum(i).GetPropertyByFieldName(FilterConditions.Get(k).FieldName));
-          if not visibleRow then
-            break;
+          for i := 0 to FSortedIndex.Count - 1 do
+          begin
+            visibleRow := true;
+            currentDatum := TDatumShell(FSortedIndex.Items[i]).Datum;
+            for k := 0 to FilterConditions.Count -1 do
+            begin
+              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(CurrentDatum.GetPropertyByFieldName(FilterConditions.Get(k).FieldName));
+              if not visibleRow then
+                break;
+            end;
+            if visibleRow then
+              FFilteredIndex.Add(i);
+          end;
+        end
+        else
+        begin
+          for i := 0 to FIDataProvider.Count -1 do
+          begin
+            visibleRow := true;
+            currentDatum := FIDataProvider.GetDatum(i);
+            for k := 0 to FilterConditions.Count -1 do
+            begin
+              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(CurrentDatum.GetPropertyByFieldName(FilterConditions.Get(k).FieldName));
+              if not visibleRow then
+                break;
+            end;
+            if visibleRow then
+              FFilteredIndex.Add(i);
+          end;
         end;
-        if visibleRow then
-          FFilteredIndex.Add(i);
+      finally
+        FilterConditions.EndEvaluation;
       end;
+      logger.Debug('[TReadOnlyVirtualDatasetProvider.Refresh] - end evaluation. Found:' + IntToStr(FFilteredIndex.Count));
     end;
   end;
   Result := true;
@@ -264,94 +315,30 @@ procedure TReadOnlyVirtualDatasetProvider.GetUniqueStringValuesForField(const aF
 var
   i : integer;
   tmpValue : variant;
+  tmpIndex : TmStringDictionary;
+  str : String;
 begin
-  for i := 0 to Self.GetRecordCount - 1 do
-  begin
-    Self.InternalGetFieldValue(aFieldName, i, tmpValue);
-    if not VarIsNull(tmpValue) and (aList.IndexOf(tmpValue) < 0) then
-      aList.Add(tmpValue);
-  end;
-end;
-
-(*
-function TReadOnlyVirtualDatasetProvider.Sort(const aConditions: TSortByConditions) : boolean;
-var
-  i : integer;
-  tmp : TDatumShell;
-begin
-  Result := false;
-  if not Assigned(FIDataProvider) then
-    exit
-  else
-  begin
-    // http://lazarus-ccr.sourceforge.net/docs/rtl/classes/tfplist.html
-    // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
-    if (not Assigned(aConditions)) or  (aConditions.Count =  0) then
-      Self.ClearSort
-    else
+  tmpIndex := TmStringDictionary.Create();
+  try
+    for i := 0 to Self.GetRecordCount - 1 do
     begin
-      FSortedIndex.Clear;
-      FGarbage.Clear;
-      for i := 0 to FIDataProvider.Count -1 do
+      Self.InternalGetFieldValue(aFieldName, i, tmpValue);
+
+      str := VarToStr(tmpValue);
+
+      if tmpIndex.Find(str) = nil then
       begin
-        tmp := TDatumShell.Create;
-        FGarbage.Add(tmp);
-        tmp.Datum := FIDataProvider.GetDatum(i);
-        tmp.Idx:= i;
-        FSortedIndex.Add(tmp);
+         tmpIndex.Add(str, tmpIndex);
+         aList.Add(str);
       end;
-      FCurrentSortConditions := aConditions;
-      FCurrentSortFields.Clear;
-      for i := 0 to aConditions.Count - 1 do
-        FCurrentSortFields.Append(aConditions.Items[i].FieldName);
-      mUtility.MergeSort(FSortedIndex, OnCompare);
-      FCurrentSortFields.Clear;
     end;
-    if FFiltered then
-      Self.Filter(FCurrentFilterConditions);
-  end;
-  Result := true;
-end;
-
-procedure TReadOnlyVirtualDatasetProvider.ClearSort;
-begin
-  FSortedIndex.Clear;
-  FGarbage.Clear;
-  if FFiltered then
-    Self.Filter(FCurrentFilterConditions);
-end;
-
-function TReadOnlyVirtualDatasetProvider.Filter(const aFilterConditions: TmFilters): boolean;
-var
-  i, k : integer;
-  visibleRow : boolean;
-begin
-  FFiltered:= true;
-  if not Assigned(FCurrentFilterConditions) then
-    FCurrentFilterConditions := TmFilters.Create;
-
-  FCurrentFilterConditions.CopyFrom(aFilterConditions);
-  FFilteredIndex.Clear;
-
-  for i := 0 to FIDataProvider.Count -1 do
-  begin
-    visibleRow := true;
-    for k := 0 to aFilterConditions.Count -1 do
-    begin
-      visibleRow := visibleRow and aFilterConditions.Get(k).Evaluate(FIDataProvider.GetDatum(i).GetPropertyByFieldName(aFilterConditions.Get(k).FieldName));
-      if not visibleRow then
-        break;
-    end;
-    if visibleRow then
-      FFilteredIndex.Add(i);
+  finally
+    tmpIndex.Free;
   end;
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.ClearFilter;
-begin
-  FFiltered:= false;
-  FFilteredIndex.Clear;
-  FCurrentFilterConditions.Clear;
-end;
-*)
+
+initialization
+  logger := logManager.AddLog('mQuickReadOnlyVirtualDataSet');
+
 end.

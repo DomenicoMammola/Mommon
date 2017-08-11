@@ -32,6 +32,7 @@ type
     ['{F3F52A84-CEEF-4567-98CF-847BC64342E7}']
     function Count : integer;
     function GetDatum(aIndex : integer) : IVDDatum;
+    function GetDatumByKey (aKey : TObject) : IVDDatum;
   end;
 
 function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >
