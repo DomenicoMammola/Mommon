@@ -8,7 +8,7 @@ interface
 
 uses
   Classes, contnrs, sysutils,
-  mVirtualDataSetInterfaces;
+  mVirtualDataSetInterfaces, mMaps;
 
 const
   PREFIX_JOIN_SEPARATOR = '$';
@@ -40,6 +40,7 @@ type
   TmBuiltInJoins = class
   strict private
     FList : TObjectList;
+    FDictionary : TmStringDictionary;
   public
     constructor Create;
     destructor Destroy; override;
@@ -102,10 +103,12 @@ end;
 constructor TmBuiltInJoins.Create;
 begin
   FList := TObjectList.Create(true);
+  FDictionary := TmStringDictionary.Create();
 end;
 
 destructor TmBuiltInJoins.Destroy;
 begin
+  FDictionary.Free;
   FList.Free;
   inherited Destroy;
 end;
@@ -118,17 +121,20 @@ end;
 procedure TmBuiltInJoins.Clear;
 begin
   FList.Clear;
+  FDictionary.Clear;
 end;
 
 function TmBuiltInJoins.Add: TmBuiltInJoin;
 begin
   Result := TmBuiltInJoin.Create;
   FList.Add(Result);
+  FDictionary.Clear;
 end;
 
 function TmBuiltInJoins.Get(const aIndex: integer): TmBuiltInJoin;
 begin
   Result := FList.Items[aIndex] as TmBuiltInJoin;
+  FDictionary.Clear;
 end;
 
 function TmBuiltInJoins.FindByPrefix(const aPrefix: string): TmBuiltInJoin;
@@ -136,14 +142,12 @@ var
   i : integer;
 begin
   Result := nil;
-  for i := 0 to Count - 1 do
+  if FDictionary.Count = 0 then
   begin
-    if CompareText(Get(i).Prefix, aPrefix) = 0 then
-    begin
-      Result := Get(i);
-      exit;
-    end;
+    for i := 0 to Count - 1 do
+      FDictionary.Add(uppercase(Get(i).Prefix), Get(i));
   end;
+  Result := FDictionary.Find(uppercase(aPrefix)) as TmBuiltInJoin;
 end;
 
 { TmBuiltInJoin }
