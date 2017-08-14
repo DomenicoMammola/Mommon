@@ -110,7 +110,7 @@ end;
 procedure TReadOnlyVirtualDatasetProvider.InternalGetFieldValue(const aFieldName: string; const AIndex: Integer; out AValue: variant);
 var
   tmpI : IVDDatum;
-  idx, i : integer;
+  idx: integer;
   actualIndex : integer;
   tmpPrefix, tmpFieldName : string;
   tmpBuiltinJoin : TmBuiltInJoin;
@@ -146,7 +146,7 @@ begin
        begin
          tmpJoinKey := tmpBuiltinJoin.BuildExternalEntityKeyFunction(tmpI);
          try
-           aValue := tmpBuiltinJoin.Provider.GetDatumByKey(tmpJoinKey).GetPropertyByFieldName(tmpFieldName);
+           aValue := tmpBuiltinJoin.Provider.FindDatumByKey(tmpJoinKey as IVDDatumKey).GetPropertyByFieldName(tmpFieldName);
          finally
            tmpJoinKey.Free;
          end;

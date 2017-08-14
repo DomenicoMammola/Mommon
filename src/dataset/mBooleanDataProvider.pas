@@ -17,19 +17,20 @@ unit mBooleanDataProvider;
 interface
 
 uses
-  mInterfaces, mVirtualFieldDefs, mVirtualDataSetInterfaces;
+  {$IFNDEF FPC}mInterfaces,{$ENDIF}
+  mVirtualFieldDefs, mVirtualDataSetInterfaces;
 
 type
-
   { TBooleanDatum }
 
-  TBooleanDatum = class (TJavaInterfacedObject, IVDDatum)
+  TBooleanDatum = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IVDDatum)
   strict private
     const FLD_VALUE = 'VALUE';
   strict private
     FValue : boolean;
   public
     constructor Create(aValue : boolean);
+    function GetDatumKey : IVDDatumKey;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TVirtualFieldDefs; aPrefix : String);
     class function GetKeyField : String;
@@ -38,7 +39,7 @@ type
 
   { TBooleanDataProvider }
 
-  TBooleanDataProvider = class (TJavaInterfacedObject, IVDListDataProvider)
+  TBooleanDataProvider = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IVDListDataProvider)
   strict private
     FTrueValue : TBooleanDatum;
     FFalseValue : TBooleanDatum;
@@ -47,6 +48,7 @@ type
     destructor Destroy; override;
     function Count : integer;
     function GetDatum(aIndex : integer) : IVDDatum;
+    function FindDatumByKey (aKey : IVDDatumKey) : IVDDatum;
   end;
 
 implementation
@@ -82,11 +84,21 @@ begin
     Result := FFalseValue;
 end;
 
+function TBooleanDataProvider.FindDatumByKey(aKey: IVDDatumKey): IVDDatum;
+begin
+  Result := nil;
+end;
+
 { TBooleanDatum }
 
 constructor TBooleanDatum.Create(aValue: boolean);
 begin
   FValue := aValue;
+end;
+
+function TBooleanDatum.GetDatumKey: IVDDatumKey;
+begin
+  Result := nil;
 end;
 
 class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TVirtualFieldDefs; aPrefix: String);
