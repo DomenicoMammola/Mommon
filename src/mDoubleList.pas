@@ -79,6 +79,7 @@ begin
   tmp := TDoubleShell.Create;
   tmp.Value:= Num;
   FGarbage.Add(tmp);
+  Result := FGarbage.Count - 1;
 end;
 
 procedure TDoubleList.AddDoubles(DoubleList: TDoubleList);

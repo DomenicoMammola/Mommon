@@ -185,10 +185,10 @@ end;
 
 function TmFilter.Evaluate(aActualValue: Variant): boolean;
 var
-  rl : TVariantRelationship;
   str, strF : string;
   i : integer;
 begin
+  Result := false;
   case Self.FilterOperator of
     foUnknown:
       Result := false;
