@@ -591,17 +591,22 @@ end;
 
 procedure ConvertVariantToDateList(const aValue: variant; aList: TIntegerList);
 var
-  i : integer;
+  i: integer;
+  tmpDate : TDateTime;
 begin
   if VarIsArray(aValue) then
   begin
     for i := 0 to VarArrayHighBound(aValue, 1) do
     begin
-      aList.Add(trunc(VarAsType(aValue[i], vardate)));
+      tmpDate := VarAsType(aValue[i], vardate);
+      aList.Add(trunc(tmpDate));
     end;
   end
   else
-    aList.Add(trunc(VarAsType(aValue, vardate)));
+  begin
+    tmpDate := VarAsType(aValue, vardate);
+    aList.Add(trunc(tmpDate));
+  end;
 end;
 
 procedure ConvertVariantToDateTimeList(const aValue: variant; aList: TDoubleList);
