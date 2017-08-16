@@ -31,6 +31,7 @@ uses
 function GenerateDisplayLabel(aSourceString: String): String;
 begin
   Result := SysUtils.StringReplace(aSourceString, '_', ' ', [rfReplaceAll]);
+  Result := SysUtils.StringReplace(Result, '$', ' ', [rfReplaceAll]);
   Result := StrUtils.AnsiPropercase(Result,[' ', #9, '\',#13,#10]);;
 end;
 

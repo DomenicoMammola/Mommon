@@ -46,6 +46,8 @@ function VarRecToVariant (AValue : TVarRec) : Variant;
 
 function CompareVariants (aVal1, aVal2 : variant) : integer;
 
+function SafeVariantToInteger(aValue: variant; aDefaultValue : integer): integer;
+
 // cloned from LCLProc unit but with OnCompare procedure that can be a method of a class
 // this to avoid singleton dilemma when comparing operations needs extra data
 // as in virtualdataset Sort method and it is possible to write thread-safe code without shared singleton resources
@@ -667,6 +669,14 @@ begin
     Result := -1
   else
     Result := 1;
+end;
+
+function SafeVariantToInteger(aValue: variant; aDefaultValue : integer): integer;
+begin
+  if VarIsNull(aValue) or VarIsEmpty(aValue) or (not VarIsOrdinal(aValue)) then
+    Result := aDefaultValue
+  else
+    Result := aValue;
 end;
 
 // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html

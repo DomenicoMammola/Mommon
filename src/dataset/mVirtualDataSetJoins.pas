@@ -1,4 +1,4 @@
-unit mJoins;
+unit mVirtualDataSetJoins;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -8,31 +8,33 @@ interface
 
 uses
   Classes, contnrs, sysutils,
-  mVirtualDataSetInterfaces, mMaps;
+  mVirtualDataSetInterfaces, mMaps, mVirtualFieldDefs;
 
 const
   PREFIX_JOIN_SEPARATOR = '$';
 
 type
-  TBuildExternalEntityKeyFromDatum = function (aSource : IVDDatum): TObject of object;
+  TBuildExternalEntityKeyFromDatumFunction = function (aSource : IVDDatum): string of object;
+  TFindDatumByStringKeyFunction = function (aStringKey : string): TObject of object;
 
   { TmBuiltInJoin }
 
   TmBuiltInJoin = class
   strict private
     FPrefix : string;
-    FBuildExternalEntityKeyFunction : TBuildExternalEntityKeyFromDatum;
-    FActive : boolean;
-    FProvider : IVDListDataProvider;
+    FDoBuildExternalEntityKey : TBuildExternalEntityKeyFromDatumFunction;
+    FDoFindDatumByStringKey : TFindDatumByStringKeyFunction;
+    FVirtualFieldDefs : TVirtualFieldDefs;
 
     procedure SetPrefix(AValue: string);
   public
     constructor Create;
+    destructor Destroy; override;
 
-    property Active : boolean read FActive write FActive;
     property Prefix : string read FPrefix write SetPrefix;
-    property BuildExternalEntityKeyFunction : TBuildExternalEntityKeyFromDatum read FBuildExternalEntityKeyFunction write FBuildExternalEntityKeyFunction;
-    property Provider : IVDListDataProvider read FProvider write FProvider;
+    property DoBuildExternalEntityKey : TBuildExternalEntityKeyFromDatumFunction read FDoBuildExternalEntityKey write FDoBuildExternalEntityKey;
+    property DoFindDatumByStringKey : TFindDatumByStringKeyFunction read FDoFindDatumByStringKey write FDoFindDatumByStringKey;
+    property VirtualFieldDefs : TVirtualFieldDefs read FVirtualFieldDefs;
   end;
 
   { TmBuiltInJoins }
@@ -64,11 +66,11 @@ type
     destructor Destroy; override;
   end;
 
-  procedure ExtractPrefixAndFieldName (const aSource : String; out aPrefix : string; out aFieldName : string);
+  procedure ExtractPrefixAndFieldName (const aSource : String; var aPrefix, aFieldName : string);
 
 implementation
 
-procedure ExtractPrefixAndFieldName(const aSource: String; out aPrefix: string; out aFieldName: string);
+procedure ExtractPrefixAndFieldName(const aSource: String; var aPrefix, aFieldName: string);
 var
   i : integer;
 begin
@@ -77,7 +79,7 @@ begin
   i := Pos(PREFIX_JOIN_SEPARATOR, aSource);
   if i > 0 then
   begin
-    aPrefix := Copy(aSource, 1, i - 1);
+    aPrefix := Copy(aSource, 1, i);
     aFieldName := Copy(aSource, i+1, 99999);
   end;
 end;
@@ -145,7 +147,7 @@ begin
   if FDictionary.Count = 0 then
   begin
     for i := 0 to Count - 1 do
-      FDictionary.Add(uppercase(Get(i).Prefix), Get(i));
+      FDictionary.Add(uppercase((FList.Items[i] as TmBuiltInJoin).Prefix), Get(i));
   end;
   Result := FDictionary.Find(uppercase(aPrefix)) as TmBuiltInJoin;
 end;
@@ -162,10 +164,16 @@ end;
 
 constructor TmBuiltInJoin.Create;
 begin
-  FActive:= false;
   FPrefix:= '';
-  FBuildExternalEntityKeyFunction:= nil;
-  FProvider:= nil;
+  FDoBuildExternalEntityKey:= nil;
+  FDoFindDatumByStringKey:= nil;
+  FVirtualFieldDefs := TVirtualFieldDefs.Create;
+end;
+
+destructor TmBuiltInJoin.Destroy;
+begin
+  FVirtualFieldDefs.Free;
+  inherited Destroy;
 end;
 
 end.

@@ -22,7 +22,7 @@ uses
   {$ENDIF}
   Forms, DB,
   mVirtualFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
-  mInterfaces, mFilter, mJoins;
+  mInterfaces, mFilter, mVirtualDataSetJoins;
 
 {$REGION 'Documentation'}
 {
@@ -227,10 +227,12 @@ type
     FOnLocate         : TLocateEvent;
     FOnLookupValue    : TLookupValueEvent;
     FAutomaticInitFieldsFormat : boolean;
+    FFieldsFromJoinsAreVisibleByDefault : boolean;
 
     FVirtualDatasetProvider : TVirtualDatasetDataProvider;
     FSortManager : TVirtualDatasetSortableManager;
     FFilterManager : TVirtualDatasetFilterManager;
+    FFieldsFromJoin : TStringList;
 
     procedure DateTimeToNative(
       ADataType : TFieldType;
@@ -298,7 +300,7 @@ type
 
     function GetRecordSize: Word; override;
     procedure InternalAddRecord(Buffer: Pointer; AAppend: Boolean); override;
-    procedure InternalCreateFields; virtual;
+//    procedure InternalCreateFields; virtual;
     procedure InternalDelete; override;
     procedure InternalFirst; override;
     procedure InternalGotoBookmark(ABookmark: Pointer); override;
@@ -366,6 +368,7 @@ type
     property AutomaticInitFieldsFormat : boolean read FAutomaticInitFieldsFormat write FAutomaticInitFieldsFormat;
 
     property DatasetDataProvider : TVirtualDatasetDataProvider read FVirtualDatasetProvider write FVirtualDatasetProvider;
+    property FieldsFromJoinsAreVisibleByDefault : boolean read FFieldsFromJoinsAreVisibleByDefault write FFieldsFromJoinsAreVisibleByDefault;
   end;
 
   TVirtualDataset = class(TCustomVirtualDataset)
@@ -706,12 +709,14 @@ begin
   MasterDataLink.OnMasterChange  := MasterChanged;
   MasterDataLink.OnMasterDisable := MasterDisabled;
   FAutomaticInitFieldsFormat := true;
+  FFieldsFromJoinsAreVisibleByDefault:= false;
   FSortManager := TVirtualDatasetSortableManager.Create;
   FSortManager.FVirtualDataset := Self;
   FFilterManager := TVirtualDatasetFilterManager.Create;
   FFilterManager.FVirtualDataset := Self;
   FSorted := false;
   FFiltered:= false;
+  FFieldsFromJoin := TStringList.Create;
 end;
 
 procedure TCustomVirtualDataset.BeforeDestruction;
@@ -720,6 +725,7 @@ begin
   FMasterDataLink.Free;
   FSortManager.Free;
   FFilterManager.Free;
+  FFieldsFromJoin.Free;
   inherited;
 end;
 
@@ -1335,12 +1341,12 @@ begin
   end;
 end;
 
-procedure TCustomVirtualDataset.InternalCreateFields;
+(*procedure TCustomVirtualDataset.InternalCreateFields;
 begin
   // TCustomVirtualDataset requires persistent fields to be defined
   if DefaultFields then
     VirtualDatasetError(SPersistentFieldsRequired, Self);
-end;
+end;*)
 
 procedure TCustomVirtualDataset.InternalDelete;
 var
@@ -1395,6 +1401,8 @@ begin
 end;
 
 procedure TCustomVirtualDataset.InternalOpen;
+var
+  i : integer;
 begin
   FInternalOpen := True;
   InternalFirst;
@@ -1405,20 +1413,14 @@ begin
   CreateFields;
   BindFields(True);
   RecordBufferSize := SizeOf(TRecordInfo) + (Fields.Count * SizeOf(Variant));
-
-(*
-//  Logger.EnterMethod(Self, 'InternalOpen');
-  FInternalOpen := True;
-  InternalFirst;
-  BookmarkSize := SizeOf(Integer);
-  FieldDefs.Updated := False;
-  FieldDefs.Update;
-  InternalCreateFields;
-  FReserved := Pointer(FieldListCheckSum(Self));
-  BindFields(True);
-  FRecordBufferSize := SizeOf(TRecordInfo) + (Fields.Count * SizeOf(Variant));
-//  Logger.ExitMethod(Self, 'InternalOpen');
-*)
+  if not FFieldsFromJoinsAreVisibleByDefault then
+  begin
+    for i := 0 to Self.Fields.Count - 1 do
+    begin
+      if FFieldsFromJoin.IndexOf(Fields[i].FieldName) >= 0 then
+        Fields[i].Visible:= false;
+    end;
+  end;
 end;
 
 procedure TCustomVirtualDataset.InternalPost;
@@ -1449,26 +1451,44 @@ begin
 end;
 
 procedure TCustomVirtualDataset.LoadFieldDefsFromVirtualFields;
+  function AddField (aSource : TVirtualFieldDef; aPrefix : string) : string;
+  var
+    FD : TFieldDef;
+  begin
+    Result := '';
+    if Self.FieldDefs.IndexOf(aSource.Name) = -1 then
+    begin
+      FD := Self.FieldDefs.AddFieldDef;
+      FD.Name := aPrefix + aSource.Name;
+      FD.DataType := FromTVirtualFieldDefTypeToTFieldType(aSource.DataType);
+      FD.Size := aSource.Size;
+      if aSource.Required then
+        FD.Attributes := [faRequired];
+      if ReadOnly or aSource.ReadOnly then
+        FD.Attributes := FD.Attributes + [faReadonly];
+      if (aSource.DataType = vftBCD) then
+        FD.Precision := aSource.Precision;
+      Result := FD.Name;
+    end;
+  end;
+
 var
-  FD : TFieldDef;
-  i : integer;
+  i, k : integer;
   CurrentField : TVirtualFieldDef;
+  CurrentJoin : TmBuiltInJoin;
 begin
   for i := 0 to FVirtualDatasetProvider.VirtualFieldDefs.Count - 1 do
   begin
     CurrentField := FVirtualDatasetProvider.VirtualFieldDefs[i];
-    if Self.FieldDefs.IndexOf(CurrentField.Name) = -1 then
+    AddField(CurrentField, '');
+  end;
+  for k := 0 to FVirtualDatasetProvider.BuiltInJoins.Count - 1 do
+  begin
+    CurrentJoin := FVirtualDatasetProvider.BuiltInJoins.Get(k);
+    for i := 0 to CurrentJoin.VirtualFieldDefs.Count -1 do
     begin
-      FD          := Self.FieldDefs.AddFieldDef;
-      FD.Name     := CurrentField.Name;
-      FD.DataType := FromTVirtualFieldDefTypeToTFieldType(CurrentField.DataType);
-      FD.Size     := CurrentField.Size;
-      if CurrentField.Required then
-        FD.Attributes := [faRequired];
-      if ReadOnly or CurrentField.ReadOnly then
-        FD.Attributes := FD.Attributes + [faReadonly];
-      if (CurrentField.DataType = vftBCD) then
-        FD.Precision := CurrentField.Precision;
+      CurrentField := CurrentJoin.VirtualFieldDefs[i];
+      FFieldsFromJoin.Append(Addfield(CurrentField, CurrentJoin.Prefix));
     end;
   end;
 end;

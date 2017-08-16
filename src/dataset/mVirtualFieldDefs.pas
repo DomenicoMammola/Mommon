@@ -38,6 +38,8 @@ type
     procedure SetDataType(AValue: TVirtualFieldDefType);
   public
     constructor Create(ACollection: TCollection); override;
+    procedure Assign(const aSource : TVirtualFieldDef);
+  public
     property Name : string read FName write FName;
     property DataType : TVirtualFieldDefType read FDataType write SetDataType;
     property Size : integer read FSize write FSize default 0;
@@ -46,12 +48,15 @@ type
     property Precision : integer read FPrecision write FPrecision default 0;
   end;
 
+  { TVirtualFieldDefs }
+
   TVirtualFieldDefs = class(TCollection)
   private
     function GetVirtualFieldDef(I: Integer): TVirtualFieldDef;
   public
     constructor Create;
     function AddFieldDef: TVirtualFieldDef;
+    procedure Assign (const aSource : TVirtualFieldDefs);
     property VirtualFieldDefs[I: Integer]: TVirtualFieldDef read GetVirtualFieldDef; default;
   end;
 
@@ -93,11 +98,32 @@ begin
   FName := '';
 end;
 
+procedure TVirtualFieldDef.Assign(const aSource: TVirtualFieldDef);
+begin
+  Self.Name := aSource.Name;
+  Self.DataType := aSource.DataType;
+  Self.Size := aSource.Size;
+  Self.Required := aSource.Required;
+  Self.ReadOnly := aSource.ReadOnly;
+  Self.Precision := aSource.Precision;
+end;
+
 { TVirtualFieldDefs }
 
 function TVirtualFieldDefs.AddFieldDef: TVirtualFieldDef;
 begin
   Result := Add as TVirtualFieldDef;
+end;
+
+procedure TVirtualFieldDefs.Assign(const aSource: TVirtualFieldDefs);
+var
+  i : integer;
+begin
+  Self.Clear;
+  for i := 0 to aSource.Count - 1 do
+  begin
+    Self.AddFieldDef.Assign(aSource.GetVirtualFieldDef(i));
+  end;
 end;
 
 

@@ -19,7 +19,7 @@ interface
 uses
   DB, Classes, contnrs, Variants,
   mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList, mMaps, mLog,
-  mJoins;
+  mVirtualDataSetJoins;
 
 const
   KEY_FIELD_NAME = '_KEY';
@@ -39,6 +39,7 @@ type
 
     function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
     procedure InternalGetFieldValue (const aFieldName : string; const AIndex: Integer; out AValue: variant);
+    procedure GetFieldValueFromDatum (const aDatum : IVDDatum; const aFieldName : string; out aValue :variant);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -112,9 +113,6 @@ var
   tmpI : IVDDatum;
   idx: integer;
   actualIndex : integer;
-  tmpPrefix, tmpFieldName : string;
-  tmpBuiltinJoin : TmBuiltInJoin;
-  tmpJoinKey : TObject;
 begin
   if (aIndex >= 0) then
   begin
@@ -138,28 +136,35 @@ begin
      aValue := idx
    else
    begin
-     if BuiltInJoins.Count > 0 then
-     begin
-       ExtractPrefixAndFieldName(aFieldName, tmpPrefix, tmpFieldName);
-       tmpBuiltinJoin := BuiltInJoins.FindByPrefix(tmpPrefix);
-       if Assigned(tmpBuiltinJoin) then
-       begin
-         tmpJoinKey := tmpBuiltinJoin.BuildExternalEntityKeyFunction(tmpI);
-         try
-           aValue := tmpBuiltinJoin.Provider.FindDatumByKey(tmpJoinKey as IVDDatumKey).GetPropertyByFieldName(tmpFieldName);
-         finally
-           tmpJoinKey.Free;
-         end;
-       end
-       else
-         aValue := tmpI.GetPropertyByFieldName(aFieldName);
-     end
-     else
-       aValue := tmpI.GetPropertyByFieldName(aFieldName);
+    GetFieldValueFromDatum(tmpI, aFieldName, AValue);
    end;
   end
   else
     aValue := null;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.GetFieldValueFromDatum(const aDatum: IVDDatum; const aFieldName : string; out aValue: variant);
+var
+  tmpPrefix, tmpFieldName, tmpString : string;
+  tmpBuiltinJoin : TmBuiltInJoin;
+  tmpObj : TObject;
+begin
+  if BuiltInJoins.Count > 0 then
+  begin
+    ExtractPrefixAndFieldName(aFieldName, tmpPrefix, tmpFieldName);
+    tmpBuiltinJoin := BuiltInJoins.FindByPrefix(tmpPrefix);
+    if Assigned(tmpBuiltinJoin) then
+    begin
+      tmpString := tmpBuiltinJoin.DoBuildExternalEntityKey(aDatum);
+      tmpObj := tmpBuiltinJoin.DoFindDatumByStringKey(tmpString);
+      if Assigned(tmpObj) and (tmpObj is IVDDatum) then
+        aValue := (tmpObj as IVDDatum).GetPropertyByFieldName(tmpFieldName);
+    end
+    else
+      aValue := aDatum.GetPropertyByFieldName(aFieldName);
+  end
+  else
+    aValue := aDatum.GetPropertyByFieldName(aFieldName);
 end;
 
 
@@ -225,6 +230,7 @@ var
   tmp : TDatumShell;
   visibleRow : boolean;
   currentDatum : IVDDatum;
+  tmpValue : variant;
 begin
   Result := false;
   if not Assigned(FIDataProvider) then
@@ -278,7 +284,8 @@ begin
             currentDatum := TDatumShell(FSortedIndex.Items[i]).Datum;
             for k := 0 to FilterConditions.Count -1 do
             begin
-              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(CurrentDatum.GetPropertyByFieldName(FilterConditions.Get(k).FieldName));
+              GetFieldValueFromDatum(currentDatum, FilterConditions.Get(k).FieldName, tmpValue);
+              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(tmpValue);
               if not visibleRow then
                 break;
             end;
@@ -294,7 +301,8 @@ begin
             currentDatum := FIDataProvider.GetDatum(i);
             for k := 0 to FilterConditions.Count -1 do
             begin
-              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(CurrentDatum.GetPropertyByFieldName(FilterConditions.Get(k).FieldName));
+              GetFieldValueFromDatum(currentDatum, FilterConditions.Get(k).FieldName, tmpValue);
+              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(tmpValue);
               if not visibleRow then
                 break;
             end;
@@ -332,6 +340,7 @@ begin
          aList.Add(str);
       end;
     end;
+    aList.Sort;
   finally
     tmpIndex.Free;
   end;
