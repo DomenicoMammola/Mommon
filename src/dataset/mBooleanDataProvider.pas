@@ -21,20 +21,39 @@ uses
   mVirtualFieldDefs, mVirtualDataSetInterfaces;
 
 type
+
+  { TBooleanDatumKey }
+
+  TBooleanDatumKey = class(IVDDatumKey)
+  strict private
+    FValue : boolean;
+  public
+    constructor Create (aValue : boolean);
+
+    procedure Assign(aSource : TObject);
+    function AsString : string;
+
+    property Value : boolean read FValue write FValue;
+  end;
+
   { TBooleanDatum }
 
   TBooleanDatum = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IVDDatum)
   strict private
     const FLD_VALUE = 'VALUE';
   strict private
-    FValue : boolean;
+    FKey : TBooleanDatumKey;
   public
     constructor Create(aValue : boolean);
+    destructor Destroy; override;
+
     function GetDatumKey : IVDDatumKey;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TVirtualFieldDefs; aPrefix : String);
     class function GetKeyField : String;
     function GetPropertyByFieldName(aFieldName : String) : Variant;
+
+    property Key : TBooleanDatumKey read FKey;
   end;
 
   { TBooleanDataProvider }
@@ -49,12 +68,30 @@ type
     function Count : integer;
     function GetDatum(aIndex : integer) : IVDDatum;
     function FindDatumByKey (aKey : IVDDatumKey) : IVDDatum;
+    function FindDatumByStringKey (aStringKey : string): IVDDatum;
   end;
 
 implementation
 
 uses
   SysUtils;
+
+{ TBooleanDatumKey }
+
+constructor TBooleanDatumKey.Create(aValue: boolean);
+begin
+  FValue := aValue;
+end;
+
+procedure TBooleanDatumKey.Assign(aSource: TObject);
+begin
+  FValue:= (aSource as TBooleanDatumKey).FValue;
+end;
+
+function TBooleanDatumKey.AsString: string;
+begin
+  Result := BoolToStr(FValue, true);
+end;
 
 { TBooleanDataProvider }
 
@@ -86,19 +123,32 @@ end;
 
 function TBooleanDataProvider.FindDatumByKey(aKey: IVDDatumKey): IVDDatum;
 begin
-  Result := nil;
+  Result := FindDatumByStringKey(aKey.AsString);
+end;
+
+function TBooleanDataProvider.FindDatumByStringKey(aStringKey: string): IVDDatum;
+begin
+  if aStringKey = BoolToStr(true, true) then
+    Result := FTrueValue
+  else
+    Result := FFalseValue;
 end;
 
 { TBooleanDatum }
 
 constructor TBooleanDatum.Create(aValue: boolean);
 begin
-  FValue := aValue;
+  FKey := TBooleanDatumKey.Create(aValue);
+end;
+
+destructor TBooleanDatum.Destroy;
+begin
+  FKey.Free;
 end;
 
 function TBooleanDatum.GetDatumKey: IVDDatumKey;
 begin
-  Result := nil;
+  Result := Key;
 end;
 
 class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TVirtualFieldDefs; aPrefix: String);
@@ -118,7 +168,7 @@ end;
 
 function TBooleanDatum.GetPropertyByFieldName(aFieldName: String): Variant;
 begin
-  Result := BoolToStr(FValue, true);
+  Result := BoolToStr(FKey.Value, true);
 end;
 
 end.
