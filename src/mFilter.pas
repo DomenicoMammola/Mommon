@@ -23,6 +23,8 @@ uses
 type
   TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foLike, foNotEq, foStartWith, foEndWith, foIn);
 
+  TmFilterOperatorsSet = set of TmFilterOperator;
+
   { TmFilter }
 
   TmFilter = class
