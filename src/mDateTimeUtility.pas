@@ -15,6 +15,10 @@ unit mDateTimeUtility;
 {$ENDIF}
 
 interface
+
+  type
+    TTimeDirection = (tdToFuture, tdToPast);
+
   function  AddYears(startDate: TDateTime; n: Integer) : TDateTime;
   function  AddMonths(startDate: TDateTime; n: Integer) : TDateTime;
 
@@ -25,7 +29,8 @@ interface
   function CalculateEasterDate (const year : word; const method : word) : TDateTime; overload;
 
   function IsItalianPublicHoliday (const aDate : TDateTime) : boolean;
-  function MoveToWorkingDayInItaly (const aDate : TDateTime; const aDirection : integer; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
+  function IsItalianWorkingDay (const aDate : TDateTime; const aSaturdayIsWorkingDay : boolean = false) : boolean;
+  function NextWorkingDayInItaly (const aOrigin : TDateTime; const aDirection : TTimeDirection; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
 
 implementation
 
@@ -113,17 +118,26 @@ begin
     Result := (trunc(aDate) = trunc(CalculateEasterDate(YearOf(aDate), 3)) + 1);
 end;
 
-function MoveToWorkingDayInItaly (const aDate : TDateTime; const aDirection : integer; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
+function IsItalianWorkingDay(const aDate: TDateTime; const aSaturdayIsWorkingDay: boolean): boolean;
 var
   tmpDayOfWeek : word;
 begin
-  Result := aDate;
-  tmpDayOfWeek := DayOfTheWeek(Result);
-  while (tmpDayOfWeek = DaySunday) or (aSaturdayIsWorkingDay and (tmpDayOfWeek = DaySaturday)) or IsItalianPublicHoliday(Result) do
+  tmpDayOfWeek := DayOf(aDate);
+  Result := not( (tmpDayOfWeek = DaySunday) or (aSaturdayIsWorkingDay and (tmpDayOfWeek = DaySaturday)) or IsItalianPublicHoliday(aDate));
+end;
+
+function NextWorkingDayInItaly (const aOrigin : TDateTime; const aDirection : TTimeDirection; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
+  function TimeDirectionToIncrement : integer;
   begin
-    Result := Result + aDirection;
-    tmpDayOfWeek := DayOf(Result);
+    if aDirection = tdToFuture then
+      Result := +1
+    else
+      Result := -1;
   end;
+begin
+  Result := aOrigin + TimeDirectionToIncrement;
+  while not IsItalianWorkingDay(Result) do
+    Result := Result + TimeDirectionToIncrement;
 end;
 
 function CalculateEasterDate(const year: word; const method: word): TDateTime;
