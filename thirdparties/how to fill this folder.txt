@@ -21,3 +21,12 @@ http://www.indyproject.org/Sockets/Download/svn.EN.aspx
 rev.5432
 
 to remove "voluntary" memory leaks : http://forum.lazarus.freepascal.org/index.php?topic=14556.0
+
+
+-----------------------------------------------------------
+
+Put 
+https://github.com/JuhaManninen/Pascal/blob/master/StrHashMap/StrHashMap.pas
+in folder:
+StrHashMap
+
