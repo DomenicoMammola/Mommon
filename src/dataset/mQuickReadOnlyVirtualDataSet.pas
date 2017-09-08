@@ -95,8 +95,8 @@ begin
     end
     else
     begin
-      val1 := d1.Datum.GetPropertyByFieldName(SortConditions.Items[i].FieldName);
-      val2 := d2.Datum.GetPropertyByFieldName(SortConditions.Items[i].FieldName);
+      GetFieldValueFromDatum(d1.Datum, SortConditions.Items[i].FieldName, val1);
+      GetFieldValueFromDatum(d2.Datum, SortConditions.Items[i].FieldName, val2);
     end;
     Result := CompareVariants(val1, val2);
     if Result <> 0 then
@@ -237,6 +237,7 @@ begin
     exit
   else
   begin
+    // SORT ---------------
     // http://lazarus-ccr.sourceforge.net/docs/rtl/classes/tfplist.html
     // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
     if (not aDoSort) then
@@ -258,10 +259,14 @@ begin
       end;
       FCurrentSortFields.Clear;
       for i := 0 to SortConditions.Count - 1 do
+      begin
+        logger.Debug('Sort on field:' + SortConditions.Items[i].FieldName);
         FCurrentSortFields.Append(SortConditions.Items[i].FieldName);
+      end;
       mUtility.MergeSort(FSortedIndex, OnCompare);
       FCurrentSortFields.Clear;
     end;
+    // FILTER ---------------
     if (not aDoFilter) then
     begin
       FFilteredIndex.Clear;
