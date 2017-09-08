@@ -17,7 +17,7 @@ unit mQuickReadOnlyVirtualDataSet;
 interface
 
 uses
-  DB, Classes, contnrs, Variants,
+  DB, Classes, contnrs, Variants, StrHashMap,
   mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList, mMaps, mLog,
   mVirtualDataSetJoins;
 
@@ -323,10 +323,10 @@ procedure TReadOnlyVirtualDatasetProvider.GetUniqueStringValuesForField(const aF
 var
   i : integer;
   tmpValue : variant;
-  tmpIndex : TmStringDictionary;
+  tmpIndex : TStringHashMap;
   str : String;
 begin
-  tmpIndex := TmStringDictionary.Create();
+  tmpIndex := TStringHashMap.Create;
   try
     for i := 0 to Self.GetRecordCount - 1 do
     begin
@@ -334,10 +334,10 @@ begin
 
       str := VarToStr(tmpValue);
 
-      if tmpIndex.Find(str) = nil then
+      if not tmpIndex.Contains(str) then
       begin
-         tmpIndex.Add(str, tmpIndex);
-         aList.Add(str);
+        tmpIndex.Add(str, tmpIndex);
+        aList.Add(str);
       end;
     end;
     aList.Sort;
