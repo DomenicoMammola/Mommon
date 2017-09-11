@@ -45,8 +45,8 @@ type
     function GetValue: String;
     procedure SetValue(AValue: String);
   public
-    class function CreateNew(aValue: String): TNullableString; overload;
-    class function CreateNew(): TNullableString; overload;
+    constructor Create(); override; overload;
+    constructor Create(aValue: String); overload;
 
     procedure Assign(aSource : TNullableString); overload;
     procedure Assign(aSourceField : TField); override; overload;
@@ -66,8 +66,8 @@ type
       function GetValue: UnicodeString;
       procedure SetValue(AValue: UnicodeString);
     public
-      class function CreateNew(aValue: UnicodeString): TNullableUnicodeString; overload;
-      class function CreateNew(): TNullableUnicodeString; overload;
+      constructor Create(); override; overload;
+      constructor Create(aValue: UnicodeString); overload;
 
       procedure Assign(aSource : TNullableUnicodeString); overload;
       procedure Assign(aSourceField : TField); override; overload;
@@ -85,8 +85,8 @@ type
       function GetValue: AnsiString;
       procedure SetValue(AValue: AnsiString);
     public
-      class function CreateNew(aValue: AnsiString): TNullableAnsiString; overload;
-      class function CreateNew(): TNullableAnsiString; overload;
+      constructor Create(); override; overload;
+      constructor Create(aValue: AnsiString); overload;
 
       procedure Assign(aSource : TNullableAnsiString); overload;
       procedure Assign(aSourceField : TField); override; overload;
@@ -105,8 +105,8 @@ type
       function GetValue : TDateTime;
       procedure SetValue (AValue : TDateTime);
     public
-      class function CreateNew(aValue : TDateTime) : TNullableDateTime; overload;
-      class function CreateNew() : TNullableDateTime; overload;
+      constructor Create(); override; overload;
+      constructor Create(aValue: TDateTime); overload;
 
       procedure Assign(aSource : TNullableDateTime); overload;
       procedure Assign(aSourceField : TField); override; overload;
@@ -126,8 +126,8 @@ type
     function GetValue : Double;
     procedure SetValue (AValue : Double);
   public
-    class function CreateNew(aValue : Double) : TNullableDouble; overload;
-    class function CreateNew() : TNullableDouble; overload;
+    constructor Create(); override; overload;
+    constructor Create(aValue: Double); overload;
 
     procedure Assign(aSource : TNullableDouble); overload;
     procedure Assign(aSourceField : TField); override; overload;
@@ -148,8 +148,8 @@ type
     function GetValue : Boolean;
     procedure SetValue (AValue : Boolean);
   public
-    class function CreateNew(aValue : Boolean): TNullableBoolean; overload;
-    class function CreateNew(): TNullableBoolean; overload;
+    constructor Create(); override; overload;
+    constructor Create(aValue: Boolean); overload;
 
     procedure Assign(aSource : TNullableBoolean); overload;
     procedure Assign(aSourceField : TField); override; overload;
@@ -167,8 +167,8 @@ type
     function GetValue : Integer;
     procedure SetValue(AValue: Integer);
   public
-    class function CreateNew(aValue : Integer) : TNullableInteger; overload;
-    class function CreateNew(): TNullableInteger; overload;
+    constructor Create(); override; overload;
+    constructor Create(aValue: Integer); overload;
 
     procedure Assign(aSource : TNullableInteger); overload;
     procedure Assign(aSourceField : TField); override; overload;
@@ -198,18 +198,15 @@ begin
   FIsNull := false;
 end;
 
-class function TNullableInteger.CreateNew(aValue: Integer): TNullableInteger;
-var
-  tmp : TNullableInteger;
+constructor TNullableInteger.Create;
 begin
-  tmp := TNullableInteger.Create();
-  tmp.Value := aValue;
-  Result := tmp;
+  inherited Create;
 end;
 
-class function TNullableInteger.CreateNew: TNullableInteger;
+constructor TNullableInteger.Create(aValue: Integer);
 begin
-  Result := TNullableInteger.Create();
+  inherited Create;
+  FValue := aValue;
 end;
 
 procedure TNullableInteger.Assign(aSource: TNullableInteger);
@@ -265,18 +262,15 @@ begin
   FIsNull := false;
 end;
 
-class function TNullableBoolean.CreateNew(aValue: Boolean): TNullableBoolean;
-var
-  tmp : TNullableBoolean;
+constructor TNullableBoolean.Create;
 begin
-  tmp := TNullableBoolean.Create();
-  tmp.Value := aValue;
-  Result := tmp;
+  inherited Create;
 end;
 
-class function TNullableBoolean.CreateNew: TNullableBoolean;
+constructor TNullableBoolean.Create(aValue: Boolean);
 begin
-  Result := TNullableBoolean.Create();
+  inherited Create;
+  FValue := aValue;
 end;
 
 procedure TNullableBoolean.Assign(aSource: TNullableBoolean);
@@ -327,18 +321,15 @@ begin
   FIsNull := False;
 end;
 
-class function TNullableString.CreateNew(aValue: String): TNullableString;
-var
-  tmp : TNullableString;
+constructor TNullableString.Create;
 begin
-  tmp := TNullableString.Create();
-  tmp.Value := aValue;
-  Result := tmp;
+  inherited Create;
 end;
 
-class function TNullableString.CreateNew: TNullableString;
+constructor TNullableString.Create(aValue: String);
 begin
-  Result := TNullableString.Create();
+  inherited Create;
+  Self.Value:= aValue;
 end;
 
 procedure TNullableString.Assign(aSource: TNullableString);
@@ -400,19 +391,17 @@ begin
   FIsNull := false;
 end;
 
-class function TNullableDouble.CreateNew(aValue: Double): TNullableDouble;
-var
-  tmp : TNullableDouble;
+constructor TNullableDouble.Create;
 begin
-  tmp := TNullableDouble.Create();
-  tmp.Value := aValue;
-  Result := tmp;
+  inherited Create;
 end;
 
-class function TNullableDouble.CreateNew: TNullableDouble;
+constructor TNullableDouble.Create(aValue: Double);
 begin
-  Result := TNullableDouble.Create();
+  inherited Create;
+  FValue := aValue;
 end;
+
 
 procedure TNullableDouble.Assign(aSource: TNullableDouble);
 begin
@@ -478,18 +467,15 @@ begin
   FIsNull := false;
 end;
 
-class function TNullableAnsiString.CreateNew(aValue: AnsiString): TNullableAnsiString;
-var
-  tmp : TNullableAnsiString;
+constructor TNullableAnsiString.Create;
 begin
-  tmp := TNullableAnsiString.Create();
-  tmp.Value := aValue;
-  Result := tmp;
+  inherited Create;
 end;
 
-class function TNullableAnsiString.CreateNew: TNullableAnsiString;
+constructor TNullableAnsiString.Create(aValue: AnsiString);
 begin
-  Result := TNullableAnsiString.Create();
+  inherited Create;
+  FValue := aValue;
 end;
 
 procedure TNullableAnsiString.Assign(aSource: TNullableAnsiString);
@@ -537,18 +523,15 @@ begin
   FIsNull := false;
 end;
 
-class function TNullableDateTime.CreateNew(aValue: TDateTime): TNullableDateTime;
-var
-  tmp : TNullableDateTime;
+constructor TNullableDateTime.Create;
 begin
-  tmp := TNullableDateTime.Create();
-  tmp.Value := aValue;
-  Result := tmp;
+  inherited Create;
 end;
 
-class function TNullableDateTime.CreateNew: TNullableDateTime;
+constructor TNullableDateTime.Create(aValue: TDateTime);
 begin
-  Result := TNullableDateTime.Create();
+  inherited Create;
+  FValue := aValue;
 end;
 
 procedure TNullableDateTime.Assign(aSource: TNullableDateTime);
@@ -627,19 +610,15 @@ begin
   FIsNull := False;
 end;
 
-
-class function TNullableUnicodeString.CreateNew(aValue: UnicodeString): TNullableUnicodeString;
-var
-  tmp : TNullableUnicodeString;
+constructor TNullableUnicodeString.Create;
 begin
-  tmp := TNullableUnicodeString.Create();
-  tmp.Value := aValue;
-  Result := tmp;
+  inherited Create;
 end;
 
-class function TNullableUnicodeString.CreateNew: TNullableUnicodeString;
+constructor TNullableUnicodeString.Create(aValue: UnicodeString);
 begin
-  Result := TNullableUnicodeString.Create();
+  inherited Create;
+  FValue := aValue;
 end;
 
 procedure TNullableUnicodeString.Assign(aSource: TNullableUnicodeString);
