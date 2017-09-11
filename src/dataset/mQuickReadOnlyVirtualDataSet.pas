@@ -159,12 +159,13 @@ begin
       tmpObj := tmpBuiltinJoin.DoFindDatumByStringKey(tmpString);
       if Assigned(tmpObj) then
         aValue := tmpObj.GetPropertyByFieldName(tmpFieldName);
-
-//      if Assigned(tmpObj) and (tmpObj is IVDDatum) then
-//        aValue := (tmpObj as IVDDatum).GetPropertyByFieldName(tmpFieldName);
     end
     else
+    begin
+      //if tmpPrefix <> '' then
+      //  logger.Debug('[TReadOnlyVirtualDatasetProvider.GetFieldValueFromDatum] joiner not found:' + tmpPrefix);
       aValue := aDatum.GetPropertyByFieldName(aFieldName);
+    end;
   end
   else
     aValue := aDatum.GetPropertyByFieldName(aFieldName);

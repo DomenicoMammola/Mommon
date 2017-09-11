@@ -8,7 +8,7 @@ interface
 
 uses
   Classes, contnrs, sysutils,
-  mVirtualDataSetInterfaces, mMaps, mVirtualFieldDefs;
+  mVirtualDataSetInterfaces, mMaps, mVirtualFieldDefs, mLog;
 
 const
   PREFIX_JOIN_SEPARATOR = '$';
@@ -69,6 +69,9 @@ type
   procedure ExtractPrefixAndFieldName (const aSource : String; var aPrefix, aFieldName : string);
 
 implementation
+
+var
+  logger : TmLog;
 
 procedure ExtractPrefixAndFieldName(const aSource: String; var aPrefix, aFieldName: string);
 var
@@ -136,18 +139,22 @@ end;
 function TmBuiltInJoins.Get(const aIndex: integer): TmBuiltInJoin;
 begin
   Result := FList.Items[aIndex] as TmBuiltInJoin;
-  FDictionary.Clear;
 end;
 
 function TmBuiltInJoins.FindByPrefix(const aPrefix: string): TmBuiltInJoin;
 var
   i : integer;
+  tmp : string;
 begin
   Result := nil;
   if FDictionary.Count = 0 then
   begin
     for i := 0 to Count - 1 do
-      FDictionary.Add(uppercase((FList.Items[i] as TmBuiltInJoin).Prefix), Get(i));
+    begin
+      tmp := uppercase((FList.Items[i] as TmBuiltInJoin).Prefix);
+      // logger.Debug('[TmBuiltInJoins.FindByPrefix] Add built-in join: ' + tmp);
+      FDictionary.Add(tmp, Get(i));
+    end;
   end;
   Result := FDictionary.Find(uppercase(aPrefix)) as TmBuiltInJoin;
 end;
@@ -175,5 +182,8 @@ begin
   FVirtualFieldDefs.Free;
   inherited Destroy;
 end;
+
+initialization
+  logger := logManager.AddLog('mVirtualDataSetJoins');
 
 end.
