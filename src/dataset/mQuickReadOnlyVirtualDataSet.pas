@@ -147,7 +147,7 @@ procedure TReadOnlyVirtualDatasetProvider.GetFieldValueFromDatum(const aDatum: I
 var
   tmpPrefix, tmpFieldName, tmpString : string;
   tmpBuiltinJoin : TmBuiltInJoin;
-  tmpObj : TObject;
+  tmpObj : IVDDatum;
 begin
   if BuiltInJoins.Count > 0 then
   begin
@@ -157,8 +157,11 @@ begin
     begin
       tmpString := tmpBuiltinJoin.DoBuildExternalEntityKey(aDatum);
       tmpObj := tmpBuiltinJoin.DoFindDatumByStringKey(tmpString);
-      if Assigned(tmpObj) and (tmpObj is IVDDatum) then
-        aValue := (tmpObj as IVDDatum).GetPropertyByFieldName(tmpFieldName);
+      if Assigned(tmpObj) then
+        aValue := tmpObj.GetPropertyByFieldName(tmpFieldName);
+
+//      if Assigned(tmpObj) and (tmpObj is IVDDatum) then
+//        aValue := (tmpObj as IVDDatum).GetPropertyByFieldName(tmpFieldName);
     end
     else
       aValue := aDatum.GetPropertyByFieldName(aFieldName);

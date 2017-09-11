@@ -15,7 +15,7 @@ const
 
 type
   TBuildExternalEntityKeyFromDatumFunction = function (aSource : IVDDatum): string of object;
-  TFindDatumByStringKeyFunction = function (aStringKey : string): TObject of object;
+  TFindDatumByStringKeyFunction = function (aStringKey : string): IVDDatum of object;
 
   { TmBuiltInJoin }
 
