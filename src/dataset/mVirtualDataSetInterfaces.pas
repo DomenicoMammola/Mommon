@@ -41,6 +41,7 @@ type
     function GetDatum(aIndex : integer) : IVDDatum;
     function FindDatumByKey (aKey : IVDDatumKey): IVDDatum;
     function FindDatumByStringKey (aStringKey : string): IVDDatum;
+    procedure Clear;
   end;
 
 function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >
