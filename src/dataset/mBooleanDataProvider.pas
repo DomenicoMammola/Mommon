@@ -69,6 +69,7 @@ type
     function GetDatum(aIndex : integer) : IVDDatum;
     function FindDatumByKey (aKey : IVDDatumKey) : IVDDatum;
     function FindDatumByStringKey (aStringKey : string): IVDDatum;
+    procedure Clear;
   end;
 
 implementation
@@ -132,6 +133,11 @@ begin
     Result := FTrueValue
   else
     Result := FFalseValue;
+end;
+
+procedure TBooleanDataProvider.Clear;
+begin
+  //
 end;
 
 { TBooleanDatum }
