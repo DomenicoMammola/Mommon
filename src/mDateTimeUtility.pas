@@ -122,7 +122,7 @@ function IsItalianWorkingDay(const aDate: TDateTime; const aSaturdayIsWorkingDay
 var
   tmpDayOfWeek : word;
 begin
-  tmpDayOfWeek := DayOf(aDate);
+  tmpDayOfWeek := DayOfTheWeek(aDate);
   Result := not( (tmpDayOfWeek = DaySunday) or (aSaturdayIsWorkingDay and (tmpDayOfWeek = DaySaturday)) or IsItalianPublicHoliday(aDate));
 end;
 
@@ -136,7 +136,7 @@ function NextWorkingDayInItaly (const aOrigin : TDateTime; const aDirection : TT
   end;
 begin
   Result := aOrigin + TimeDirectionToIncrement;
-  while not IsItalianWorkingDay(Result) do
+  while not IsItalianWorkingDay(Result, aSaturdayIsWorkingDay) do
     Result := Result + TimeDirectionToIncrement;
 end;
 
