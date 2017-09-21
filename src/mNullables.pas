@@ -17,7 +17,8 @@ unit mNullables;
 interface
 
 uses
-  db;
+  db,
+  mUtility;
 
 type
 
@@ -551,11 +552,18 @@ begin
 end;
 
 procedure TNullableDateTime.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+var
+  tmpDate : TDateTime;
 begin
   if aBlankStringMeansNull and (aValue = '') then
     Self.IsNull:= true
   else
-    Self.Value:= StrToDateTime(aValue);
+  begin
+    if TryToUnderstandDateString(aValue, tmpDate) then
+      Self.Value:= tmpDate
+    else
+      raise Exception.Create('This string cannot be converted to date: ' + aValue);
+  end;
 end;
 
 function TNullableDateTime.AsVariant: Variant;
