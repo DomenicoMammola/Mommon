@@ -17,7 +17,7 @@ interface
 {$ENDIF}
 
 uses
-  Classes, SysUtils, Variants,
+  Classes, SysUtils, Variants, Windows,
   mIntList, mDoubleList;
 
 const
@@ -68,6 +68,8 @@ procedure ConvertVariantToIntegerList (const aValue : variant; aList : TIntegerL
 procedure ConvertVariantToDoubleList (const aValue : variant; aList : TDoubleList);
 procedure ConvertVariantToDateList (const aValue : variant; aList : TIntegerList);
 procedure ConvertVariantToDateTimeList (const aValue : variant; aList : TDoubleList);
+
+function GetCPUCores : integer;
 
 implementation
 
@@ -770,6 +772,14 @@ procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare);
 begin
   if List=nil then exit;
   _MergeSort(List,0,List.Count-1,OnCompare);
+end;
+
+function GetCPUCores : integer;
+var
+  Info: TSystemInfo;
+begin
+  GetSystemInfo(Info);
+  Result := Info.dwNumberOfProcessors;
 end;
 
 
