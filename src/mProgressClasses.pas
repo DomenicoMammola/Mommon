@@ -1,3 +1,12 @@
+// This is part of the Mommon Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit mProgressClasses;
 
 {$IFDEF FPC}
@@ -24,6 +33,7 @@ type
     procedure AfterConstruction; override;
 
     procedure RefreshProgress;
+    procedure RemoveProgress;
   end;
 
   { TmAbstractProgress }
@@ -37,6 +47,7 @@ type
     procedure SetMaxStep(AValue: integer);
   private
     FOnRefresh : TNotifyEvent;
+    FOnRemove : TNotifyEvent;
     FOwnerThread : TmThreadWithProgress;
   public
     constructor Create;
@@ -47,6 +58,7 @@ type
 
     property OwnerThread : TmThreadWithProgress read FOwnerThread write FOwnerThread;
     property OnRefresh : TNotifyEvent read FOnRefresh write FOnRefresh;
+    property OnRemove : TNotifyEvent read FOnRemove write FOnRemove;
     property Caption : String read FCaption;
   end;
 
@@ -58,8 +70,6 @@ type
   public
     constructor Create; virtual; abstract;
     procedure AddProgress(aProgress : TmAbstractProgress); virtual; abstract;
-    procedure RemoveProgress(aProgress : TmAbstractProgress); virtual; abstract;
-    procedure RefreshProgress (aProgress : TmAbstractProgress); virtual; abstract;
   end;
 
 
@@ -78,14 +88,9 @@ type
     function GetCurrentProgressGUI : TmProgressGUI;
   end;
 
-  procedure LinkEvents (aProgress : TmAbstractProgress; aOnRefresh : TNotifyEvent);
-
   function GetProgressGUIFactory : TmProgressGUIFactory;
 
 implementation
-
-uses
-  mProgressManager;
 
 type
 
@@ -95,17 +100,10 @@ type
   public
     constructor Create; override;
     procedure AddProgress(aProgress : TmAbstractProgress); override;
-    procedure RemoveProgress(aProgress : TmAbstractProgress); override;
-    procedure RefreshProgress (aProgress : TmAbstractProgress); override;
   end;
 
 var
   internalProgressGUIFactory : TmProgressGUIFactory;
-
-procedure LinkEvents(aProgress: TmAbstractProgress; aOnRefresh: TNotifyEvent);
-begin
-  aProgress.FOnRefresh:= aOnRefresh;
-end;
 
 function GetProgressGUIFactory: TmProgressGUIFactory;
 begin
@@ -134,6 +132,11 @@ begin
   FProgress.OnRefresh(FProgress);
 end;
 
+procedure TmThreadWithProgress.RemoveProgress;
+begin
+  FProgress.OnRemove(FProgress);
+end;
+
 { TFakeProgressGUI }
 
 constructor TFakeProgressGUI.Create;
@@ -142,16 +145,6 @@ begin
 end;
 
 procedure TFakeProgressGUI.AddProgress(aProgress: TmAbstractProgress);
-begin
-  // do nothing
-end;
-
-procedure TFakeProgressGUI.RemoveProgress(aProgress: TmAbstractProgress);
-begin
-  // do nothing
-end;
-
-procedure TFakeProgressGUI.RefreshProgress(aProgress: TmAbstractProgress);
 begin
   // do nothing
 end;
@@ -221,12 +214,12 @@ end;
 constructor TmAbstractProgress.Create;
 begin
   FCaption := '';
-  GetProgressManager.RegisterProgress(Self);
+  GetProgressGUIFactory.GetCurrentProgressGUI.AddProgress(Self);
 end;
 
 destructor TmAbstractProgress.Destroy;
 begin
-  GetProgressManager.UnregisterProgress(Self);
+  FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RemoveProgress);
   inherited Destroy;
 end;
 

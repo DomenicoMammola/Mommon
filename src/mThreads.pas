@@ -1,3 +1,12 @@
+// This is part of the Mommon Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit mThreads;
 
 {$mode objfpc}{$H+}
@@ -5,7 +14,8 @@ unit mThreads;
 interface
 
 uses
-  Classes, contnrs, syncobjs, Forms, SysUtils,
+  Classes, contnrs, syncobjs, SysUtils,
+  {$ifdef lcl}Forms, Controls,{$endif}
   mUtility, mProgress;
 
 type
@@ -28,17 +38,12 @@ type
     FRunning : boolean;
     FControlThread : TThread;
     FCanEndEvent : TSimpleEvent;
-
-//    procedure SetMaxNumberOfThreads(AValue: integer);
-//    procedure RunEndCallBack;
   public
     constructor Create;
     destructor Destroy; override;
 
     function QueueJob : TmJob;
-    procedure Execute (aCallBack : TOnEndCallback);
-
-//    property MaxNumberOfThreads : integer read GetMaxNumberOfThreads write SetMaxNumberOfThreads;
+    procedure Execute ({$ifdef lcl}aParentForm : TForm;{$endif}aCallBack : TOnEndCallback);
   end;
 
   function BatchExecutor : TmBatchExecutor;
@@ -62,7 +67,7 @@ type
     destructor Destroy; override;
     procedure Execute; override;
 
-    property CanDieEvent : TSimpleEvent read FCanDieEvent;
+    property CanDieEvent : TSimpleEvent read FCanDieEvent write FCanDieEvent;
     property CanStartEvent : TSimpleEvent read FCanStartEvent;
     property Job : TmJob read FJob;
   end;
@@ -76,9 +81,12 @@ type
 
     FJobs : TObjectList;
     FThreads : TObjectList;
-    //FMaxNumberOfThreads : integer;
+    FCanDieEvents : TObjectList;
     FCallBack : TOnEndCallback;
     FRunning : boolean;
+    {$ifdef lcl}
+    FParentForm: TForm;
+    {$endif}
 
     procedure RunEndCallBack;
   public
@@ -91,6 +99,9 @@ type
 
     property CallBack : TOnEndCallback read FCallBack write FCallBack;
     property Running : boolean read FRunning;
+    {$ifdef lcl}
+    property ParentForm: TForm read FParentForm write FParentForm;
+    {$endif}
   end;
 
 var
@@ -99,11 +110,6 @@ var
 function GetControlThread (aExecutor : TmBatchExecutor) : TControlThread;
 begin
   Result := aExecutor.FControlThread as TControlThread;
-end;
-
-function GetThread (aList : TObjectList; aIndex: integer) : TJobThread;
-begin
-  Result := aList.Items[aIndex] as TJobThread;
 end;
 
 function BatchExecutor: TmBatchExecutor;
@@ -117,6 +123,13 @@ end;
 
 procedure TControlThread.RunEndCallBack;
 begin
+  {$ifdef lcl}
+  if Assigned(FParentForm) then
+  begin
+    FParentForm.Cursor:= crArrow;
+    FParentForm.Enabled := true;
+  end;
+  {$endif}
   FCallBack();
 end;
 
@@ -127,6 +140,7 @@ begin
   FCanStartEvent := TSimpleEvent.Create;
   FJobs := TObjectList.Create (true);
   FThreads := TObjectList.Create(true);
+  FCanDieEvents := TObjectList.Create(true);
 end;
 
 destructor TControlThread.Destroy;
@@ -135,10 +149,11 @@ var
 begin
   for i := 0 to FThreads.Count - 1 do
   begin
-    GetThread(FThreads, i).Terminate;
-    GetThread(FThreads, i).CanDieEvent.WaitFor(3000);
+    (FThreads.Items[i] as TThread).Terminate;
+    (FCanDieEvents.Items[i] as TSimpleEvent).WaitFor(3000);
   end;
   FreeAndNil(FThreads);
+  FreeAndNil(FCanDieEvents);
   FreeAndNil(FJobs);
   FCanStartEvent.Free;
   FCanDieEvent.SetEvent;
@@ -148,37 +163,49 @@ end;
 procedure TControlThread.Execute;
 var
   i : integer;
-  currentJob, runningJobs : integer;
+  runningJobs : integer;
   tmpThread : TJobThread;
+  tmpCanDiedEvent : TSimpleEvent;
 begin
   while not Terminated do
   begin
     FCanStartEvent.WaitFor(INFINITE);
 
     FRunning := true;
-    runningJobs := FJobs.Count;
-    for i := 0 to FJobs.Count -1 do
+
+    if not Terminated then
     begin
-      tmpThread := TJobThread.Create(FJobs.Items[i] as TmJob);
-      FThreads.Add(tmpThread);
-      tmpThread.CanStartEvent.SetEvent;
+      runningJobs := FJobs.Count;
+      for i := 0 to FJobs.Count -1 do
+      begin
+        tmpThread := TJobThread.Create(FJobs.Items[i] as TmJob);
+        tmpCanDiedEvent := TSimpleEvent.Create;
+        tmpThread.CanDieEvent := tmpCanDiedEvent;
+        FThreads.Add(tmpThread);
+        FCanDieEvents.Add(tmpCanDiedEvent);
+        tmpThread.CanStartEvent.SetEvent;
+      end;
     end;
 
     while (not Terminated) and (runningJobs > 0) do
     begin
       for i := 0 to FJobs.Count - 1 do
       begin
-        if GetThread(FThreads, i).CanDieEvent.WaitFor(10) <> wrTimeout then
+        if (FCanDieEvents.Items[i] as TSimpleEvent).WaitFor(10) <> wrTimeout then
           dec(runningJobs);
         if Terminated or (runningJobs = 0) then
           break;
       end;
     end;
 
-    FCanStartEvent.ResetEvent;
-    Synchronize(@RunEndCallBack);
-    FJobs.Clear;
-    FThreads.Clear;
+    if not Terminated then
+    begin
+      FCanStartEvent.ResetEvent;
+      Synchronize(@RunEndCallBack);
+      FThreads.Clear;
+      FCanDieEvents.Clear;
+      FJobs.Clear;
+    end;
     FRunning := false;
   end;
   FCanDieEvent.SetEvent;
@@ -190,7 +217,7 @@ constructor TJobThread.Create(aJob : TmJob);
 begin
   inherited Create(false);
   FreeOnTerminate:= false;
-  FCanDieEvent := TSimpleEvent.Create;
+  FCanDieEvent := nil;
   FCanStartEvent := TSimpleEvent.Create;
   FJob := aJob;
   Self.Priority:= tpNormal;
@@ -198,9 +225,7 @@ end;
 
 destructor TJobThread.Destroy;
 begin
-  FCanDieEvent.Free;
   FCanStartEvent.Free;
-  FProgress.Free;
   inherited Destroy;
 end;
 
@@ -225,29 +250,9 @@ end;
 
 { TmBatchExecutor }
 
-(*
-procedure TmBatchExecutor.SetMaxNumberOfThreads(AValue: integer);
-begin
-  if FRunning then
-    exit;
-  if FMaxNumberOfThreads=AValue then Exit;
-  FMaxNumberOfThreads:=AValue;
-end;*)
-
-(*procedure TmBatchExecutor.RunEndCallBack;
-begin
-  if FRunning then
-  begin
-    FRunning:=false;
-    if Assigned(FCallBack) then
-      FCallBack();
-  end;
-end;*)
-
 constructor TmBatchExecutor.Create;
 begin
   FRunning:= false;
-//  FMaxNumberOfThreads:= GetCPUCores;
   FCanEndEvent := TSimpleEvent.Create;
   FControlThread := TControlThread.Create;
   GetControlThread(Self).CanDieEvent := FCanEndEvent;
@@ -258,6 +263,7 @@ begin
   if Assigned(FControlThread) then
   begin
     FControlThread.Terminate;
+    (FControlThread as TControlThread).CanStartEvent.SetEvent;
     FCanEndEvent.WaitFor(3000);
     FreeAndNil(FControlThread);
   end;
@@ -274,7 +280,7 @@ begin
   Result.FJobId:= GetControlThread(Self).Jobs.Count;
 end;
 
-procedure TmBatchExecutor.Execute(aCallBack : TOnEndCallback);
+procedure TmBatchExecutor.Execute({$ifdef lcl}aParentForm : TForm;{$endif}aCallBack : TOnEndCallback);
 begin
   if GetControlThread(Self).Running then
     exit;
@@ -282,6 +288,11 @@ begin
   if GetControlThread(Self).Jobs.Count = 0 then
     exit;
 
+  {$ifdef lcl}
+  GetControlThread(Self).ParentForm := aParentForm;
+  aParentForm.Cursor := crHourGlass;
+  aParentForm.Enabled:= false;
+  {$endif}
   GetControlThread(Self).CallBack:= aCallBack;
   FRunning := true;
 
