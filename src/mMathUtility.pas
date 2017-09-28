@@ -13,7 +13,7 @@ unit mMathUtility;
 interface
 
 uses
-  Math;
+  Math, strutils;
 
 type
   TRoundingMethod = (rmHalfRoundDown, rmHalfRoundUp, rmHalfRoundTowardsZero, rmHalfRoundAwayFromZero, rmHalfRoundToEven, rmBankerRounding, rmHalfRoundToOdd);
@@ -23,7 +23,8 @@ type
 // http://ec.europa.eu/economy_finance/publications/pages/publication1224_en.pdf
 function RoundToExt (aValue : double; aRoundingMethod : TRoundingMethod; const Digits: integer) : double;
 
-function TryToConvertToDouble(aValue : string; out aOutValue : Double ): boolean;
+function TryToConvertToDouble(aValue: string; out aOutValue: Double): boolean;
+function TryToConvertToInteger(aValue: string; out aOutValue: integer): boolean;
 function IsNumeric(aValue: string; const aAllowFloat: Boolean): Boolean;
 
 implementation
@@ -35,19 +36,96 @@ function TryToConvertToDouble(aValue : string; out aOutValue : Double): boolean;
 var
   tmpValueDouble : double;
   tmp : String;
+  posComma, posDot : integer;
 begin
-  Result := TryStrToFloat(aValue, tmpValueDouble);
+  Result := TryStrToFloat(aValue, tmpValueDouble, SysUtils.FormatSettings);
   if Result then
     aOutValue := tmpValueDouble
   else
   begin
-    if SysUtils.FormatSettings.DecimalSeparator = '.' then
-      tmp := StringReplace(aValue, ',', '.', [rfReplaceAll])
-    else
-      tmp := StringReplace(aValue, '.', ',', [rfReplaceAll]);
-    Result := TryStrToFloat(tmp, tmpValueDouble);
-    if Result then
-      aOutValue := tmpValueDouble
+    posComma := Pos(',', aValue);
+    posDot := Pos('.', aValue);
+    if (posComma > 0) and (posDot > posComma) then // 1,547.25
+    begin
+      tmp := DelChars(aValue, ',');
+      tmp := StringReplace(tmp, '.', FormatSettings.DecimalSeparator, [rfReplaceAll]);
+      Result := TryStrToFloat(tmp, tmpValueDouble, SysUtils.FormatSettings);
+      if Result then
+      begin
+        aOutValue := tmpValueDouble;
+        exit;
+      end;
+    end;
+    if (posDot > 0) and (posComma > posDot) then // 1.547,25
+    begin
+      tmp := DelChars(aValue, '.');
+      tmp := StringReplace(tmp, ',', FormatSettings.DecimalSeparator, [rfReplaceAll]);
+      Result := TryStrToFloat(tmp, tmpValueDouble, SysUtils.FormatSettings);
+      if Result then
+      begin
+        aOutValue := tmpValueDouble;
+        exit;
+      end;
+    end;
+    if (posComma > 0) and (posDot <= 0) then // 1547,25
+    begin
+      tmp := StringReplace(aValue, ',', SysUtils.FormatSettings.DecimalSeparator, [rfReplaceAll]);
+      Result := TryStrToFloat(tmp, tmpValueDouble, SysUtils.FormatSettings);
+      if Result then
+      begin
+        aOutValue := tmpValueDouble;
+        exit;
+      end;
+    end;
+    if (posDot > 0) and (posComma <= 0) then // 1547.25
+    begin
+      tmp := StringReplace(aValue, '.', SysUtils.FormatSettings.DecimalSeparator, [rfReplaceAll]);
+      Result := TryStrToFloat(tmp, tmpValueDouble, SysUtils.FormatSettings);
+      if Result then
+      begin
+        aOutValue := tmpValueDouble;
+        exit;
+      end;
+    end;
+  end;
+end;
+
+function TryToConvertToInteger(aValue: string; out aOutValue: integer): boolean;
+var
+  tmpValueInt : integer;
+  tmp : String;
+  posDot, posDotR, posComma, posCommaR : integer;
+begin
+  Result := TryStrToInt(aValue, tmpValueInt);
+  if Result then
+    aOutValue := tmpValueInt
+  else
+  begin
+    posComma := Pos(',', aValue);
+    posCommaR := RPos(',', aValue);
+    posDot := Pos('.', aValue);
+    posDotR := RPos('.', aValue);
+
+    if (SysUtils.FormatSettings.ThousandSeparator = '.') and (posDot = posDotR) then // 1.023
+    begin
+      tmp := StringReplace(aValue, '.', '', [rfReplaceAll]);
+      Result := TryStrToInt(tmp, tmpValueInt);
+      if Result then
+      begin
+        aOutValue := tmpValueInt;
+        exit;
+      end;
+    end;
+    if (SysUtils.FormatSettings.ThousandSeparator = ',') and (posComma = posCommaR) then // 1,023
+    begin
+      tmp := StringReplace(aValue, ',', '', [rfReplaceAll]);
+      Result := TryStrToInt(tmp, tmpValueInt);
+      if Result then
+      begin
+        aOutValue := tmpValueInt;
+        exit;
+      end;
+    end;
   end;
 end;
 
