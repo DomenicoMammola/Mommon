@@ -30,6 +30,7 @@ function GenerateRandomIdString : string; overload;
 function GenerateRandomIdString(aLength : integer): string; overload;
 
 function AddZerosFront (aValue : integer; aLength : integer) : String;
+function RemoveZerosFromFront (aValue : String) : String;
 
 function DateTimeToSeconds(const aDateTime : TDateTime; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted) : integer;
 function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted): TDateTime;
@@ -89,6 +90,25 @@ begin
       Result := '0' + Result;
     end;
   end;
+end;
+
+function RemoveZerosFromFront(aValue: String): String;
+var
+  i, l : integer;
+begin
+  l := Length(aValue);
+  if l > 0 then
+  begin
+    i := 1;
+    while (aValue[i] = '0') and (i <= l) do
+      inc(i);
+    if i <= l then
+      Result := Copy(aValue, i, 9999)
+    else
+      Result := '';
+  end
+  else
+    Result := aValue;
 end;
 
 function GenerateRandomIdString(aLength : integer): string;
