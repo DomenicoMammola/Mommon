@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, contnrs, math, sysutils,
-  mProgress;
+  mProgress, mUtility;
 
 type
 
@@ -36,30 +36,28 @@ type
     procedure RemoveProgress;
   end;
 
+  TmProgressNotifyEvent = procedure (aSender : TmAbstractProgress) of object;
+
   { TmAbstractProgress }
 
   TmAbstractProgress = class (ImProgress)
   strict private
     FCaption : String;
-    FCurrentStep : integer;
-    FMaxStep : integer;
-    FBouncing : boolean;
-    procedure SetMaxStep(AValue: integer);
   private
-    FOnRefresh : TNotifyEvent;
-    FOnRemove : TNotifyEvent;
+    FOnRefresh : TmProgressNotifyEvent;
+    FOnRemove : TmProgressNotifyEvent;
     FOwnerThread : TmThreadWithProgress;
+    FId : String;
   public
     constructor Create;
     destructor Destroy; override;
-    procedure SetBouncing(AValue: boolean);
-    procedure SetCaption(AValue: string);
-    procedure SetCurrentStep(AValue: integer);
+    procedure Notify(const aMessage: string);
 
     property OwnerThread : TmThreadWithProgress read FOwnerThread write FOwnerThread;
-    property OnRefresh : TNotifyEvent read FOnRefresh write FOnRefresh;
-    property OnRemove : TNotifyEvent read FOnRemove write FOnRemove;
+    property OnRefresh : TmProgressNotifyEvent read FOnRefresh write FOnRefresh;
+    property OnRemove : TmProgressNotifyEvent read FOnRemove write FOnRemove;
     property Caption : String read FCaption;
+    property Id : String read FId;
   end;
 
   TmProgressGUI = class;
@@ -184,36 +182,17 @@ end;
 
 { TmAbstractProgress }
 
-procedure TmAbstractProgress.SetCaption(AValue: string);
+procedure TmAbstractProgress.Notify(const aMessage: string);
 begin
-  if FCaption=AValue then Exit;
-  FCaption:=AValue;
+  if FCaption=aMessage then Exit;
+  FCaption:=aMessage;
   FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RefreshProgress);
-end;
-
-procedure TmAbstractProgress.SetBouncing(AValue: boolean);
-begin
-  if FBouncing=AValue then Exit;
-  FBouncing:=AValue;
-  FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RefreshProgress);
-end;
-
-procedure TmAbstractProgress.SetCurrentStep(AValue: integer);
-begin
-  if FCurrentStep=AValue then Exit;
-  FCurrentStep:=AValue;
-  FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RefreshProgress);
-end;
-
-procedure TmAbstractProgress.SetMaxStep(AValue: integer);
-begin
-  if FMaxStep=AValue then Exit;
-  FMaxStep:=AValue;
 end;
 
 constructor TmAbstractProgress.Create;
 begin
   FCaption := '';
+  FId := GenerateRandomIdString(30);
   GetProgressGUIFactory.GetCurrentProgressGUI.AddProgress(Self);
 end;
 
