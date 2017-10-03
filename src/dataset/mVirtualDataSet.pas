@@ -1454,12 +1454,14 @@ procedure TCustomVirtualDataset.LoadFieldDefsFromVirtualFields;
   function AddField (aSource : TVirtualFieldDef; aPrefix : string) : string;
   var
     FD : TFieldDef;
+    newName : string;
   begin
     Result := '';
-    if Self.FieldDefs.IndexOf(aSource.Name) = -1 then
+    newName := aPrefix + aSource.Name;
+    if Self.FieldDefs.IndexOf(newName) = -1 then
     begin
       FD := Self.FieldDefs.AddFieldDef;
-      FD.Name := aPrefix + aSource.Name;
+      FD.Name := newName;
       FD.DataType := FromTVirtualFieldDefTypeToTFieldType(aSource.DataType);
       FD.Size := aSource.Size;
       if aSource.Required then
