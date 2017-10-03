@@ -256,22 +256,25 @@ begin
     end;
   end;
 
-  if (l = 4) or (l = 6) or (l = 8) then
+  if not canTry then
   begin
-    // dmyy? ddmmyy? ddmmyyyy?
-    if l = 4 then
+    if (l = 4) or (l = 6) or (l = 8) then
     begin
-      dString := Copy(tmp, 1, 1);
-      mString := Copy(tmp, 2, 1);
-      yString := Copy(tmp, 3, 2);
-    end
-    else
-    begin
-      dString := Copy(tmp, 1, 2);
-      mString := Copy(tmp, 3, 2);
-      yString := Copy(tmp, 5, 999);
+      // dmyy? ddmmyy? ddmmyyyy?
+      if l = 4 then
+      begin
+        dString := Copy(tmp, 1, 1);
+        mString := Copy(tmp, 2, 1);
+        yString := Copy(tmp, 3, 2);
+      end
+      else
+      begin
+        dString := Copy(tmp, 1, 2);
+        mString := Copy(tmp, 3, 2);
+        yString := Copy(tmp, 5, 999);
+      end;
+      CanTry := true;
     end;
-    CanTry := true;
   end;
 
   if CanTry then
