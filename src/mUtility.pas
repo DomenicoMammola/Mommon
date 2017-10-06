@@ -238,6 +238,11 @@ begin
     sep := '-';
     idx := Pos(sep, tmp);
   end;
+  if idx = 0 then
+  begin
+    sep := '.';
+    idx := Pos(sep, tmp);
+  end;
 
   if idx >= 2 then
   begin
@@ -258,14 +263,20 @@ begin
 
   if not canTry then
   begin
-    if (l = 4) or (l = 6) or (l = 8) then
+    if (l = 4) or (l=5) or (l = 6) or (l = 8) then
     begin
-      // dmyy? ddmmyy? ddmmyyyy?
+      // dmyy? dmmyy? ddmmyy? ddmmyyyy?
       if l = 4 then
       begin
         dString := Copy(tmp, 1, 1);
         mString := Copy(tmp, 2, 1);
         yString := Copy(tmp, 3, 2);
+      end
+      else if l=5 then
+      begin
+        dString := Copy(tmp, 1, 1);
+        mString := Copy(tmp, 2, 2);
+        yString := Copy(tmp, 4, 2);
       end
       else
       begin
