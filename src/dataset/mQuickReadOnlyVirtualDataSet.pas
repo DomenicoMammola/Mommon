@@ -19,7 +19,7 @@ interface
 uses
   DB, Classes, contnrs, Variants, StrHashMap,
   mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList, mMaps, mLog,
-  mVirtualDataSetJoins;
+  mVirtualDataSetJoins, mVirtualFieldDefs, KAParser;
 
 const
   KEY_FIELD_NAME = '_KEY';
@@ -36,6 +36,10 @@ type
     FCurrentSortFields : TStringList;
     FGarbage : TObjectList;
     FFiltered : boolean;
+    FBuiltInJoins : TmBuiltInJoins;
+    FFieldsFromJoinsAreVisibleByDefault : boolean;
+    FFieldsFromJoin : TStringList;
+    FParser : TKAParser;
 
     function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
     procedure InternalGetFieldValue (const aFieldName : string; const AIndex: Integer; out AValue: variant);
@@ -51,9 +55,14 @@ type
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); override;
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); override;
     function GetRecordCount : integer; override;
+    procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly: boolean); override;
+    procedure SetDefaultVisibilityOfFields (aFields : TFields); override;
 
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; override;
     procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); override;
+
+    property BuiltInJoins : TmBuiltInJoins read FBuiltInJoins;
+    property FieldsFromJoinsAreVisibleByDefault : boolean read FFieldsFromJoinsAreVisibleByDefault write FFieldsFromJoinsAreVisibleByDefault;
   end;
 
 implementation
@@ -149,10 +158,10 @@ var
   tmpBuiltinJoin : TmBuiltInJoin;
   tmpObj : IVDDatum;
 begin
-  if BuiltInJoins.Count > 0 then
+  if FBuiltInJoins.Count > 0 then
   begin
     ExtractPrefixAndFieldName(aFieldName, tmpPrefix, tmpFieldName);
-    tmpBuiltinJoin := BuiltInJoins.FindByPrefix(tmpPrefix);
+    tmpBuiltinJoin := FBuiltInJoins.FindByPrefix(tmpPrefix);
     if Assigned(tmpBuiltinJoin) then
     begin
       tmpString := tmpBuiltinJoin.DoBuildExternalEntityKey(aDatum);
@@ -162,8 +171,6 @@ begin
     end
     else
     begin
-      //if tmpPrefix <> '' then
-      //  logger.Debug('[TReadOnlyVirtualDatasetProvider.GetFieldValueFromDatum] joiner not found:' + tmpPrefix);
       aValue := aDatum.GetPropertyByFieldName(aFieldName);
     end;
   end
@@ -180,6 +187,10 @@ begin
   FCurrentSortFields := TStringList.Create;
   FGarbage := TObjectList.Create(true);
   FFiltered:= false;
+  FBuiltInJoins := TmBuiltInJoins.Create;
+  FParser := TKAParser.Create;
+  FFieldsFromJoinsAreVisibleByDefault:= false;
+  FFieldsFromJoin := TStringList.Create;
 end;
 
 destructor TReadOnlyVirtualDatasetProvider.Destroy;
@@ -189,6 +200,9 @@ begin
   FreeAndNil(FCurrentSortFields);
   FreeAndNil(FGarbage);
   FreeAndNil(FFilteredIndex);
+  FreeAndNil(FParser);
+  FreeAndNil(FBuiltInJoins);
+  FreeAndNil(FFieldsFromJoin);
   inherited Destroy;
 end;
 
@@ -226,6 +240,43 @@ begin
     Result := FFilteredIndex.Count
   else
     Result := FIDataProvider.Count;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.FillFieldDefsOfDataset(aFieldDefs: TFieldDefs; const aReadOnly: boolean);
+var
+  k, i : integer;
+  CurrentField : TVirtualFieldDef;
+  CurrentJoin : TmBuiltInJoin;
+  tmpFieldDef : TFieldDef;
+begin
+  inherited FillFieldDefsOfDataset(aFieldDefs, aReadOnly);
+
+  FFieldsFromJoin.Clear;
+  for k := 0 to FBuiltInJoins.Count - 1 do
+  begin
+    CurrentJoin := FBuiltInJoins.Get(k);
+    for i := 0 to CurrentJoin.VirtualFieldDefs.Count -1 do
+    begin
+      CurrentField := CurrentJoin.VirtualFieldDefs[i];
+      tmpFieldDef := aFieldDefs.AddFieldDef;
+      Self.FillFieldDefOfDataset(CurrentField, CurrentJoin.Prefix, tmpFieldDef, aReadOnly);
+      FFieldsFromJoin.Add(tmpFieldDef.Name);
+    end;
+  end;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.SetDefaultVisibilityOfFields(aFields: TFields);
+var
+  i : integer;
+begin
+  if not FFieldsFromJoinsAreVisibleByDefault then
+  begin
+    for i := 0 to aFields.Count - 1 do
+    begin
+      if FFieldsFromJoin.IndexOf(aFields[i].FieldName) >= 0 then
+        aFields[i].Visible:= false;
+    end;
+  end;
 end;
 
 function TReadOnlyVirtualDatasetProvider.Refresh(const aDoSort, aDoFilter: boolean): boolean;
