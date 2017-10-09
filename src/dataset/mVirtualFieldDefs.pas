@@ -17,7 +17,8 @@ unit mVirtualFieldDefs;
 interface
 
 uses
-  Classes, DB;
+  Classes, DB,
+  StrHashMap;
 
 type
 
@@ -36,11 +37,14 @@ type
     FRequired : boolean;
     FPrecision : integer;
     procedure SetDataType(AValue: TVirtualFieldDefType);
+    procedure SetName(AValue: string);
+  private
+    FOnChangeName : TNotifyEvent;
   public
     constructor Create(ACollection: TCollection); override;
     procedure Assign(const aSource : TVirtualFieldDef);
   public
-    property Name : string read FName write FName;
+    property Name : string read FName write SetName;
     property DataType : TVirtualFieldDefType read FDataType write SetDataType;
     property Size : integer read FSize write FSize default 0;
     property Required : boolean read FRequired write FRequired default false;
@@ -51,18 +55,26 @@ type
   { TVirtualFieldDefs }
 
   TVirtualFieldDefs = class(TCollection)
-  private
+  strict private
+    FIndex : TStringHashMap;
     function GetVirtualFieldDef(I: Integer): TVirtualFieldDef;
+    procedure OnChangeFieldName (aSender : TObject);
   public
-    constructor Create;
+    constructor Create; reintroduce;
+    destructor Destroy; override;
     function AddFieldDef: TVirtualFieldDef;
     procedure Assign (const aSource : TVirtualFieldDefs);
+    function FindByName (const aName : string) : TVirtualFieldDef;
+
     property VirtualFieldDefs[I: Integer]: TVirtualFieldDef read GetVirtualFieldDef; default;
   end;
 
   function FromTVirtualFieldDefTypeToTFieldType (aSource : TVirtualFieldDefType) : TFieldType;
 
 implementation
+
+uses
+  SysUtils;
 
 function FromTVirtualFieldDefTypeToTFieldType(aSource: TVirtualFieldDefType): TFieldType;
 begin
@@ -90,12 +102,21 @@ begin
   FDataType:=AValue;
 end;
 
+procedure TVirtualFieldDef.SetName(AValue: string);
+begin
+  if FName=AValue then Exit;
+  FName:=uppercase(AValue);
+  if Assigned(FOnChangeName) then
+    FOnChangeName(Self);
+end;
+
 constructor TVirtualFieldDef.Create(ACollection: TCollection);
 begin
   inherited;
 
   FDataType:= vftUnknown;
   FName := '';
+  FOnChangeName:= nil;
 end;
 
 procedure TVirtualFieldDef.Assign(const aSource: TVirtualFieldDef);
@@ -113,6 +134,8 @@ end;
 function TVirtualFieldDefs.AddFieldDef: TVirtualFieldDef;
 begin
   Result := Add as TVirtualFieldDef;
+  FIndex.Clear;
+  Result.FOnChangeName:= Self.OnChangeFieldName;
 end;
 
 procedure TVirtualFieldDefs.Assign(const aSource: TVirtualFieldDefs);
@@ -120,21 +143,50 @@ var
   i : integer;
 begin
   Self.Clear;
+  FIndex.Clear;
   for i := 0 to aSource.Count - 1 do
   begin
     Self.AddFieldDef.Assign(aSource.GetVirtualFieldDef(i));
   end;
 end;
 
+function TVirtualFieldDefs.FindByName(const aName: string): TVirtualFieldDef;
+var
+  tmp : pointer;
+  i : integer;
+begin
+  if FIndex.Count = 0 then
+  begin
+    for i := 0 to Self.Count - 1 do
+      FIndex.Add(Uppercase(Self.VirtualFieldDefs[i].Name), Self.VirtualFieldDefs[i]);
+  end;
+  if FIndex.Find(Uppercase(aName), tmp) then
+    Result := TVirtualFieldDef(tmp)
+  else
+    Result := nil;
+end;
+
 
 constructor TVirtualFieldDefs.Create;
 begin
   inherited Create(TVirtualFieldDef);
+  FIndex := TStringHashMap.Create();
+end;
+
+destructor TVirtualFieldDefs.Destroy;
+begin
+  FIndex.Free;
+  inherited Destroy;
 end;
 
 function TVirtualFieldDefs.GetVirtualFieldDef(I: Integer): TVirtualFieldDef;
 begin
   Result := Items[I] as TVirtualFieldDef;
+end;
+
+procedure TVirtualFieldDefs.OnChangeFieldName(aSender: TObject);
+begin
+  FIndex.Clear;
 end;
 
 end.

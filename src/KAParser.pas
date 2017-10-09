@@ -17,7 +17,8 @@ unit KAParser;
 interface
 
 uses
-  Classes, mArrays;
+  Classes, variants,
+  mArrays;
 
 const
   sInvalidString = 1;
@@ -144,13 +145,15 @@ type
 
   TKAParserValueType = (vtFloat, vtString);
 
-  TKAParserOnGetValue = procedure (Sender: TObject; const valueName: string; var Value: Double; var Successfull : boolean) of Object;
-  TKAParserOnGetStrValue = procedure (Sender: TObject; const valueName: string; var StrValue: string; var Successfull : boolean) of Object;
-  TKAParserOnGetRangeValuesEvent = procedure (const RangeFunction, Func: string; ValueType: TKAParserValueType; ValuesArray : TmArrayOfVariants;  var Successfull : boolean) of object;
+  TKAParserOnGetValue = procedure (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean) of Object;
+  TKAParserOnGetStrValue = procedure (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean) of Object;
+  TKAParserOnGetRangeValuesEvent = procedure (const RangeFunction, Func: string; ValueType: TKAParserValueType; ValuesArray : TmArrayOfVariants;  out Successfull : boolean) of object;
 
-  TKAParserOnCalcUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; var Value: Double; var Successfull : boolean) of object;
-  TKAParserOnCalcStrUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; var Value: string; var Handled: Boolean) of object;
+  TKAParserOnCalcUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; var Value: Double; out Successfull : boolean) of object;
+  TKAParserOnCalcStrUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; var Value: string; out Handled: Boolean) of object;
 
+
+  { TKAParser }
 
   TKAParser = class
   strict private
@@ -196,7 +199,6 @@ type
     procedure RaiseError (aErrorCode : integer); overload;
     procedure RaiseError (aErrorCode: integer; aErrorMessage : string); overload;
 
-    function BooleanToFloat (aValue : boolean) : double;
     function FloatToBoolean (aValue : double) : boolean;
     function StrToFloatExt (aValue : string) : double;
     function InternalDoublesAreEqual (aValue1, aValue2 : double) :boolean;
@@ -204,15 +206,18 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function Calculate(const formula: string; var resValue : double) : boolean;
-    function CalculateString(const formula : string; var resValue : string) : boolean;
+    function Calculate(const formula: string; out resValue : double) : boolean;
+    function CalculateString(const formula : string; out resValue : string) : boolean;
 
-    property DecimalNumbers : integer read FDecimalNumbers write FDecimalNumbers; // se -1, prende il default in mFloatsManagement
-    // per estrarre i valori ad esempio da un dataset
+    class function BooleanToFloat (aValue : boolean) : double;
+    class function VariantToFloat (aValue : variant) : double;
+
+    property DecimalNumbers : integer read FDecimalNumbers write FDecimalNumbers; // if -1 it takes the default value from unit mFloatsManagement
+    // to extract data values i.e. from a dataset
     property OnGetValue : TKAParserOnGetValue read FOnGetValue write FOnGetValue;
     property OnGetStrValue : TKAParserOnGetStrValue read FOnGetStrValue write FOnGetStrValue;
     property OnGetRangeValues : TKAParserOnGetRangeValuesEvent read FOnGetRangeValues write FOnGetRangeValues;
-    // per implementare funzioni custom
+    // to implement custom function
     property OnCalcUserFunction : TKAParserOnCalcUserFunction read FOnCalcUserFunction write FOnCalcUserFunction;
     property OnCalcStrUserFunction : TKAParserOnCalcStrUserFunction read FOnCalcStrUserFunction write FOnCalcStrUserFunction;
   end;
@@ -225,12 +230,36 @@ uses
 
 { TKAParser }
 
-function TKAParser.BooleanToFloat(aValue: boolean): double;
+class function TKAParser.BooleanToFloat(aValue: boolean): double;
 begin
   if aValue then
     Result := 1
   else
     Result := 0;
+end;
+
+class function TKAParser.VariantToFloat(aValue: variant): double;
+var
+  tmpInt : Integer;
+begin
+  if VarIsNull(aValue) or VarIsEmpty(aValue) then
+    Result := 0.0
+  else
+  begin
+    if VarType(aValue) = vardate then
+      Result := VarToDateTime(aValue)
+    else if VarIsFloat(aValue) then
+      Result := aValue
+    else if VarIsOrdinal(aValue) then
+    begin
+      tmpInt := aValue;
+      Result := tmpInt;
+    end
+    else if VarIsBool(aValue) then
+      Result := TKAParser.BooleanToFloat(aValue)
+    else
+      raise Exception.Create(VarToStr(aValue) + ' is not a valid float');
+  end;
 end;
 
 procedure TKAParser.Calc1(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
@@ -497,7 +526,7 @@ begin
   Result := StringReplace(Result, #13, '', [rfReplaceAll]);
 end;
 
-function TKAParser.Calculate(const formula: string; var resValue: double): boolean;
+function TKAParser.Calculate(const formula: string; out resValue: double): boolean;
 var
   newFormula : string;
   LexState : TLexState;
@@ -514,7 +543,7 @@ begin
   Result := true;
 end;
 
-function TKAParser.CalculateString(const formula: string; var resValue: string): boolean;
+function TKAParser.CalculateString(const formula: string; out resValue: string): boolean;
 var
   newFormula : string;
   LexState : TLexState;

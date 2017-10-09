@@ -18,8 +18,8 @@ interface
 
 uses
   DB, Classes, contnrs, Variants, StrHashMap,
-  mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList, mMaps, mLog,
-  mVirtualDataSetJoins, mVirtualFieldDefs, KAParser;
+  mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList, mLog,
+  mVirtualDataSetJoins, mVirtualFieldDefs, mVirtualDatasetFormulas, KAParser;
 
 const
   KEY_FIELD_NAME = '_KEY';
@@ -37,13 +37,17 @@ type
     FGarbage : TObjectList;
     FFiltered : boolean;
     FBuiltInJoins : TmBuiltInJoins;
+    FFormulaFields : TmFormulaFields;
     FFieldsFromJoinsAreVisibleByDefault : boolean;
     FFieldsFromJoin : TStringList;
     FParser : TKAParser;
+    FCurrentDatumForParser : IVDDatum;
 
     function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
     procedure InternalGetFieldValue (const aFieldName : string; const AIndex: Integer; out AValue: variant);
     procedure GetFieldValueFromDatum (const aDatum : IVDDatum; const aFieldName : string; out aValue :variant);
+    procedure GetValueForParser(Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
+    procedure GetStrValueForParser(Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -63,6 +67,7 @@ type
 
     property BuiltInJoins : TmBuiltInJoins read FBuiltInJoins;
     property FieldsFromJoinsAreVisibleByDefault : boolean read FFieldsFromJoinsAreVisibleByDefault write FFieldsFromJoinsAreVisibleByDefault;
+    property FormulaFields : TmFormulaFields read FFormulaFields;
   end;
 
 implementation
@@ -144,9 +149,7 @@ begin
    if CompareText(aFieldName, KEY_FIELD_NAME) = 0 then
      aValue := idx
    else
-   begin
-    GetFieldValueFromDatum(tmpI, aFieldName, AValue);
-   end;
+     GetFieldValueFromDatum(tmpI, aFieldName, AValue);
   end
   else
     aValue := null;
@@ -157,25 +160,82 @@ var
   tmpPrefix, tmpFieldName, tmpString : string;
   tmpBuiltinJoin : TmBuiltInJoin;
   tmpObj : IVDDatum;
+  tmpFormulaField : TmFormulaField;
+  tmpDouble : Double;
 begin
-  if FBuiltInJoins.Count > 0 then
+  tmpFormulaField := FFormulaFields.FindByName(aFieldName);
+  if Assigned(tmpFormulaField) then
   begin
-    ExtractPrefixAndFieldName(aFieldName, tmpPrefix, tmpFieldName);
-    tmpBuiltinJoin := FBuiltInJoins.FindByPrefix(tmpPrefix);
-    if Assigned(tmpBuiltinJoin) then
-    begin
-      tmpString := tmpBuiltinJoin.DoBuildExternalEntityKey(aDatum);
-      tmpObj := tmpBuiltinJoin.DoFindDatumByStringKey(tmpString);
-      if Assigned(tmpObj) then
-        aValue := tmpObj.GetPropertyByFieldName(tmpFieldName);
-    end
-    else
-    begin
-      aValue := aDatum.GetPropertyByFieldName(aFieldName);
+    if Assigned(FCurrentDatumForParser) then
+      raise Exception.Create('Error while computing field ' + aFieldName + ': it is not possibile to use a formula field to calculate another formula field.');
+    FCurrentDatumForParser := aDatum;
+    try
+      if (tmpFormulaField.DataType=vftInteger) or (tmpFormulaField.DataType = vftBoolean) or (tmpFormulaField.DataType = vftFloat) or (tmpFormulaField.DataType = vftCurrency) or
+        (tmpFormulaField.DataType = vftDate) or (tmpFormulaField.DataType = vftTime) or (tmpFormulaField.DataType = vftDateTime) or (tmpFormulaField.DataType = vftTimeStamp) then
+      begin
+        if FParser.Calculate(tmpFormulaField.Formula, tmpDouble) then
+          aValue := tmpDouble
+        else
+          aValue := Null;
+      end
+      else
+      begin
+        if not FParser.CalculateString(tmpFormulaField.Formula, tmpString) then
+          aValue := tmpString
+        else
+          aValue := Null;
+      end;
+    finally
+      FCurrentDatumForParser := nil;
     end;
   end
   else
-    aValue := aDatum.GetPropertyByFieldName(aFieldName);
+  begin
+    if FBuiltInJoins.Count > 0 then
+    begin
+      ExtractPrefixAndFieldName(aFieldName, tmpPrefix, tmpFieldName);
+      tmpBuiltinJoin := FBuiltInJoins.FindByPrefix(tmpPrefix);
+      if Assigned(tmpBuiltinJoin) then
+      begin
+        tmpString := tmpBuiltinJoin.DoBuildExternalEntityKey(aDatum);
+        tmpObj := tmpBuiltinJoin.DoFindDatumByStringKey(tmpString);
+        if Assigned(tmpObj) then
+          aValue := tmpObj.GetPropertyByFieldName(tmpFieldName);
+      end
+      else
+      begin
+        aValue := aDatum.GetPropertyByFieldName(aFieldName);
+      end;
+    end
+    else
+      aValue := aDatum.GetPropertyByFieldName(aFieldName);
+  end;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.GetValueForParser(Sender: TObject; const valueName: string; var Value: Double; out Successfull: boolean);
+var
+  tmpVar : variant;
+begin
+  Successfull:= false;
+  if Assigned(VirtualFieldDefs.FindByName(valueName)) or (FFieldsFromJoin.IndexOf(valueName) >= 0) then
+  begin
+    GetFieldValueFromDatum(FCurrentDatumForParser, uppercase(valueName), tmpVar);
+    Value := TKAParser.VariantToFloat(tmpVar);
+    Successfull:= true;
+  end;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.GetStrValueForParser(Sender: TObject; const valueName: string; var StrValue: string; out Successfull: boolean);
+var
+  tmpVar : variant;
+begin
+  Successfull:= false;
+  if Assigned(VirtualFieldDefs.FindByName(valueName)) or (FFieldsFromJoin.IndexOf(valueName) >= 0) then
+  begin
+    GetFieldValueFromDatum(FCurrentDatumForParser, uppercase(valueName), tmpVar);
+    StrValue := VarToStr(tmpVar);
+    Successfull:= true;
+  end;
 end;
 
 
@@ -189,8 +249,11 @@ begin
   FFiltered:= false;
   FBuiltInJoins := TmBuiltInJoins.Create;
   FParser := TKAParser.Create;
+  FParser.OnGetStrValue:= Self.GetStrValueForParser;
+  FParser.OnGetValue:= Self.GetValueForParser;
   FFieldsFromJoinsAreVisibleByDefault:= false;
   FFieldsFromJoin := TStringList.Create;
+  FFormulaFields := TmFormulaFields.Create;
 end;
 
 destructor TReadOnlyVirtualDatasetProvider.Destroy;
@@ -203,6 +266,7 @@ begin
   FreeAndNil(FParser);
   FreeAndNil(FBuiltInJoins);
   FreeAndNil(FFieldsFromJoin);
+  FreeAndNil(FFormulaFields);
   inherited Destroy;
 end;
 
@@ -262,6 +326,15 @@ begin
       Self.FillFieldDefOfDataset(CurrentField, CurrentJoin.Prefix, tmpFieldDef, aReadOnly);
       FFieldsFromJoin.Add(tmpFieldDef.Name);
     end;
+  end;
+
+  for k := 0 to FFormulaFields.Count -1 do
+  begin
+    tmpFieldDef := aFieldDefs.AddFieldDef;
+    tmpFieldDef.Name:= FFormulaFields.Get(k).Name;
+    tmpFieldDef.DataType:= FromTVirtualFieldDefTypeToTFieldType(FFormulaFields.Get(k).DataType);
+    tmpFieldDef.Size := FFormulaFields.Get(k).Size;
+    tmpFieldDef.Attributes := tmpFieldDef.Attributes + [TFieldAttribute.faReadonly];
   end;
 end;
 

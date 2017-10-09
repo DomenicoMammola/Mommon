@@ -1720,7 +1720,7 @@ begin
   if aSource.Required then
     aFieldDef.Attributes := [faRequired];
   if aReadOnly or aSource.ReadOnly then
-    aFieldDef.Attributes := aFieldDef.Attributes + [faReadonly];
+    aFieldDef.Attributes := aFieldDef.Attributes + [TFieldAttribute.faReadonly];
   if (aSource.DataType = vftBCD) then
     aFieldDef.Precision := aSource.Precision;
 end;

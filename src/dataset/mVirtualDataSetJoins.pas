@@ -164,7 +164,7 @@ end;
 procedure TmBuiltInJoin.SetPrefix(AValue: string);
 begin
   if FPrefix=AValue then Exit;
-  FPrefix:=AValue;
+  FPrefix:=Uppercase(AValue);
   if Copy(FPrefix, Length(FPrefix), 1) <> PREFIX_JOIN_SEPARATOR then
     FPrefix := FPrefix + PREFIX_JOIN_SEPARATOR;
 end;
