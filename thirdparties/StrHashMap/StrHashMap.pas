@@ -130,7 +130,7 @@ type
     procedure IterateMethod(AUserData: PUserData; AIterateMethod: TIterateMethod);
     function Has(const S: string): Boolean;
     function Contains(const Key: string): Boolean;
-    function Find(const S: string; var P): Boolean;
+    function Find(const S: string; out P): Boolean;
     function FindData(const P; var S: string): Boolean;
     procedure Clear;
     { Brief: KeyItself returns the actual key stored in the Hash list.
@@ -771,7 +771,7 @@ begin
   Result := PPN^ <> nil;
 end;
 
-function TStringHashMap.Find(const S: string; var P{: Pointer}): Boolean;
+function TStringHashMap.Find(const S: string; out P{: Pointer}): Boolean;
 var
   PPN: PPHashNode;
 begin
