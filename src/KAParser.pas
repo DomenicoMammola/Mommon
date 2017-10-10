@@ -17,7 +17,7 @@ unit KAParser;
 interface
 
 uses
-  Classes, variants,
+  Classes, variants, sysutils,
   mArrays;
 
 const
@@ -93,6 +93,9 @@ const
   mp_rangefunc_parent = 'parent';
 
 type
+
+  TParserException = class(Exception);
+
   TCalculationType = (calculateValue, calculateFunction);
 
   TFormulaToken = (
@@ -196,8 +199,9 @@ type
     function ExecuteFunction(const funct : string; ParametersList : TStringList) : double;
     function ExecuteStrFunction(const funct : string; ParametersList : TStringList) : string;
 
-    procedure RaiseError (aErrorCode : integer); overload;
-    procedure RaiseError (aErrorCode: integer; aErrorMessage : string); overload;
+    function ComposeErrorString (const aErrorCode : integer) : String;
+    procedure RaiseError (const aErrorCode : integer); overload;
+    procedure RaiseError (const aErrorCode: integer; aErrorMessage : string); overload;
 
     function FloatToBoolean (aValue : double) : boolean;
     function StrToFloatExt (aValue : string) : double;
@@ -225,7 +229,7 @@ type
 implementation
 
 uses
-  SysUtils, Math, DateUtils,
+  Math, DateUtils,
   mFloatsManagement, mUtility;
 
 { TKAParser }
@@ -258,7 +262,7 @@ begin
     else if VarIsBool(aValue) then
       Result := TKAParser.BooleanToFloat(aValue)
     else
-      raise Exception.Create(VarToStr(aValue) + ' is not a valid float');
+      raise TParserException.Create(VarToStr(aValue) + ' is not a valid float');
   end;
 end;
 
@@ -1202,6 +1206,19 @@ begin
   end;
 end;
 
+function TKAParser.ComposeErrorString(const aErrorCode: integer): String;
+begin
+  Result := 'Error ' + IntToStr(aErrorCode);
+  if aErrorCode = sInvalidString then
+    Result := Result + ': invalid string.'
+  else if aErrorCode = sSyntaxError then
+    Result := Result + ': syntax error.'
+  else if aErrorCode = sFunctionError then
+    Result := Result + ': function error.'
+  else if aErrorCode =sWrongParamCount then
+    Result := Result + ': wrong number of parameters.';
+end;
+
 function TKAParser.FloatToBoolean(aValue: double): boolean;
 begin
   Result := (round(Abs(aValue)) >= 1);
@@ -1291,22 +1308,33 @@ end;
 
 procedure TKAParser.ParseFunctionParameters(const funct: string; ParametersList: TStringList; var lexState: TLexState);
 var
-  startindex, i, q, par : integer;
-  parametersStr : string;
+  startindex, i, q, k, par : integer;
+  parametersStr, str : string;
+  insideCommas : boolean;
+  currentStringSeparator : String;
 begin
-  // questa funzione deve cercare la prima parentesi ( e poi andare avanti verso dx
-  // aprendo e chiudendo le eventuali parentesi
-  // fino a trovare la parentesi ) che corrisponde alla prima trovata
-  // cosi' si risolve il problema delle parentesi annidate
+  // this function must find the first "(" and then go forward
+  // opening and closing all the parentesis
+  // until it finds the closed ")" that match with the first found
 
   startindex := lexState.FCharIndex;
   par := 1;
+  insideCommas:= false;
+  currentStringSeparator := '';
+
   while not lexState.IsEof do
   begin
-    if lexState.FFormula[lexState.FCharIndex] = '(' then
+    if IsStringSeparator(lexState.FFormula[lexState.FCharIndex]) and ((currentStringSeparator = '') or (currentStringSeparator = lexState.FFormula[lexState.FCharIndex])) then
+    begin
+      insideCommas:= not insideCommas;
+      if insideCommas then
+        currentStringSeparator:= lexState.FFormula[lexState.FCharIndex]
+      else
+        currentStringSeparator:= '';
+    end
+    else if (not insideCommas) and (lexState.FFormula[lexState.FCharIndex] = '(') then
       Inc(par)
-    else
-    if lexState.FFormula[lexState.FCharIndex] = ')' then
+    else if (not insideCommas) and (lexState.FFormula[lexState.FCharIndex] = ')') then
       Dec(par);
     if par = 0 then
       break
@@ -1321,37 +1349,52 @@ begin
   if parametersStr = '' then
     exit; // no parameters
 
-  lexState.Advance; // spostiamoci al carattere successivo alla parentesi
+  lexState.Advance; // let's go to the next char
 
   par := 0;
   i := 1;
   q := 1;
+  k := 0;
+  insideCommas := false;
+  currentStringSeparator:= '';
 
   while i <= Length(parametersStr) do
   begin
-    if parametersStr[i] = '(' then
+    if IsStringSeparator(parametersStr[i]) and ((currentStringSeparator = '') or (currentStringSeparator = parametersStr[i])) then
+    begin
+      insideCommas:= not insideCommas;
+      if insideCommas then
+        currentStringSeparator:= parametersStr[i]
+      else
+        currentStringSeparator:= '';
+    end;
+    if (not insideCommas) and (parametersStr[i] = '(') then
       inc (par)
     else
-    if  parametersStr[i] = ')' then
+    if (not insideCommas) and (parametersStr[i] = ')') then
       dec (par);
-    if (parametersStr[i]=',') and (par = 0) then
+    if (not insideCommas) and (parametersStr[i]=',') and (par = 0) then
     begin
-      ParametersList.Add(Trim(Copy(parametersStr, q, i-1)));
+      str := Trim(Copy(parametersStr, q, k));
+      ParametersList.Add(str); //i-1
       q := i + 1;
-    end;
+      k := 0;
+    end
+    else
+      inc(k);
     inc (i);
   end;
   ParametersList.Add(Trim(Copy(parametersStr, q, Length(parametersStr))));
 end;
 
-procedure TKAParser.RaiseError(aErrorCode: integer; aErrorMessage: string);
+procedure TKAParser.RaiseError(const aErrorCode: integer; aErrorMessage: string);
 begin
-  raise Exception.Create(IntToStr(aErrorCode) + ' ' + aErrorMessage);
+  raise TParserException.Create(ComposeErrorString(aErrorCode) + ' ' + aErrorMessage);
 end;
 
-procedure TKAParser.RaiseError(aErrorCode: integer);
+procedure TKAParser.RaiseError(const aErrorCode: integer);
 begin
-  raise Exception.Create(IntToStr(aErrorCode));
+  raise TParserException.Create(ComposeErrorString(aErrorCode));
 end;
 
 procedure TKAParser.StartCalculate(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);

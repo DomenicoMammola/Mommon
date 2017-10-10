@@ -18,14 +18,19 @@ uses
 
 type
 
+  { TTestmParser }
+
   TTestmParser = class(TTestCase)
   strict private
+    procedure GetValue (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
   public
     procedure SetUp; override;
     procedure TearDown; override;
+
   published
     procedure TestSimple;
     procedure TestSimpleStr;
+    procedure TestIf;
   end;
 
 
@@ -36,6 +41,15 @@ uses
 
 
 { TestMapReduce }
+
+procedure TTestmParser.GetValue(Sender: TObject; const valueName: string; var Value: Double; out Successfull: boolean);
+begin
+  if ValueName = 'TEMP' then
+  begin
+    Value := 5;
+    Successfull:= true;
+  end;
+end;
 
 procedure TTestmParser.SetUp;
 begin
@@ -97,6 +111,26 @@ begin
     CheckEquals(value, 3);
     parser.CalculateString('uppercase(''ciccio'')', valuestr);
     CheckEquals(valuestr, 'CICCIO');
+  finally
+    parser.Free;
+  end;
+
+end;
+
+procedure TTestmParser.TestIf;
+var
+  parser : TKAParser;
+  value : double;
+begin
+  parser := TKAParser.Create;
+  try
+    parser.OnGetValue:= @Self.GetValue;
+    parser.Calculate('IF(1,4,2)', value);
+    CheckEquals(trunc(value), 4);
+    parser.Calculate('IF(0,4,2)', value);
+    CheckEquals(trunc(value), 2);
+    parser.Calculate('IF(TEMP>0, TEMP + 2, 0)', value);
+    CheckEquals(trunc(value), 7);
   finally
     parser.Free;
   end;
