@@ -170,20 +170,32 @@ begin
       raise Exception.Create('Error while computing field ' + aFieldName + ': it is not possibile to use a formula field to calculate another formula field.');
     FCurrentDatumForParser := aDatum;
     try
-      if (tmpFormulaField.DataType=vftInteger) or (tmpFormulaField.DataType = vftBoolean) or (tmpFormulaField.DataType = vftFloat) or (tmpFormulaField.DataType = vftCurrency) or
-        (tmpFormulaField.DataType = vftDate) or (tmpFormulaField.DataType = vftTime) or (tmpFormulaField.DataType = vftDateTime) or (tmpFormulaField.DataType = vftTimeStamp) then
+      if (tmpFormulaField.DataType=fftFloat) or (tmpFormulaField.DataType = fftDateTime) then
       begin
-        if FParser.Calculate(tmpFormulaField.Formula, tmpDouble) then
-          aValue := tmpDouble
-        else
+        try
+          if FParser.Calculate(tmpFormulaField.Formula, tmpDouble) then
+          begin
+            if (tmpFormulaField.DataType = fftDateTime) and (tmpDouble = 0) then
+              aValue := Null
+            else
+              aValue := tmpDouble
+          end
+          else
+            aValue := Null;
+        except
           aValue := Null;
+        end;
       end
       else
       begin
-        if not FParser.CalculateString(tmpFormulaField.Formula, tmpString) then
-          aValue := tmpString
-        else
-          aValue := Null;
+        try
+          if not FParser.CalculateString(tmpFormulaField.Formula, tmpString) then
+            aValue := tmpString
+          else
+            aValue := Null;
+        except
+          aValue := 'ERROR';
+        end;
       end;
     finally
       FCurrentDatumForParser := nil;
@@ -332,7 +344,7 @@ begin
   begin
     tmpFieldDef := aFieldDefs.AddFieldDef;
     tmpFieldDef.Name:= FFormulaFields.Get(k).Name;
-    tmpFieldDef.DataType:= FromTVirtualFieldDefTypeToTFieldType(FFormulaFields.Get(k).DataType);
+    tmpFieldDef.DataType:= FromTmFormulaFieldTypeToTFieldType(FFormulaFields.Get(k).DataType);
     tmpFieldDef.Size := FFormulaFields.Get(k).Size;
     tmpFieldDef.Attributes := tmpFieldDef.Attributes + [TFieldAttribute.faReadonly];
   end;
