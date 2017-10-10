@@ -16,16 +16,18 @@ unit mVirtualDatasetFormulas;
 interface
 
 uses
-  Classes, contnrs,
+  Classes, contnrs, db,
   mVirtualFieldDefs, StrHashMap;
 
 type
+
+  TmFormulaFieldType = (fftFloat, fftString, fftDateTime);
 
   { TmFormulaField }
 
   TmFormulaField = class
   strict private
-    FDataType : TVirtualFieldDefType;
+    FDataType : TmFormulaFieldType;
     FSize : integer;
     FFormula : String;
     FName : string;
@@ -35,7 +37,7 @@ type
   public
     constructor Create;
 
-    property DataType : TVirtualFieldDefType read FDataType write FDataType;
+    property DataType : TmFormulaFieldType read FDataType write FDataType;
     property Size : integer read FSize write FSize;
     property Formula : string read FFormula write FFormula;
     property Name : string read FName write SetName;
@@ -56,12 +58,47 @@ type
     function Count : integer;
     function Get (const aIndex : integer) : TmFormulaField;
     function FindByName (const aName : string) : TmFormulaField;
+    procedure Delete (aName : string);
+    procedure Clear;
   end;
+
+  function FromTmFormulaFieldTypeToTFieldType (const aSource : TmFormulaFieldType) : TFieldType;
+  function TmFormulaFieldTypeToString(const aSource : TmFormulaFieldType) : string;
+  function StringToTmFormulaFieldType(const aValue : string): TmFormulaFieldType;
 
 implementation
 
 uses
   sysutils;
+
+function FromTmFormulaFieldTypeToTFieldType(const aSource: TmFormulaFieldType): TFieldType;
+begin
+  if aSource = fftFloat then
+    Result := ftFloat
+  else if aSource = fftDateTime then
+    Result := ftDateTime
+  else
+    Result := ftString;
+end;
+
+function TmFormulaFieldTypeToString(const aSource: TmFormulaFieldType): string;
+begin
+  if aSource = fftFloat then
+    Result := 'float'
+  else if aSource = fftDateTime then
+    Result := 'datetime'
+  else
+    Result := 'string';
+end;
+
+function StringToTmFormulaFieldType(const aValue: string): TmFormulaFieldType;
+begin
+  if aValue = 'float' then
+    Result := fftFloat
+  else if aValue = 'datetime' then
+    Result := fftDateTime
+  else Result := fftString;
+end;
 
 { TmFormulaFields }
 
@@ -117,6 +154,27 @@ begin
     Result := nil;
 end;
 
+procedure TmFormulaFields.Delete(aName: string);
+var
+  i : integer;
+begin
+  for i := 0 to Self.Count - 1 do
+  begin
+    if CompareText(Self.Get(i).Name, aName) = 0 then
+    begin
+      FList.Delete(i);
+      FIndex.Clear;
+      exit;
+    end;
+  end;
+end;
+
+procedure TmFormulaFields.Clear;
+begin
+  FList.Clear;
+  FIndex.Clear;
+end;
+
 { TmFormulaField }
 
 procedure TmFormulaField.SetName(AValue: string);
@@ -129,7 +187,7 @@ end;
 
 constructor TmFormulaField.Create;
 begin
-  FDataType:= vftUnknown;
+  FDataType:= fftFloat;
   FSize := 0;
   FName := '';
   FOnChangeName:= nil;
