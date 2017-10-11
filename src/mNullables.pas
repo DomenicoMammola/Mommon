@@ -17,7 +17,7 @@ unit mNullables;
 interface
 
 uses
-  db,
+  db, Graphics,
   mUtility;
 
 type
@@ -180,11 +180,95 @@ type
     property Value : Integer read GetValue write SetValue;
   end;
 
+  { TNullableColor }
+
+  TNullableColor = class(TAbstractNullable)
+  private
+    FValue : TColor;
+    function GetValue: TColor;
+    procedure SetValue(AValue: TColor);
+  public
+    constructor Create(); override; overload;
+    constructor Create(aValue : TColor); overload;
+
+    procedure Assign(aSource : TNullableColor); overload;
+    procedure Assign(aSourceField: TField); override; overload;
+    procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
+    function AsVariant : Variant; override;
+    function AsString : String;
+
+    property Value : TColor read GetValue write SetValue;
+  end;
+
 
 implementation
 
 uses
   SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
+
+{ TNullableColor }
+
+function TNullableColor.GetValue: TColor;
+begin
+  Result := FValue;
+end;
+
+procedure TNullableColor.SetValue(AValue: TColor);
+begin
+  FValue:= aValue;
+  FIsNull := false;
+end;
+
+constructor TNullableColor.Create;
+begin
+  inherited Create;
+end;
+
+constructor TNullableColor.Create(aValue: TColor);
+begin
+  inherited Create;
+  FValue := aValue;
+end;
+
+procedure TNullableColor.Assign(aSource: TNullableColor);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
+end;
+
+procedure TNullableColor.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= StringToColor(aSourceField.AsString);
+end;
+
+procedure TNullableColor.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= StringToColor(aValue);
+end;
+
+function TNullableColor.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := ColorToString(FValue);
+end;
+
+function TNullableColor.AsString: String;
+begin
+  if Self.IsNull then
+    Result := ''
+  else
+    Result := ColorToString(Self.Value);
+end;
 
 { TNullableInteger }
 
