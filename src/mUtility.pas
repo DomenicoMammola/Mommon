@@ -71,11 +71,15 @@ procedure ConvertVariantToDateList (const aValue : variant; aList : TIntegerList
 procedure ConvertVariantToDateTimeList (const aValue : variant; aList : TDoubleList);
 
 function GetCPUCores : integer;
+function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
+function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
 
 implementation
 
 uses
-  DateUtils, mMathUtility;
+  DateUtils,
+  {$ifdef windows}shlobj,{$endif}
+  mMathUtility;
 
 function AddZerosFront (aValue : integer; aLength : integer) : String;
 var
@@ -814,6 +818,53 @@ var
 begin
   GetSystemInfo(Info);
   Result := Info.dwNumberOfProcessors;
+end;
+
+function GetApplicationLocalDataFolder(const aApplicationSubDir: string): String;
+var
+  tmpDir : string;
+  {$ifdef windows}
+  AppDataPath: Array[0..MaxPathLen] of Char; //http://wiki.lazarus.freepascal.org/Windows_Programming_Tips
+  {$endif}
+begin
+  {$ifdef windows}
+  AppDataPath:='';
+  SHGetSpecialFolderPath(0,AppDataPath,CSIDL_LOCAL_APPDATA,false);
+  tmpDir:= AppDataPath;
+  Result := IncludeTrailingPathDelimiter(tmpDir) + aApplicationSubDir;
+  {$else}
+    {$ifdef linux}
+    tmpDir:= GetEnvironmentVariableUTF8('HOME');
+    Result := IncludeTrailingPathDelimiter(tmpDir) + '.' + aApplicationSubDir;
+    {$else}
+    raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');
+    {$endif}
+  {$endif}
+  if not DirectoryExists(Result) then
+    ForceDirectories(Result);
+end;
+
+function GetApplicationDataFolder(const aApplicationSubDir: string): String;
+var
+  tmpDir : string;
+  {$ifdef windows}
+  AppDataPath: Array[0..MaxPathLen] of Char; //http://wiki.lazarus.freepascal.org/Windows_Programming_Tips
+  {$endif}
+begin
+  {$ifdef windows}
+  AppDataPath:='';
+  SHGetSpecialFolderPath(0,AppDataPath,CSIDL_APPDATA,false);
+  tmpDir:= AppDataPath;
+  Result := IncludeTrailingPathDelimiter(tmpDir) + aApplicationSubDir;
+  {$else}
+    {$ifdef linux}
+    raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');
+    {$else}
+    raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');
+    {$endif}
+  {$endif}
+  if not DirectoryExists(Result) then
+    ForceDirectories(Result);
 end;
 
 
