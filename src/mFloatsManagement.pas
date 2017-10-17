@@ -12,8 +12,11 @@ unit mFloatsManagement;
 
 interface
 
-function DoublesAreEqual(aValue1, aValue2 : double; aDecimalNumbers : integer): boolean; overload;
-function DoublesAreEqual(aValue1, aValue2 : double): boolean; overload;
+function DoublesAreEqual(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
+function DoublesAreEqual(const aValue1, aValue2 : double): boolean; overload;
+
+function DoubleIsLessThan(const aValue1, aValue2 : double) : boolean; overload;
+function DoubleIsLessThan(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
 
 function SafeDiv (numer, denom: double): double;
 
@@ -30,7 +33,7 @@ var
 
 
 
-function DoublesAreEqual(aValue1, aValue2 : double; aDecimalNumbers : integer): boolean; overload;
+function DoublesAreEqual(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
 var
   CompareValue : double;
 begin
@@ -38,7 +41,7 @@ begin
   Result := (Abs(aValue1 - aValue2) <= CompareValue);
 end;
 
-function DoublesAreEqual(aValue1, aValue2 : double): boolean; overload;
+function DoublesAreEqual(const aValue1, aValue2 : double): boolean; overload;
 begin
   Result := (Abs(aValue1 - aValue2) <= DefaultCompareValue);
 end;
@@ -50,6 +53,16 @@ begin
     DefaultCompareValue := Power(10, -1 * aDecimalNumbers) - Power(10, -1 * (aDecimalNumbers + 1)) - Power(10, -1 * (aDecimalNumbers + 2));
     DefaultDecimalNumbers := aDecimalNumbers;
   end;
+end;
+
+function DoubleIsLessThan(const aValue1, aValue2: double): boolean;
+begin
+  Result := (not DoublesAreEqual(aValue1, aValue2)) and (aValue1 < aValue2);
+end;
+
+function DoubleIsLessThan(const aValue1, aValue2: double; const aDecimalNumbers: integer): boolean;
+begin
+  Result := (not DoublesAreEqual(aValue1, aValue2, aDecimalNumbers)) and (aValue1 < aValue2);
 end;
 
 function SafeDiv (numer, denom: double): double;
