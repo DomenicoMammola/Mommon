@@ -20,6 +20,9 @@ uses
   Forms, StdCtrls, Controls, SysUtils,
   mLog;
 
+const
+  SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER = 'showlog';
+
 type
   TmMemoPublisher = class (TmLogPublisher)
   strict private
@@ -83,7 +86,7 @@ end;
 
 procedure TmMemoPublisher.Publish(aContext, aLevel, aMessage : string; aDate : TDateTime);
 begin
-  if FForm = nil then
+  if (FForm = nil) and Application.HasOption(SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER) then
   begin
     FForm := TForm.Create(nil);
     FMemo := TMemo.Create(FForm);
