@@ -52,6 +52,7 @@ type
     procedure Assign(aSource : TNullableString); overload;
     procedure Assign(aSourceField : TField); override; overload;
     procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
+    function CheckIfDifferentAndAssign(const aValue : String; const aBlankStringMeansNull : boolean) : boolean;
     function AsVariant: Variant; override;
     procedure Trim();
     function AsString : String;
@@ -113,6 +114,7 @@ type
       procedure Assign(aSourceField : TField); override; overload;
       procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
       function AsVariant: Variant; override;
+      function CheckIfDifferentAndAssign(const aValue : String; const aBlankStringMeansNull : boolean) : boolean;
 
       function AsString (aShowTime : boolean) : String;
 
@@ -174,6 +176,7 @@ type
     procedure Assign(aSource : TNullableInteger); overload;
     procedure Assign(aSourceField : TField); override; overload;
     procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
+    function CheckIfDifferentAndAssign(const aValue : String; const aBlankStringMeansNull : boolean) : boolean;
     function AsVariant : Variant; override;
     function AsString : String;
 
@@ -312,10 +315,24 @@ end;
 
 procedure TNullableInteger.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
 begin
+  CheckIfDifferentAndAssign(aValue, aBlankStringMeansNull);
+end;
+
+function TNullableInteger.CheckIfDifferentAndAssign(const aValue: String; const aBlankStringMeansNull: boolean): boolean;
+var
+  tmpInt : integer;
+begin
   if aBlankStringMeansNull and (aValue = '') then
-    Self.IsNull:= true
+  begin
+    Result := Self.NotNull;
+    Self.IsNull:= true;
+  end
   else
-    Self.Value:= StrToInt(aValue);
+  begin
+    tmpInt := StrToInt(aValue);
+    Result := tmpInt <> Self.Value;
+    Self.Value:= tmpInt;
+  end;
 end;
 
 function TNullableInteger.AsVariant: Variant;
@@ -435,10 +452,21 @@ end;
 
 procedure TNullableString.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
 begin
+  Self.CheckIfDifferentAndAssign(aValue, aBlankStringMeansNull);
+end;
+
+function TNullableString.CheckIfDifferentAndAssign(const aValue: String; const aBlankStringMeansNull: boolean): boolean;
+begin
   if aBlankStringMeansNull and (aValue = '') then
+  begin
+    Result := Self.NotNull;
     Self.IsNull:= true
+  end
   else
+  begin
+    Result := aValue <> FValue;
     Self.Value:= aValue;
+  end;
 end;
 
 function TNullableString.AsVariant: Variant;
@@ -636,18 +664,8 @@ begin
 end;
 
 procedure TNullableDateTime.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
-var
-  tmpDate : TDateTime;
 begin
-  if aBlankStringMeansNull and (aValue = '') then
-    Self.IsNull:= true
-  else
-  begin
-    if TryToUnderstandDateString(aValue, tmpDate) then
-      Self.Value:= tmpDate
-    else
-      raise Exception.Create('This string cannot be converted to date: ' + aValue);
-  end;
+  Self.CheckIfDifferentAndAssign(aValue, aBlankStringMeansNull);
 end;
 
 function TNullableDateTime.AsVariant: Variant;
@@ -656,6 +674,27 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+function TNullableDateTime.CheckIfDifferentAndAssign(const aValue: String; const aBlankStringMeansNull: boolean): boolean;
+var
+  tmpDate : TDateTime;
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+  begin
+    Result := Self.NotNull;
+    Self.IsNull:= true;
+  end
+  else
+  begin
+    if TryToUnderstandDateString(aValue, tmpDate) then
+    begin
+      Result := (Self.Value <> tmpDate);
+      Self.Value:= tmpDate;
+    end
+    else
+      raise Exception.Create('This string cannot be converted to date: ' + aValue);
+  end;
 end;
 
 function TNullableDateTime.AsString(aShowTime: boolean): String;
