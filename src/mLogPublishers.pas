@@ -75,7 +75,7 @@ end;
 
 destructor TmMemoPublisher.Destroy;
 begin
-  FForm.Free;
+  FreeAndNil(FForm);
   inherited;
 end;
 
@@ -95,7 +95,8 @@ begin
     FMemo.ScrollBars:= ssAutoVertical;
     FForm.Show;
   end;
-  FMemo.Lines.Append(Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
+  if (FForm <> nil) and (FMemo <> nil) then
+    FMemo.Lines.Append(Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
 end;
 
 { TmFilePublisher }
