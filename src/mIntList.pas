@@ -19,6 +19,8 @@ uses Classes
 
 type
 
+  // MUST CONVERT TO PtrUint
+
   { A list of integer}
   TCustomIntegerList = class(TList)
   protected
@@ -100,7 +102,7 @@ end;
 
 function TCustomIntegerList.Add(Num: NativeInt): Integer;
 begin
-  Result := inherited Add( Pointer( Num ) );
+  Result := inherited Add( Pointer(Num ) );
 end;
 
 function TCustomIntegerList.First: NativeInt;
