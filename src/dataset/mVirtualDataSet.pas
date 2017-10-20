@@ -88,8 +88,8 @@ Marco Cantu : http://www.marcocantu.com/code/md6htm/MdDataPack.htm
 {$ENDREGION}
 
 type
-  TCustomVirtualDataset = class;
-  TVirtualDataset       = class;
+  TmCustomVirtualDataset = class;
+  TmVirtualDataset       = class;
 
 {$IFDEF FPC}
   TValueBuffer = Pointer;
@@ -100,29 +100,29 @@ type
   TVariantList         = array [0 .. 0] of OleVariant;
 
   TDeleteRecordEvent = procedure(
-    Sender : TCustomVirtualDataset;
+    Sender : TmCustomVirtualDataset;
     Index  : Integer
   ) of object;
 
   TGetRecordCountEvent = procedure(
-        Sender : TCustomVirtualDataset;
+        Sender : TmCustomVirtualDataset;
     var Count  : Integer
   ) of object;
 
   TGetFieldValueEvent = procedure(
-        Sender : TCustomVirtualDataset;
+        Sender : TmCustomVirtualDataset;
         Field  : TField;
         Index  : Integer;
     var Value  : variant
   ) of object;
 
   TPostDataEvent = procedure(
-    Sender : TCustomVirtualDataset;
+    Sender : TmCustomVirtualDataset;
     Index  : Integer
   ) of object;
 
   TLocateEvent = procedure(
-          Sender    : TCustomVirtualDataset;
+          Sender    : TmCustomVirtualDataset;
     const KeyFields : string;
     const KeyValues : Variant;
           Options   : TLocateOptions;
@@ -130,7 +130,7 @@ type
   ) of object;
 
   TLookupValueEvent = procedure(
-          Sender       : TCustomVirtualDataset;
+          Sender       : TmCustomVirtualDataset;
     const KeyFields    : string;
     const KeyValues    : Variant;
     const ResultFields : string;
@@ -143,21 +143,21 @@ type
     BookmarkFlag : TBookmarkFlag;
   end;
 
-  { TVirtualDatasetDataProvider }
+  { TmVirtualDatasetDataProvider }
 
-  TVirtualDatasetDataProvider = class
+  TmVirtualDatasetDataProvider = class
   strict private
-    FVirtualFieldDefs : TVirtualFieldDefs;
+    FVirtualFieldDefs : TmVirtualFieldDefs;
     FSortConditions : TSortByConditions;
     FFilterConditions : TmFilters;
   protected
-    procedure FillFieldDefOfDataset (aSource : TVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
+    procedure FillFieldDefOfDataset (aSource : TmVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
     function GetRecordCount : integer; virtual; abstract;
-    procedure GetFieldValue (const AField: TField; const AIndex: Integer; out AValue: variant); virtual; abstract;
+    procedure GetFieldValue (const AField: TField; const AIndex: Cardinal; out AValue: variant); virtual; abstract;
     procedure DeleteRecord (const AIndex :integer); virtual; abstract;
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
@@ -170,7 +170,7 @@ type
 
     property SortConditions : TSortByConditions read FSortConditions;
     property FilterConditions : TmFilters read FFilterConditions;
-    property VirtualFieldDefs : TVirtualFieldDefs read FVirtualFieldDefs;
+    property VirtualFieldDefs : TmVirtualFieldDefs read FVirtualFieldDefs;
 
   end;
 
@@ -179,7 +179,7 @@ type
   TBlobStream = class(TMemoryStream)
   private
     FField     : TBlobField;
-    FDataSet   : TCustomVirtualDataset;
+    FDataSet   : TmCustomVirtualDataset;
     FBuffer    : TRecordBuffer;
     FFieldNo   : Integer;
     FModified  : Boolean;
@@ -202,12 +202,12 @@ type
     procedure ActiveChanged; override;
   end;
 
-  TVirtualDatasetSortableManager = class;
-  TVirtualDatasetFilterManager = class;
+  TmVirtualDatasetSortableManager = class;
+  TmVirtualDatasetFilterManager = class;
 
-  { TCustomVirtualDataset }
+  { TmCustomVirtualDataset }
 
-  TCustomVirtualDataset = class(TDataSet)
+  TmCustomVirtualDataset = class(TDataSet)
   strict private
     FInternalOpen     : Boolean;
     FCurrentRecord    : Integer;      // current record (0 to FRecordCount - 1)
@@ -228,9 +228,9 @@ type
     FOnLookupValue    : TLookupValueEvent;
     FAutomaticInitFieldsFormat : boolean;
 
-    FVirtualDatasetProvider : TVirtualDatasetDataProvider;
-    FSortManager : TVirtualDatasetSortableManager;
-    FFilterManager : TVirtualDatasetFilterManager;
+    FVirtualDatasetProvider : TmVirtualDatasetDataProvider;
+    FSortManager : TmVirtualDatasetSortableManager;
+    FFilterManager : TmVirtualDatasetFilterManager;
 
     procedure DateTimeToNative(
       ADataType : TFieldType;
@@ -364,10 +364,10 @@ type
     property OnPostData: TPostDataEvent read FOnPostData write FOnPostData;
     property AutomaticInitFieldsFormat : boolean read FAutomaticInitFieldsFormat write FAutomaticInitFieldsFormat;
 
-    property DatasetDataProvider : TVirtualDatasetDataProvider read FVirtualDatasetProvider write FVirtualDatasetProvider;
+    property DatasetDataProvider : TmVirtualDatasetDataProvider read FVirtualDatasetProvider write FVirtualDatasetProvider;
   end;
 
-  TVirtualDataset = class(TCustomVirtualDataset)
+  TmVirtualDataset = class(TmCustomVirtualDataset)
   published
     property Active;
     property Filtered;
@@ -407,11 +407,11 @@ type
     property OnPostError;
   end;
 
-  { TVirtualDatasetSortableManager }
+  { TmVirtualDatasetSortableManager }
 
-  TVirtualDatasetSortableManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}ISortableDatasetManager)
+  TmVirtualDatasetSortableManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}ISortableDatasetManager)
   protected
-    FVirtualDataset : TCustomVirtualDataset;
+    FVirtualDataset : TmCustomVirtualDataset;
   public
     function GetSorted : boolean;
     function GetSortByConditions : TSortByConditions;
@@ -419,11 +419,11 @@ type
     procedure ClearSort;
   end;
 
-  { TVirtualDatasetFilterManager }
+  { TmVirtualDatasetFilterManager }
 
-  TVirtualDatasetFilterManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IFilterDatasetManager)
+  TmVirtualDatasetFilterManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IFilterDatasetManager)
   protected
-    FVirtualDataset : TCustomVirtualDataset;
+    FVirtualDataset : TmCustomVirtualDataset;
   public
     procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
     function Filter : boolean;
@@ -434,13 +434,13 @@ type
 
 procedure VirtualDatasetError(
   const AMessage : string;
-        ADataset : TCustomVirtualDataset = nil
+        ADataset : TmCustomVirtualDataset = nil
 );
 
 procedure VirtualDatasetErrorFmt(
   const AMessage : string;
   const AArgs    : array of const;
-        ADataset : TCustomVirtualDataset = nil
+        ADataset : TmCustomVirtualDataset = nil
 );
 
 
@@ -463,7 +463,7 @@ resourcestring
 
 {$REGION 'interfaced routines'}
 procedure VirtualDatasetError(const AMessage: string;
-  ADataset: TCustomVirtualDataset = nil);
+  ADataset: TmCustomVirtualDataset = nil);
 begin
   if Assigned(ADataset) then
     raise EVirtualDatasetError.Create(Format('%s: %s', [ADataset.Name, AMessage]))
@@ -472,7 +472,7 @@ begin
 end;
 
 procedure VirtualDatasetErrorFmt(const AMessage: string;
-  const AArgs: array of const; ADataset: TCustomVirtualDataset = nil);
+  const AArgs: array of const; ADataset: TmCustomVirtualDataset = nil);
 begin
   VirtualDatasetError(Format(AMessage, AArgs), ADataset);
 end;
@@ -488,51 +488,51 @@ begin
     Result := Result + (NativeUInt(Dataset.Fields[I]) shr (I mod 16));
 end;
 
-{ TVirtualDatasetFilterManager }
+{ TmVirtualDatasetFilterManager }
 
-procedure TVirtualDatasetFilterManager.GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList);
+procedure TmVirtualDatasetFilterManager.GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList);
 begin
   FVirtualDataset.DatasetDataProvider.GetUniqueStringValuesForField(aFieldName, aList);
 end;
 
-function TVirtualDatasetFilterManager.Filter: boolean;
+function TmVirtualDatasetFilterManager.Filter: boolean;
 begin
   Result := FVirtualDataset.DoFilter;
 end;
 
-function TVirtualDatasetFilterManager.GetFiltered: boolean;
+function TmVirtualDatasetFilterManager.GetFiltered: boolean;
 begin
   Result := FVirtualDataset.FFiltered;
 end;
 
-function TVirtualDatasetFilterManager.GetFilters: TmFilters;
+function TmVirtualDatasetFilterManager.GetFilters: TmFilters;
 begin
   Result := FVirtualDataset.DatasetDataProvider.FilterConditions;
 end;
 
-procedure TVirtualDatasetFilterManager.ClearFilter;
+procedure TmVirtualDatasetFilterManager.ClearFilter;
 begin
   FVirtualDataset.ClearFilter;
 end;
 
-{ TVirtualDatasetSortableManager }
+{ TmVirtualDatasetSortableManager }
 
-function TVirtualDatasetSortableManager.GetSorted: boolean;
+function TmVirtualDatasetSortableManager.GetSorted: boolean;
 begin
   Result := FVirtualDataset.FSorted;
 end;
 
-function TVirtualDatasetSortableManager.GetSortByConditions: TSortByConditions;
+function TmVirtualDatasetSortableManager.GetSortByConditions: TSortByConditions;
 begin
   Result := FVirtualDataset.DatasetDataProvider.SortConditions;
 end;
 
-function TVirtualDatasetSortableManager.Sort: boolean;
+function TmVirtualDatasetSortableManager.Sort: boolean;
 begin
   Result := FVirtualDataset.DoSort;
 end;
 
-procedure TVirtualDatasetSortableManager.ClearSort;
+procedure TmVirtualDatasetSortableManager.ClearSort;
 begin
   FVirtualDataset.ClearSort;
 end;
@@ -545,7 +545,7 @@ constructor TBlobStream.Create(Field: TBlobField; Mode: TBlobStreamMode);
 begin
   FField     := Field;
   FFieldNo   := FField.FieldNo - 1;
-  FDataSet   := FField.Dataset as TCustomVirtualDataset;
+  FDataSet   := FField.Dataset as TmCustomVirtualDataset;
   FFieldData := Null;
   FData      := Null;
   if not FDataSet.GetActiveRecBuf(FBuffer) then
@@ -693,9 +693,9 @@ begin
 end;
 {$ENDREGION}
 
-{$REGION 'TCustomVirtualDataset'}
+{$REGION 'TmCustomVirtualDataset'}
 {$REGION 'construction and destruction'}
-procedure TCustomVirtualDataset.AfterConstruction;
+procedure TmCustomVirtualDataset.AfterConstruction;
 begin
   inherited;
   FInternalOpen                  := False;
@@ -705,15 +705,15 @@ begin
   MasterDataLink.OnMasterChange  := MasterChanged;
   MasterDataLink.OnMasterDisable := MasterDisabled;
   FAutomaticInitFieldsFormat := true;
-  FSortManager := TVirtualDatasetSortableManager.Create;
+  FSortManager := TmVirtualDatasetSortableManager.Create;
   FSortManager.FVirtualDataset := Self;
-  FFilterManager := TVirtualDatasetFilterManager.Create;
+  FFilterManager := TmVirtualDatasetFilterManager.Create;
   FFilterManager.FVirtualDataset := Self;
   FSorted := false;
   FFiltered:= false;
 end;
 
-procedure TCustomVirtualDataset.BeforeDestruction;
+procedure TmCustomVirtualDataset.BeforeDestruction;
 begin
   FModifiedFields.Free;
   FMasterDataLink.Free;
@@ -722,7 +722,7 @@ begin
   inherited;
 end;
 
-procedure TCustomVirtualDataset.Refresh;
+procedure TmCustomVirtualDataset.Refresh;
 begin
   if Assigned(FVirtualDatasetProvider) then
     FVirtualDatasetProvider.Refresh(FSorted, FFiltered);
@@ -732,7 +732,7 @@ end;
 {$ENDREGION}
 
 {$REGION 'property access methods'}
-function TCustomVirtualDataset.GetRecordCount: Integer;
+function TmCustomVirtualDataset.GetRecordCount: Integer;
 begin
   assert (Assigned(FVirtualDatasetProvider));
   Result := FVirtualDatasetProvider.GetRecordCount;
@@ -741,12 +741,12 @@ begin
     FOnGetRecordCount(Self, Result);
 end;
 
-function TCustomVirtualDataset.GetRecordSize: Word;
+function TmCustomVirtualDataset.GetRecordSize: Word;
 begin
   Result := SizeOf(TRecordInfo);
 end;
 
-function TCustomVirtualDataset.GetTopIndex: Integer;
+function TmCustomVirtualDataset.GetTopIndex: Integer;
 begin
   if BufferCount = 0 then
     Result := -1
@@ -754,7 +754,7 @@ begin
     Result := PRecordInfo(Buffers[0])^.Bookmark;
 end;
 
-procedure TCustomVirtualDataset.SetTopIndex(Value: Integer);
+procedure TmCustomVirtualDataset.SetTopIndex(Value: Integer);
 begin
   ClearBuffers;
   FCurrentRecord := Value;
@@ -768,12 +768,12 @@ begin
   DataEvent(deDataSetChange, 0);
 end;
 
-function TCustomVirtualDataset.GetTopRecNo: Integer;
+function TmCustomVirtualDataset.GetTopRecNo: Integer;
 begin
   Result := TopIndex + 1;
 end;
 
-function TCustomVirtualDataset.GetRecNo: Longint;
+function TmCustomVirtualDataset.GetRecNo: Longint;
 var
   RecBuf: TRecordBuffer;
 begin
@@ -785,7 +785,7 @@ begin
 //  Logger.ExitMethod(Self, 'GetRecNo');
 end;
 
-procedure TCustomVirtualDataset.SetRecNo(Value: Integer);
+procedure TmCustomVirtualDataset.SetRecNo(Value: Integer);
 begin
   CheckBrowseMode;
   Value := Min(Max(Value, 1), RecordCount);
@@ -798,20 +798,20 @@ begin
   end;
 end;
 
-procedure TCustomVirtualDataset.SetMasterSource(Value: TDataSource);
+procedure TmCustomVirtualDataset.SetMasterSource(Value: TDataSource);
 begin
   if IsLinkedTo(Value) then
     DatabaseError(SCircularDataLink, Self);
   MasterDataLink.DataSource := Value;
 end;
 
-function TCustomVirtualDataset.GetCanModify: Boolean;
+function TmCustomVirtualDataset.GetCanModify: Boolean;
 begin
   Result := not FReadOnly;
 end;
 {$ENDREGION}
 
-function TCustomVirtualDataset.AllocRecordBuffer: TRecordBuffer;
+function TmCustomVirtualDataset.AllocRecordBuffer: TRecordBuffer;
 begin
   if not(csDestroying in ComponentState) then
   begin
@@ -822,7 +822,7 @@ begin
     Result := nil;
 end;
 
-function TCustomVirtualDataset.BookmarkValid(ABookmark: TBookmark): Boolean;
+function TmCustomVirtualDataset.BookmarkValid(ABookmark: TBookmark): Boolean;
 begin
   if Assigned(ABookmark) and (PInteger(ABookmark)^ >= 0) and
     (PInteger(ABookmark)^ < RecordCount) then
@@ -831,7 +831,7 @@ begin
     Result := False;
 end;
 
-procedure TCustomVirtualDataset.BufferToVariant(AField: TField;
+procedure TmCustomVirtualDataset.BufferToVariant(AField: TField;
   ABuffer: Pointer; out AVariant: Variant; ANativeFormat: Boolean);
 begin
   case AField.DataType of
@@ -895,7 +895,7 @@ begin
   end;
 end;
 
-function TCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark)
+function TmCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark)
   : Integer;
 const
   RetCodes: array [Boolean, Boolean] of ShortInt = ((2, -1), (1, 0));
@@ -913,13 +913,13 @@ begin
   end;
 end;
 
-function TCustomVirtualDataset.CreateBlobStream(Field: TField;
+function TmCustomVirtualDataset.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
 begin
   Result := TBlobStream.Create(Field as TBlobField, Mode);
 end;
 
-procedure TCustomVirtualDataset.DataEvent(Event: TDataEvent; Info: NativeInt);
+procedure TmCustomVirtualDataset.DataEvent(Event: TDataEvent; Info: NativeInt);
 begin
   case Event of
     deLayoutChange:
@@ -931,7 +931,7 @@ begin
 end;
 
 {$REGION 'event dispatch methods'}
-procedure TCustomVirtualDataset.DoDeleteRecord(AIndex: Integer);
+procedure TmCustomVirtualDataset.DoDeleteRecord(AIndex: Integer);
 begin
   assert (Assigned(FVirtualDatasetProvider));
   FVirtualDatasetProvider.DeleteRecord(AIndex);
@@ -939,7 +939,7 @@ begin
     FOnDeleteRecord(Self, AIndex);
 end;
 
-procedure TCustomVirtualDataset.DoGetFieldValue(AField: TField; AIndex: Integer;
+procedure TmCustomVirtualDataset.DoGetFieldValue(AField: TField; AIndex: Integer;
   var AValue: variant);
 begin
   assert (Assigned(FVirtualDatasetProvider));
@@ -948,7 +948,7 @@ begin
     FOnGetFieldValue(Self, AField, AIndex, AValue);
 end;
 
-procedure TCustomVirtualDataset.DoOnNewRecord;
+procedure TmCustomVirtualDataset.DoOnNewRecord;
 begin
   FModifiedFields.Clear;
   if FOldValueBuffer = nil then
@@ -960,7 +960,7 @@ begin
   inherited DoOnNewRecord;
 end;
 
-procedure TCustomVirtualDataset.DoPostData(AIndex: Integer);
+procedure TmCustomVirtualDataset.DoPostData(AIndex: Integer);
 begin
   assert (Assigned(FVirtualDatasetProvider));
   if State in dsEditModes then
@@ -981,7 +981,7 @@ end;
 {$ENDREGION}
 
 {$REGION 'private methods'}
-procedure TCustomVirtualDataset.DateTimeToNative(ADataType: TFieldType;
+procedure TmCustomVirtualDataset.DateTimeToNative(ADataType: TFieldType;
   AData: TDateTime; ABuffer: Pointer);
 var
   TimeStamp: TTimeStamp;
@@ -996,13 +996,13 @@ begin
 end;
 {$ENDREGION}
 
-procedure TCustomVirtualDataset.FreeRecordBuffer(var Buffer: TRecordBuffer);
+procedure TmCustomVirtualDataset.FreeRecordBuffer(var Buffer: TRecordBuffer);
 begin
   Finalize(PVariantList(Buffer + SizeOf(TRecordInfo))^, Fields.Count);
   FreeMem(Buffer);
 end;
 
-function TCustomVirtualDataset.GetActiveRecBuf(out ARecBuf: TRecordBuffer)
+function TmCustomVirtualDataset.GetActiveRecBuf(out ARecBuf: TRecordBuffer)
   : Boolean;
 begin
 //  Logger.EnterMethod(Self, 'GetActiveRecBuf');
@@ -1028,14 +1028,14 @@ begin
 end;
 
 {$IFNDEF FPC}
-function TCustomVirtualDataset.GetBlobFieldData(FieldNo: Integer;
+function TmCustomVirtualDataset.GetBlobFieldData(FieldNo: Integer;
   var Buffer: TBlobByteData): Integer;
 begin
   Result := inherited GetBlobFieldData(FieldNo, Buffer);
 end;
 {$ENDIF}
 
-procedure TCustomVirtualDataset.GetBookmarkData(Buffer: TRecordBuffer;
+procedure TmCustomVirtualDataset.GetBookmarkData(Buffer: TRecordBuffer;
   Data: Pointer);
 begin
 //  Logger.EnterMethod(Self, 'GetBookmarkData');
@@ -1043,7 +1043,7 @@ begin
 //  Logger.ExitMethod(Self, 'GetBookmarkData');
 end;
 
-function TCustomVirtualDataset.GetBookmarkFlag(Buffer: TRecordBuffer)
+function TmCustomVirtualDataset.GetBookmarkFlag(Buffer: TRecordBuffer)
   : TBookmarkFlag;
 begin
 //  Logger.EnterMethod(Self, 'GetBookmarkFlag');
@@ -1051,7 +1051,7 @@ begin
 //  Logger.ExitMethod(Self, 'GetBookmarkFlag');
 end;
 
-procedure TCustomVirtualDataset.VariantToBuffer(AField: TField; AVariant: Variant;
+procedure TmCustomVirtualDataset.VariantToBuffer(AField: TField; AVariant: Variant;
   out ABuffer: Pointer; ANativeFormat: Boolean);
 
   procedure CurrToBuffer(const C: Currency);
@@ -1208,7 +1208,7 @@ begin
 //  Logger.ExitMethod(Self, 'VariantToBuffer');
 end;
 
-function TCustomVirtualDataset.GetMasterSource: TDataSource;
+function TmCustomVirtualDataset.GetMasterSource: TDataSource;
 begin
   if Assigned(MasterDataLink) then
     Result := MasterDataLink.DataSource
@@ -1216,7 +1216,7 @@ begin
     Result := nil;
 end;
 
-function TCustomVirtualDataset.GetRecord(Buffer: TRecordBuffer;
+function TmCustomVirtualDataset.GetRecord(Buffer: TRecordBuffer;
   GetMode: TGetMode; DoCheck: Boolean): TGetResult;
 var
   Accept    : Boolean;
@@ -1249,7 +1249,7 @@ begin
 //  Logger.ExitMethod(Self, 'GetRecord');
 end;
 
-function TCustomVirtualDataset.InternalGetRecord(ABuffer: TRecordBuffer;
+function TmCustomVirtualDataset.InternalGetRecord(ABuffer: TRecordBuffer;
   AGetMode: TGetMode; ADoCheck: Boolean): TGetResult;
 var
   iRecCount: Integer;
@@ -1307,17 +1307,17 @@ begin
 //  Logger.ExitMethod(Self, 'InternalGetRecord');
 end;
 
-procedure TCustomVirtualDataset.InternalGotoBookmark(ABookmark: Pointer);
+procedure TmCustomVirtualDataset.InternalGotoBookmark(ABookmark: Pointer);
 begin
   FCurrentRecord := PInteger(ABookmark)^;
 end;
 
-procedure TCustomVirtualDataset.InternalAddRecord(Buffer: Pointer;
+procedure TmCustomVirtualDataset.InternalAddRecord(Buffer: Pointer;
   AAppend: Boolean);
 begin
 end;
 
-procedure TCustomVirtualDataset.InternalClose;
+procedure TmCustomVirtualDataset.InternalClose;
 begin
   FInternalOpen := False;
   BindFields(False);
@@ -1334,14 +1334,14 @@ begin
   end;
 end;
 
-(*procedure TCustomVirtualDataset.InternalCreateFields;
+(*procedure TmCustomVirtualDataset.InternalCreateFields;
 begin
-  // TCustomVirtualDataset requires persistent fields to be defined
+  // TmCustomVirtualDataset requires persistent fields to be defined
   if DefaultFields then
     VirtualDatasetError(SPersistentFieldsRequired, Self);
 end;*)
 
-procedure TCustomVirtualDataset.InternalDelete;
+procedure TmCustomVirtualDataset.InternalDelete;
 var
   RecBuf: TRecordBuffer;
 begin
@@ -1349,7 +1349,7 @@ begin
   DoDeleteRecord(PRecordInfo(RecBuf)^.Bookmark);
 end;
 
-procedure TCustomVirtualDataset.InternalEdit;
+procedure TmCustomVirtualDataset.InternalEdit;
 begin
   FModifiedFields.Clear;
 
@@ -1360,24 +1360,24 @@ begin
       Fields.Count);
 end;
 
-procedure TCustomVirtualDataset.InternalFirst;
+procedure TmCustomVirtualDataset.InternalFirst;
 begin
   FCurrentRecord := -1;
 end;
 
-procedure TCustomVirtualDataset.InternalHandleException;
+procedure TmCustomVirtualDataset.InternalHandleException;
 begin
   Application.HandleException(Self);
 end;
 
-procedure TCustomVirtualDataset.InternalInitFieldDefs;
+procedure TmCustomVirtualDataset.InternalInitFieldDefs;
 begin
   assert (Assigned(FVirtualDatasetProvider));
   FieldDefs.Clear;
   FVirtualDatasetProvider.FillFieldDefsOfDataset(Self.FieldDefs, Self.ReadOnly);
 end;
 
-procedure TCustomVirtualDataset.InternalInitRecord(Buffer: TRecordBuffer);
+procedure TmCustomVirtualDataset.InternalInitRecord(Buffer: TRecordBuffer);
 var
   I: Integer;
 begin
@@ -1387,12 +1387,12 @@ begin
 //  Logger.ExitMethod(Self, 'InternalInitRecord');
 end;
 
-procedure TCustomVirtualDataset.InternalLast;
+procedure TmCustomVirtualDataset.InternalLast;
 begin
   FCurrentRecord := RecordCount;
 end;
 
-procedure TCustomVirtualDataset.InternalOpen;
+procedure TmCustomVirtualDataset.InternalOpen;
 var
   i : integer;
 begin
@@ -1409,7 +1409,7 @@ begin
   FVirtualDatasetProvider.SetDefaultVisibilityOfFields (Fields);
 end;
 
-procedure TCustomVirtualDataset.InternalPost;
+procedure TmCustomVirtualDataset.InternalPost;
 var
   RecBuf: TRecordBuffer;
 begin
@@ -1421,7 +1421,7 @@ begin
     DoPostData(PRecordInfo(RecBuf)^.Bookmark);
 end;
 
-procedure TCustomVirtualDataset.InternalSetToRecord(Buffer: TRecordBuffer);
+procedure TmCustomVirtualDataset.InternalSetToRecord(Buffer: TRecordBuffer);
 begin
 //  Logger.EnterMethod(Self, 'InternalSetToRecord');
   if PRecordInfo(Buffer)^.BookmarkFlag in [bfCurrent, bfInserted] then
@@ -1431,12 +1431,12 @@ begin
 //  Logger.ExitMethod(Self, 'InternalSetToRecord');
 end;
 
-function TCustomVirtualDataset.IsCursorOpen: Boolean;
+function TmCustomVirtualDataset.IsCursorOpen: Boolean;
 begin
   Result := FInternalOpen;
 end;
 
-function TCustomVirtualDataset.Locate(const KeyFields: string;
+function TmCustomVirtualDataset.Locate(const KeyFields: string;
   const KeyValues: Variant; Options: TLocateOptions): Boolean;
 var
   P: Integer;
@@ -1458,7 +1458,7 @@ begin
     Result := False;
 end;
 
-function TCustomVirtualDataset.Lookup(const KeyFields: string;
+function TmCustomVirtualDataset.Lookup(const KeyFields: string;
   const KeyValues: Variant; const ResultFields: string): Variant;
 begin
   if Assigned(FOnLookupValue) then
@@ -1470,18 +1470,18 @@ begin
     Result := inherited Lookup(KeyFields, KeyValues, ResultFields);
 end;
 
-function TCustomVirtualDataset.SortManager: ISortableDatasetManager;
+function TmCustomVirtualDataset.SortManager: ISortableDatasetManager;
 begin
   Result := FSortManager;
 end;
 
-function TCustomVirtualDataset.FilterManager: IFilterDatasetManager;
+function TmCustomVirtualDataset.FilterManager: IFilterDatasetManager;
 begin
   Result := FFilterManager;
 end;
 
 
-function TCustomVirtualDataset.DoSort : boolean;
+function TmCustomVirtualDataset.DoSort : boolean;
 begin
   Result := false;
   if not Active then
@@ -1498,7 +1498,7 @@ begin
   end;
 end;
 
-procedure TCustomVirtualDataset.ClearSort;
+procedure TmCustomVirtualDataset.ClearSort;
 begin
   FSorted := false;
   FVirtualDatasetProvider.SortConditions.Clear;
@@ -1507,7 +1507,7 @@ begin
   Resync([]);
 end;
 
-function TCustomVirtualDataset.DoFilter: boolean;
+function TmCustomVirtualDataset.DoFilter: boolean;
 begin
   Result := false;
   if not Active then
@@ -1524,7 +1524,7 @@ begin
   end;
 end;
 
-procedure TCustomVirtualDataset.ClearFilter;
+procedure TmCustomVirtualDataset.ClearFilter;
 begin
   FFiltered := false;
   FVirtualDatasetProvider.FilterConditions.Clear;
@@ -1533,7 +1533,7 @@ begin
   Resync([]);
 end;
 
-procedure TCustomVirtualDataset.MasterChanged(Sender: TObject);
+procedure TmCustomVirtualDataset.MasterChanged(Sender: TObject);
 begin
   if not Active then
     Exit;
@@ -1541,7 +1541,7 @@ begin
   Resync([]);
 end;
 
-procedure TCustomVirtualDataset.MasterDisabled(Sender: TObject);
+procedure TmCustomVirtualDataset.MasterDisabled(Sender: TObject);
 begin
   if not Active then
     Exit;
@@ -1555,13 +1555,13 @@ begin
   Resync([]);
 end;
 
-procedure TCustomVirtualDataset.SetBookmarkFlag(Buffer: TRecordBuffer;
+procedure TmCustomVirtualDataset.SetBookmarkFlag(Buffer: TRecordBuffer;
   Value: TBookmarkFlag);
 begin
   PRecordInfo(Buffer)^.BookmarkFlag := Value;
 end;
 
-procedure TCustomVirtualDataset.SetBookmarkData(Buffer: TRecordBuffer;
+procedure TmCustomVirtualDataset.SetBookmarkData(Buffer: TRecordBuffer;
   Data: Pointer);
 begin
   if PRecordInfo(Buffer)^.BookmarkFlag in [bfCurrent, bfInserted] then
@@ -1570,7 +1570,7 @@ begin
     PRecordInfo(Buffer)^.Bookmark := -1;
 end;
 
-procedure TCustomVirtualDataset.SetFieldData(Field: TField;
+procedure TmCustomVirtualDataset.SetFieldData(Field: TField;
   Buffer: TValueBuffer; NativeFormat: Boolean);
 begin
 //  Logger.EnterMethod(Self, 'SetFieldData');
@@ -1578,14 +1578,14 @@ begin
 //  Logger.ExitMethod(Self, 'SetFieldData');
 end;
 
-procedure TCustomVirtualDataset.DoAfterOpen;
+procedure TmCustomVirtualDataset.DoAfterOpen;
 begin
   if FAutomaticInitFieldsFormat then
     ApplyStandardSettingsToFields(Self, '##.##');
   inherited DoAfterOpen;
 end;
 
-procedure TCustomVirtualDataset.InternalSetFieldData(AField: TField;
+procedure TmCustomVirtualDataset.InternalSetFieldData(AField: TField;
   ABuffer: Pointer; ANativeFormat: Boolean);
 var
   Data  : Variant;
@@ -1630,7 +1630,7 @@ begin
 //  end;
 end;
 
-function TCustomVirtualDataset.GetFieldData(Field: TField;
+function TmCustomVirtualDataset.GetFieldData(Field: TField;
    {$IFNDEF FPC}var{$ENDIF} Buffer: TValueBuffer): Boolean;
 var
   RecBuf: TRecordBuffer;
@@ -1692,16 +1692,16 @@ end;
 {$ENDREGION}
 
 
-{ TVirtualDatasetDataProvider }
+{ TmVirtualDatasetDataProvider }
 
-constructor TVirtualDatasetDataProvider.Create;
+constructor TmVirtualDatasetDataProvider.Create;
 begin
-  FVirtualFieldDefs := TVirtualFieldDefs.Create;
+  FVirtualFieldDefs := TmVirtualFieldDefs.Create;
   FSortConditions := TSortByConditions.Create;
   FFilterConditions := TmFilters.Create;
 end;
 
-destructor TVirtualDatasetDataProvider.Destroy;
+destructor TmVirtualDatasetDataProvider.Destroy;
 begin
   FSortConditions.Free;
   FFilterConditions.Free;
@@ -1709,13 +1709,13 @@ begin
   inherited;
 end;
 
-procedure TVirtualDatasetDataProvider.FillFieldDefOfDataset (aSource : TVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
+procedure TmVirtualDatasetDataProvider.FillFieldDefOfDataset (aSource : TmVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
 var
   newName : string;
 begin
   newName := aPrefix + aSource.Name;
   aFieldDef.Name := newName;
-  aFieldDef.DataType := FromTVirtualFieldDefTypeToTFieldType(aSource.DataType);
+  aFieldDef.DataType := FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
   aFieldDef.Size := aSource.Size;
   if aSource.Required then
     aFieldDef.Attributes := [faRequired];
@@ -1726,10 +1726,10 @@ begin
 end;
 
 
-procedure TVirtualDatasetDataProvider.FillFieldDefsOfDataset(aFieldDefs: TFieldDefs; const aReadOnly : boolean);
+procedure TmVirtualDatasetDataProvider.FillFieldDefsOfDataset(aFieldDefs: TFieldDefs; const aReadOnly : boolean);
 var
   i : integer;
-  CurrentField : TVirtualFieldDef;
+  CurrentField : TmVirtualFieldDef;
 begin
   for i := 0 to FVirtualFieldDefs.Count - 1 do
   begin
@@ -1738,7 +1738,7 @@ begin
   end;
 end;
 
-procedure TVirtualDatasetDataProvider.SetDefaultVisibilityOfFields(aFields: TFields);
+procedure TmVirtualDatasetDataProvider.SetDefaultVisibilityOfFields(aFields: TFields);
 var
   i : integer;
 begin

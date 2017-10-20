@@ -20,7 +20,7 @@ type
 
   TmGetValueOfProperty = function (aObject : TObject; aPropertyName : string) : variant of object;
 
-  TmListDataset = class(TCustomVirtualDataset)
+  TmListDataset = class(TmCustomVirtualDataset)
   strict private
     FList             : TList;
     FDataPropertyName : string;

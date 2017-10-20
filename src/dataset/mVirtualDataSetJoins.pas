@@ -24,7 +24,7 @@ type
     FPrefix : string;
     FDoBuildExternalEntityKey : TBuildExternalEntityKeyFromDatumFunction;
     FDoFindDatumByStringKey : TFindDatumByStringKeyFunction;
-    FVirtualFieldDefs : TVirtualFieldDefs;
+    FVirtualFieldDefs : TmVirtualFieldDefs;
 
     procedure SetPrefix(AValue: string);
   public
@@ -34,7 +34,7 @@ type
     property Prefix : string read FPrefix write SetPrefix;
     property DoBuildExternalEntityKey : TBuildExternalEntityKeyFromDatumFunction read FDoBuildExternalEntityKey write FDoBuildExternalEntityKey;
     property DoFindDatumByStringKey : TFindDatumByStringKeyFunction read FDoFindDatumByStringKey write FDoFindDatumByStringKey;
-    property VirtualFieldDefs : TVirtualFieldDefs read FVirtualFieldDefs;
+    property VirtualFieldDefs : TmVirtualFieldDefs read FVirtualFieldDefs;
   end;
 
   { TmBuiltInJoins }
@@ -174,7 +174,7 @@ begin
   FPrefix:= '';
   FDoBuildExternalEntityKey:= nil;
   FDoFindDatumByStringKey:= nil;
-  FVirtualFieldDefs := TVirtualFieldDefs.Create;
+  FVirtualFieldDefs := TmVirtualFieldDefs.Create;
 end;
 
 destructor TmBuiltInJoin.Destroy;

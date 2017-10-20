@@ -49,7 +49,7 @@ type
 
     function GetDatumKey : IVDDatumKey;
 
-    class procedure FillVirtualFieldDefs (aFieldDefs : TVirtualFieldDefs; aPrefix : String);
+    class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String);
     class function GetKeyField : String;
     function GetPropertyByFieldName(aFieldName : String) : Variant;
 
@@ -157,7 +157,7 @@ begin
   Result := Key;
 end;
 
-class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TVirtualFieldDefs; aPrefix: String);
+class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String);
 begin
   with aFieldDefs.AddFieldDef do
   begin

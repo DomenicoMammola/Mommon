@@ -28,7 +28,7 @@ type
 
   { TReadOnlyVirtualDatasetProvider }
 
-  TReadOnlyVirtualDatasetProvider = class (TVirtualDatasetDataProvider)
+  TReadOnlyVirtualDatasetProvider = class (TmVirtualDatasetDataProvider)
   strict private
     FIDataProvider : IVDListDataProvider;
     FSortedIndex : TFPList;
@@ -44,7 +44,7 @@ type
     FCurrentDatumForParser : IVDDatum;
 
     function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
-    procedure InternalGetFieldValue (const aFieldName : string; const AIndex: Integer; out AValue: variant);
+    procedure InternalGetFieldValue (const aFieldName : string; const AIndex: Cardinal; out AValue: variant);
     procedure GetFieldValueFromDatum (const aDatum : IVDDatum; const aFieldName : string; out aValue :variant);
     procedure GetValueForParser(Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
     procedure GetStrValueForParser(Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
@@ -54,7 +54,7 @@ type
 
     procedure Init (aDataProvider : IVDListDataProvider);
 
-    procedure GetFieldValue (const AField: TField; const AIndex: Integer; out AValue: variant); override;
+    procedure GetFieldValue (const AField: TField; const AIndex: Cardinal; out AValue: variant); override;
     procedure DeleteRecord (const AIndex :integer); override;
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); override;
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); override;
@@ -122,7 +122,7 @@ begin
   end;
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.InternalGetFieldValue(const aFieldName: string; const AIndex: Integer; out AValue: variant);
+procedure TReadOnlyVirtualDatasetProvider.InternalGetFieldValue(const aFieldName: string; const AIndex: Cardinal; out AValue: variant);
 var
   tmpI : IVDDatum;
   idx: integer;
@@ -290,7 +290,7 @@ begin
   FGarbage.Clear;
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(const AField: TField; const AIndex: Integer; out AValue: variant);
+procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(const AField: TField; const AIndex: Cardinal; out AValue: variant);
 begin
   InternalGetFieldValue(AField.FieldName, AIndex, AValue);
 end;
@@ -321,7 +321,7 @@ end;
 procedure TReadOnlyVirtualDatasetProvider.FillFieldDefsOfDataset(aFieldDefs: TFieldDefs; const aReadOnly: boolean);
 var
   k, i : integer;
-  CurrentField : TVirtualFieldDef;
+  CurrentField : TmVirtualFieldDef;
   CurrentJoin : TmBuiltInJoin;
   tmpFieldDef : TFieldDef;
 begin
