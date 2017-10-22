@@ -8,13 +8,16 @@ interface
 
 uses
   contnrs, db, variants, Classes,
+  {$ifdef fpc}
+  fgl,
+  {$endif}
   mVirtualDataSet, mVirtualDatasetDataProvider,
   mBaseClassesAsObjects,
   StrHashMap;
 
 type
 
-  TmGroupByOperationKind = (gpoDistinct, gpoDateYear, gpoDateMonth, gpoDateDay, gpoFirstLetter);
+  TmGroupByOperationKind = (gpoDistinct, gpoDateYear, gpoDateMonth, gpoDateDay, gpoFirstLetter, goFormula);
 
   { TmGroupByDef }
 
@@ -23,12 +26,14 @@ type
     FFieldName : string;
     FDataType : TFieldType;
     FOperationKind : TmGroupByOperationKind;
+    FFormula : String;
   public
     constructor Create;
 
     property FieldName : string read FFieldName write FFieldName;
     property DataType : TFieldType read FDataType write FDataType;
     property OperationKind : TmGroupByOperationKind read FOperationKind write FOperationKind;
+    property Formula: String read FFormula write FFormula;
   end;
 
   { TmGroupByDefs }
@@ -45,7 +50,7 @@ type
     function Get(const aIndex : integer): TmGroupByDef;
   end;
 
-  TmCalculationKind = (ckSum, ckCount, ckMin, ckMax);
+  TmCalculationKind = (ckSum, ckCount, ckMin, ckMax, ckFormula);
 
   { TmCalculationDef }
 
@@ -54,12 +59,14 @@ type
     FFieldName : String;
     FDataType : TFieldType;
     FCalculationKind : TmCalculationKind;
+    FFormula : String;
   public
     constructor Create;
 
     property FieldName : string read FFieldName write FFieldName;
     property DataType : TFieldType read FDataType write FDataType;
     property CalculationKind : TmCalculationKind read FCalculationKind write FCalculationKind;
+    property Formula : String read FFormula write FFormula;
   end;
 
   { TmCalculationDefs }
@@ -92,18 +99,66 @@ type
     function GetValueList (aKey : string): TList;
   end;
 
+  { TKeyValuesForGroupByDef }
+
+  TKeyValuesForGroupByDef = class
+  strict private
+    FValues : TStringList;
+    FDictionary : TStringHashMap;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure AddValue (aValue : String);
+    function Contains (const aValue : String): boolean;
+  end;
+
+  { TRecordCoordinates }
+
+  TRecordCoordinates = class
+  strict private
+    FCoordinates : TStringList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+    property Values : TStringList read FCoordinates;
+  end;
+
+  { TRecordsCoordinates }
+
+  TRecordsCoordinates = class
+  strict private
+    FList : TObjectList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+    function Get (const aIndex : integer): TRecordCoordinates;
+    function Add : TRecordCoordinates;
+  end;
+
+
   { TmVirtualDatasetPivoter }
 
   TmVirtualDatasetPivoter = class
   strict private
+    // dataset
     FVirtualDataset : TmVirtualDataset;
+    // group by definitions
     FVerticalGroupByDefs : TmGroupByDefs;
     FHorizontalGroupByDefs : TmGroupByDefs;
+    //
+    FVerticalValues: array of TKeyValuesForGroupByDef;
+    FHorizontalValues: array of TKeyValuesForGroupByDef;
+    //
+    FVerticalRecordCoordinates : TRecordsCoordinates;
+    FHorizontalRecordCoordinates : TRecordsCoordinates;
+
     FIndex : TmIndex;
     FGarbage : TObjectList;
 
-    procedure CalculateSubIndex(aIndex: TmIndex; const aCurrentRecNo: Cardinal;
-      const aCurrentGroupByDefIndex: integer);
+//    procedure CalculateSubIndex(aIndex: TmIndex; const aCurrentRecNo: Cardinal;
+//      const aCurrentGroupByDefIndex: integer);
     function GetIndexKeyValue(aValue : Variant; aGroupByDef : TmGroupByDef): string;
   public
     constructor Create;
@@ -121,6 +176,79 @@ implementation
 
 uses
   sysutils, dateutils;
+
+{ TRecordsCoordinates }
+
+constructor TRecordsCoordinates.Create;
+begin
+  FList := TObjectList.Create(true);
+end;
+
+destructor TRecordsCoordinates.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+procedure TRecordsCoordinates.Clear;
+begin
+  FList.Clear;
+end;
+
+function TRecordsCoordinates.Add: TRecordCoordinates;
+begin
+  Result := TRecordCoordinates.Create;
+  FList.Add(Result);
+end;
+
+function TRecordsCoordinates.Get(const aIndex: integer): TRecordCoordinates;
+begin
+  Result := FList.Items[aIndex] as TRecordCoordinates;
+end;
+
+{ TRecordCoordinates }
+
+constructor TRecordCoordinates.Create;
+begin
+  FCoordinates := TStringList.Create;
+end;
+
+destructor TRecordCoordinates.Destroy;
+begin
+  FCoordinates.Free;
+  inherited Destroy;
+end;
+
+procedure TRecordCoordinates.Clear;
+begin
+  FCoordinates.Clear;
+end;
+
+{ TKeyValuesForGroupByDef }
+
+constructor TKeyValuesForGroupByDef.Create;
+begin
+  FValues:= TStringList.Create;
+  FDictionary:= TStringHashMap.Create;
+end;
+
+destructor TKeyValuesForGroupByDef.Destroy;
+begin
+  FValues.Free;
+  FDictionary.Free;
+  inherited Destroy;
+end;
+
+procedure TKeyValuesForGroupByDef.AddValue(aValue: String);
+begin
+  FValues.Add(aValue);
+  FDictionary.Add(aValue, Self);
+end;
+
+function TKeyValuesForGroupByDef.Contains(const aValue: String): boolean;
+begin
+  Result := FDictionary.Contains(aValue);
+end;
 
 { TmIndex }
 
@@ -210,6 +338,8 @@ begin
   FVerticalGroupByDefs := TmGroupByDefs.Create;
   FHorizontalGroupByDefs := TmGroupByDefs.Create;
   FGarbage := TObjectList.Create(true);
+  FVerticalRecordCoordinates:= TRecordsCoordinates.Create;
+  FHorizontalRecordCoordinates:= TRecordsCoordinates.Create;
 end;
 
 destructor TmVirtualDatasetPivoter.Destroy;
@@ -217,17 +347,19 @@ begin
   FVerticalGroupByDefs.Free;
   FHorizontalGroupByDefs.Free;
   FGarbage.Free;
+  FVerticalRecordCoordinates.Free;
+  FHorizontalRecordCoordinates.Free;
   inherited Destroy;
 end;
 
+(*
 procedure TmVirtualDatasetPivoter.CalculateSubIndex (aIndex : TmIndex; const aCurrentRecNo : Cardinal; const aCurrentGroupByDefIndex : integer);
 var
   tmpValue : variant;
   newCurrentGroupByDefIndex : integer;
-//  tmpRecNoShell : TIntegerObject;
 begin
   newCurrentGroupByDefIndex := aCurrentGroupByDefIndex + 1;
-  FVirtualDataset.DatasetDataProvider.GetFieldValue(FVirtualDataset.FieldByName(FVerticalGroupByDefs.Get(newCurrentGroupByDefIndex).FieldName), aCurrentRecNo, tmpValue);
+  FVirtualDataset.DatasetDataProvider.GetFieldValue(FVerticalGroupByDefs.Get(newCurrentGroupByDefIndex).FieldName, aCurrentRecNo, tmpValue);
   if FVerticalGroupByDefs.Count > newCurrentGroupByDefIndex then
   begin
     aIndex.GetSubIndex(Self.GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(newCurrentGroupByDefIndex)));
@@ -239,18 +371,58 @@ begin
     FIndex.GetValueList(Self.GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(newCurrentGroupByDefIndex))).Add(pointer(aCurrentRecNo)); //@tmpRecNoShell);
   end;
 end;
+*)
 
 procedure TmVirtualDatasetPivoter.Calculate;
 var
   i, recCount : Cardinal;
+  k : integer;
+  tmpValue : Variant;
+  tmpKeyValue : String;
+  currentCoord : TRecordCoordinates;
 begin
   FGarbage.Clear;
+
+  FVerticalValues := nil;
+  FHorizontalValues := nil;
+
+  SetLength(FVerticalValues, FVerticalGroupByDefs.Count);
+  SetLength(FHorizontalValues, FHorizontalGroupByDefs.Count);
+
+  FVerticalRecordCoordinates.Clear;
+  FHorizontalRecordCoordinates.Clear;
+
+  recCount := FVirtualDataset.DatasetDataProvider.GetRecordCount;
+  for i:= 0 to recCount -1 do
+  begin
+    currentCoord := FVerticalRecordCoordinates.Add;
+    for k := 0 to FVerticalGroupByDefs.Count -1 do
+    begin
+      FVirtualDataset.DatasetDataProvider.GetFieldValue(FVerticalGroupByDefs.Get(k).FieldName, i, tmpValue);
+      tmpKeyValue := GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(k));
+      if not FVerticalValues[k].Contains(tmpKeyValue) then
+        FVerticalValues[k].AddValue(tmpKeyValue);
+      currentCoord.Values[k] := tmpKeyValue;
+    end;
+    currentCoord := FHorizontalRecordCoordinates.Add;
+    for k := 0 to FHorizontalGroupByDefs.Count -1 do
+    begin
+      FVirtualDataset.DatasetDataProvider.GetFieldValue(FHorizontalGroupByDefs.Get(k).FieldName, i, tmpValue);
+      tmpKeyValue := GetIndexKeyValue(tmpValue, FHorizontalGroupByDefs.Get(k));
+      if not FHorizontalValues[k].Contains(tmpKeyValue) then
+        FHorizontalValues[k].AddValue(tmpKeyValue);
+      currentCoord.Values[k] := tmpKeyValue;
+    end;
+  end;
+
+(*
   recCount := FVirtualDataset.DatasetDataProvider.GetRecordCount;
   if FVerticalGroupByDefs.Count > 0 then
   begin
     for i := 0 to recCount - 1 do
       CalculateSubIndex(FIndex, i, 0);
   end;
+  *)
 end;
 
 { TmCalculationDefs }
@@ -318,6 +490,7 @@ begin
   FFieldName:= '';
   FDataType:= ftString;
   FOperationKind:= gpoDistinct;
+  FFormula := '';
 end;
 
 { TmCalculationDef }
@@ -327,6 +500,7 @@ begin
   FFieldName:= '';
   FDataType:= ftFloat;
   FCalculationKind:= ckSum;
+  FFormula:= '';
 end;
 
 end.
