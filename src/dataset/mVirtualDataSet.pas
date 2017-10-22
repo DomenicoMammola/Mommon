@@ -157,7 +157,7 @@ type
     destructor Destroy; override;
 
     function GetRecordCount : integer; virtual; abstract;
-    procedure GetFieldValue (const AField: TField; const AIndex: Cardinal; out AValue: variant); virtual; abstract;
+    procedure GetFieldValue (const AFieldName: String; const AIndex: Cardinal; out AValue: variant); virtual; abstract;
     procedure DeleteRecord (const AIndex :integer); virtual; abstract;
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
@@ -943,7 +943,7 @@ procedure TmCustomVirtualDataset.DoGetFieldValue(AField: TField; AIndex: Integer
   var AValue: variant);
 begin
   assert (Assigned(FVirtualDatasetProvider));
-  FVirtualDatasetProvider.GetFieldValue(aField, aIndex, aValue);
+  FVirtualDatasetProvider.GetFieldValue(aField.FieldName, aIndex, aValue);
   if Assigned(FOnGetFieldValue) then
     FOnGetFieldValue(Self, AField, AIndex, AValue);
 end;

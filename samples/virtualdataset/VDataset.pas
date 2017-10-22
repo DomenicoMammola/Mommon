@@ -9,7 +9,7 @@ interface
 uses
   Classes, DB,
   contnrs,
-  mVirtualDataSet, mVirtualFieldDefs, mIntList;
+  mVirtualDataSet, mVirtualFieldDefs, mVirtualDatasetPivoter;
 
 type
 
@@ -37,7 +37,7 @@ type
     destructor Destroy; override;
     procedure Add (AObj : TObject);
 
-    procedure GetFieldValue (const AField: TField; const AIndex: Cardinal;
+    procedure GetFieldValue (const AFieldName: String; const AIndex: Cardinal;
       out AValue: variant); override;
     procedure DeleteRecord (const AIndex :integer); override;
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); override;
@@ -117,7 +117,7 @@ begin
 
 end;
 
-procedure TListVirtualDatasetDataProvider.GetFieldValue(const AField: TField; const AIndex: Cardinal;
+procedure TListVirtualDatasetDataProvider.GetFieldValue(const AFieldName: String; const AIndex: Cardinal;
       out AValue: variant);
 var
   AObject : TCiccio;
@@ -125,13 +125,13 @@ begin
   if AIndex >= 0 then
   begin
     AObject := TCiccio(FList.Items[AIndex]);
-    if AField.FieldName = 'ValueString' then
+    if AFieldName = 'ValueString' then
       AValue := (AObject as TCiccio).ValueString
     else
-    if AField.FieldName = 'ValueInteger' then
+    if AFieldName = 'ValueInteger' then
       AValue := (AObject as TCiccio).ValueInteger
     else
-    if AField.FieldName = 'ValueFloat' then
+    if AFieldName = 'ValueFloat' then
       AValue := (AObject as TCiccio).ValueFloat;
   end;
 end;
