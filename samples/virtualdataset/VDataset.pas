@@ -9,7 +9,7 @@ interface
 uses
   Classes, DB,
   contnrs,
-  mVirtualDataSet, mVirtualFieldDefs;
+  mVirtualDataSet, mVirtualFieldDefs, mIntList;
 
 type
 
@@ -28,7 +28,7 @@ type
 
   { TListVirtualDatasetDataProvider }
 
-  TListVirtualDatasetDataProvider = class (TVirtualDatasetDataProvider)
+  TListVirtualDatasetDataProvider = class (TmVirtualDatasetDataProvider)
   private
     FList : TList;
     FGarbageCollector : TObjectList;
@@ -37,7 +37,7 @@ type
     destructor Destroy; override;
     procedure Add (AObj : TObject);
 
-    procedure GetFieldValue (const AField: TField; const AIndex: Integer;
+    procedure GetFieldValue (const AField: TField; const AIndex: Cardinal;
       out AValue: variant); override;
     procedure DeleteRecord (const AIndex :integer); override;
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); override;
@@ -117,7 +117,7 @@ begin
 
 end;
 
-procedure TListVirtualDatasetDataProvider.GetFieldValue(const AField: TField; const AIndex: Integer;
+procedure TListVirtualDatasetDataProvider.GetFieldValue(const AField: TField; const AIndex: Cardinal;
       out AValue: variant);
 var
   AObject : TCiccio;

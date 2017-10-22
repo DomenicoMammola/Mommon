@@ -28,7 +28,7 @@ type
     FListDataset : TmListDataset;
     FList : TList;
     FBidone : TObjectList;
-    TempDataset : TVirtualDataset;
+    TempDataset : TmVirtualDataset;
     FProvider : TListVirtualDatasetDataProvider;
     function GetData (aObject : TObject; aPropertyName : string) : variant;
     procedure CreateProvider;
@@ -73,7 +73,7 @@ end;
 procedure TForm1.Button2Click(Sender: TObject);
 begin
   CreateProvider;
-  TempDataset := TVirtualDataset.Create(Self);
+  TempDataset := TmVirtualDataset.Create(Self);
   TempDataset.DatasetDataProvider := FProvider;
   TempDataset.Active := true;
   DataSource1.DataSet := TempDataset;
