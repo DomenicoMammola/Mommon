@@ -71,7 +71,7 @@ begin
               aParam.AsDateList(IntegerList);
               for i := 0 to IntegerList.Count -1 do
               begin
-                Result := Result + Separator + DateToSQLString(IntegerList.Nums[i]);
+                Result := Result + Separator + DateToSQLString(IntegerList.Items[i]);
                 Separator := ',';
               end;
             finally
@@ -147,7 +147,7 @@ begin
               aParam.AsIntegerList(IntegerList);
               for i := 0 to IntegerList.Count -1 do
               begin
-                Result := Result + Separator + IntToStr(IntegerList.Nums[i]);
+                Result := Result + Separator + IntToStr(IntegerList.Items[i]);
                 Separator := ',';
               end;
             finally
