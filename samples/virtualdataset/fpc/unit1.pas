@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  DBGrids, StdCtrls, contnrs, mVirtualDataset, mListDataset, db, memds,
+  DBGrids, StdCtrls, contnrs, mVirtualDataset, mVirtualDatasetPivoter, db,
   VDataset;
 
 type
@@ -25,12 +25,9 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure Panel1Click(Sender: TObject);
   private
-    FListDataset : TmListDataset;
-    FList : TList;
-    FBidone : TObjectList;
     TempDataset : TmVirtualDataset;
     FProvider : TListVirtualDatasetDataProvider;
-    function GetData (aObject : TObject; aPropertyName : string) : variant;
+    FPivoter : TmVirtualDatasetPivoter;
     procedure CreateProvider;
   public
     { public declarations }
@@ -46,28 +43,24 @@ implementation
 { TForm1 }
 
 procedure TForm1.FormCreate(Sender: TObject);
-var
-  i : integer;
-  c : TCiccio;
 begin
-  FList := TList.Create;
-  FBidone := TObjectList.Create(true);
-  for i := 1 to 1000 do
+  FPivoter := TmVirtualDatasetPivoter.Create;
+  with FPivoter.VerticalGroupByDefs.Add do
   begin
-    c := TCiccio.Create;
-    c.ValueFloat:= i / 2;
-    c.ValueInteger := i;
-    c.ValueString:= 'ciccio' + IntToStr(i);
-    FList.Add(c);
-    FBidone.Add(c);
+    FieldName:= 'ValueString';
+    DataType:= ftString;
+    OperationKind:= gpoDistinct;
   end;
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
+var
+  i : integeR;
 begin
-  FListDataset := TmListDataset.Create(Self, FList, @GetData);
-  FListDataset.Active := true;
-  DataSource1.DataSet := FListDataset;
+  for i := 0 to -1 do
+  begin
+    Button1.Caption:= 'minchia';
+  end;
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
@@ -77,33 +70,21 @@ begin
   TempDataset.DatasetDataProvider := FProvider;
   TempDataset.Active := true;
   DataSource1.DataSet := TempDataset;
-
+  FPivoter.VirtualDataset := TempDataset;
+  FPivoter.CalculateHierarchy;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FProvider);
-  FreeAndNil(FListDataset);
-  FreeAndNil(FList);
-  FreeAndNil(FBidone);
   FreeAndNil(TempDataset);
   FreeAndNil(FProvider);
+  FPivoter.Free;
 end;
 
 procedure TForm1.Panel1Click(Sender: TObject);
 begin
 
-end;
-
-function TForm1.GetData(aObject: TObject; aPropertyName: string): variant;
-begin
-  if aPropertyName = 'VDouble' then
-    Result := (aObject as TCiccio).ValueFloat
-  else
-  if aPropertyName = 'VInteger' then
-    Result := (aObject as TCiccio).ValueInteger
-  else
-    Result := (aObject as TCiccio).ValueString;
 end;
 
 procedure TForm1.CreateProvider;
@@ -116,7 +97,7 @@ begin
   for i := 0 to 100 do
   begin
     Dummy := TCiccio.Create;
-    Dummy.ValueString := 'CICCIO' + IntToStr(i);
+    Dummy.ValueString := 'CICCIO' + IntToStr(trunc(i / 10));
     Dummy.ValueInteger := i;
     Dummy.ValueFloat := (i + 1) / 2;
     FProvider.Add(Dummy);

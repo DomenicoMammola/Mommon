@@ -32,7 +32,7 @@ type
   strict private
     FIDataProvider : IVDListDataProvider;
     FSortedIndex : TFPList;
-    FFilteredIndex : TIntegerList;
+    FFilteredIndex : TCardinalList;
     FCurrentSortFields : TStringList;
     FGarbage : TObjectList;
     FFiltered : boolean;
@@ -54,7 +54,7 @@ type
 
     procedure Init (aDataProvider : IVDListDataProvider);
 
-    procedure GetFieldValue (const AField: TField; const AIndex: Cardinal; out AValue: variant); override;
+    procedure GetFieldValue (const AFieldName: String; const AIndex: Cardinal; out AValue: variant); override;
     procedure DeleteRecord (const AIndex :integer); override;
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); override;
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); override;
@@ -255,7 +255,7 @@ constructor TReadOnlyVirtualDatasetProvider.Create;
 begin
   inherited Create;
   FSortedIndex := TFPList.Create;
-  FFilteredIndex := TIntegerList.Create;
+  FFilteredIndex := TCardinalList.Create;
   FCurrentSortFields := TStringList.Create;
   FGarbage := TObjectList.Create(true);
   FFiltered:= false;
@@ -290,9 +290,9 @@ begin
   FGarbage.Clear;
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(const AField: TField; const AIndex: Cardinal; out AValue: variant);
+procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(const AFieldName: String; const AIndex: Cardinal; out AValue: variant);
 begin
-  InternalGetFieldValue(AField.FieldName, AIndex, AValue);
+  InternalGetFieldValue(AFieldName, AIndex, AValue);
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.DeleteRecord(const AIndex: integer);

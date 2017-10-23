@@ -8,7 +8,7 @@ interface
 
 uses
   Classes, DB,
-  contnrs,
+  contnrs, sysutils,
   mVirtualDataSet, mVirtualFieldDefs, mVirtualDatasetPivoter;
 
 type
@@ -125,13 +125,13 @@ begin
   if AIndex >= 0 then
   begin
     AObject := TCiccio(FList.Items[AIndex]);
-    if AFieldName = 'ValueString' then
+    if CompareText(AFieldName, 'ValueString') = 0 then
       AValue := (AObject as TCiccio).ValueString
     else
-    if AFieldName = 'ValueInteger' then
+    if CompareText(AFieldName, 'ValueInteger') = 0 then
       AValue := (AObject as TCiccio).ValueInteger
     else
-    if AFieldName = 'ValueFloat' then
+    if CompareText(AFieldName, 'ValueFloat') = 0 then
       AValue := (AObject as TCiccio).ValueFloat;
   end;
 end;

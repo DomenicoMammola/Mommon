@@ -176,7 +176,7 @@ type
 
   { TBlobStream }
 
-  TBlobStream = class(TMemoryStream)
+(*  TBlobStream = class(TMemoryStream)
   private
     FField     : TBlobField;
     FDataSet   : TmCustomVirtualDataset;
@@ -195,7 +195,7 @@ type
     destructor Destroy; override;
     function Write(const Buffer; Count: Longint): Longint; override;
     procedure Truncate;
-  end;
+  end;*)
 
   TVirtualMasterDataLink = class(TMasterDataLink)
   protected
@@ -331,8 +331,8 @@ type
     function BookmarkValid(ABookmark: TBookmark): Boolean; override;
     function CompareBookmarks(Bookmark1, Bookmark2: TBookmark)
       : Integer; override;
-    function CreateBlobStream(Field: TField; Mode: TBlobStreamMode)
-      : TStream; override;
+//    function CreateBlobStream(Field: TField; Mode: TBlobStreamMode)
+//      : TStream; override;
     {$IFNDEF FPC}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData) : Integer; override;
     {$ENDIF}
@@ -540,6 +540,7 @@ end;
 
 {$ENDREGION}
 
+(*
 {$REGION 'TBlobStream'}
 constructor TBlobStream.Create(Field: TBlobField; Mode: TBlobStreamMode);
 begin
@@ -671,7 +672,7 @@ begin
   FModified := True;
 end;
 {$ENDREGION}
-
+*)
 {$REGION 'TVirtualMasterDataLink'}
 procedure TVirtualMasterDataLink.ActiveChanged;
 begin
@@ -913,11 +914,11 @@ begin
   end;
 end;
 
-function TmCustomVirtualDataset.CreateBlobStream(Field: TField;
+(*function TmCustomVirtualDataset.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
 begin
   Result := TBlobStream.Create(Field as TBlobField, Mode);
-end;
+end;*)
 
 procedure TmCustomVirtualDataset.DataEvent(Event: TDataEvent; Info: NativeInt);
 begin
