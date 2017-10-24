@@ -14,16 +14,13 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
-    Button1: TButton;
     Button2: TButton;
     DataSource1: TDataSource;
     DBGrid1: TDBGrid;
     Panel1: TPanel;
-    procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure Panel1Click(Sender: TObject);
   private
     TempDataset : TmVirtualDataset;
     FProvider : TListVirtualDatasetDataProvider;
@@ -53,15 +50,6 @@ begin
   end;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
-var
-  i : integeR;
-begin
-  for i := 0 to -1 do
-  begin
-    Button1.Caption:= 'minchia';
-  end;
-end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
@@ -82,11 +70,6 @@ begin
   FPivoter.Free;
 end;
 
-procedure TForm1.Panel1Click(Sender: TObject);
-begin
-
-end;
-
 procedure TForm1.CreateProvider;
 var
   i : integer;
@@ -94,7 +77,7 @@ var
 begin
   FProvider := TListVirtualDatasetDataProvider.Create;
 
-  for i := 0 to 100 do
+  for i := 0 to 1000000 do
   begin
     Dummy := TCiccio.Create;
     Dummy.ValueString := 'CICCIO' + IntToStr(trunc(i / 10));
