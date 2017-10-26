@@ -18,7 +18,7 @@ interface
 
 uses
   Variants,
-  mDatabaseConnectionClasses, mFilter;
+  mDatabaseConnectionClasses, mFilterOperators;
 
 type
 
@@ -51,7 +51,9 @@ begin
   else if aOperator = foNotEq then
     Result := '<>'
   else if aOperator = foIn then
-    Result := 'IN';
+    Result := 'IN'
+  else if aOperator = foBetween then
+    Result := 'BETWEEN';
 end;
 
 end.

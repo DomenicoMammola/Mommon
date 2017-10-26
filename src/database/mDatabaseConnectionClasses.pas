@@ -18,7 +18,7 @@ interface
 
 uses
   DB, Contnrs, SysUtils, Variants, Classes, {$IFDEF FPC}base64,{$ELSE}EncdDecd, {$ENDIF}
-  mNullables, mXML, mUtility, mIntList, mDoubleList;
+  mNullables, mXML, mUtility, mIntList, mDoubleList, mFilter, mFilterOperators;
 
 type
   TmDataConnectionException = class (Exception);
@@ -34,6 +34,7 @@ type
     FName : String;
     FValue : Variant;
     FDataType : TmParameterDataType;
+    FOperator : TmFilterOperator;
     function GetAsDate: TDate;
     function GetAsDateTime: TDateTime;
     function GetAsFloat: Double;
@@ -55,13 +56,12 @@ type
 
     procedure SetNull;
     function IsNull : boolean;
-    function HasMultipleValues : boolean;
 
     procedure Assign(aValue : TNullableString); overload;
     procedure Assign(aValue : TNullableInteger); overload;
     procedure Assign(aValue : TNullableDateTime); overload;
     procedure Assign(aValue : TNullableDouble); overload;
-    procedure Assign(aValue : Variant; const aDataType : TmParameterDataType); overload;
+    procedure Assign(const aFilter : TmFilter); overload;
 
     procedure AsStringList (aList : TStringList);
     procedure AsIntegerList (aList : TIntegerList);
@@ -77,6 +77,7 @@ type
     property AsFloat : Double read GetAsFloat write SetAsFloat;
     property AsDateTime : TDateTime read GetAsDateTime write SetAsDateTime;
     property AsDate : TDate read GetAsDate write SetAsDate;
+    property Operator : TmFilterOperator read FOperator write FOperator;
   end;
 
   { TmQueryParameters }
@@ -441,6 +442,7 @@ constructor TmQueryParameter.Create;
 begin
   FDataType:= ptUnknown;
   FValue:= Null;
+  FOperator:= foEq;
 end;
 
 procedure TmQueryParameter.ImportFromParam(aSource: TParam);
@@ -459,10 +461,12 @@ begin
   Result := (FValue = Null);
 end;
 
+(*
 function TmQueryParameter.HasMultipleValues: boolean;
 begin
   Result := (not Self.IsNull) and VarisArray(FValue);
 end;
+*)
 
 procedure TmQueryParameter.Assign(aValue: TNullableString);
 begin
@@ -496,13 +500,25 @@ begin
     Self.AsFloat:= aValue.Value;
 end;
 
-procedure TmQueryParameter.Assign(aValue: Variant; const aDataType: TmParameterDataType);
+procedure TmQueryParameter.Assign(const aFilter : TmFilter);
 begin
-  FDataType:= aDataType;
-  if VarIsNull(aValue) then
+  if aFilter.DataType = fdtDate then
+    Self.FDataType:= ptDate
+  else if aFilter.DataType = fdtDateTime then
+    Self.FDataType:= ptDateTime
+  else if aFilter.DataType = fdtInteger then
+    Self.FDataType:=ptInteger
+  else if aFilter.DataType= fdtFloat then
+    Self.FDataType := ptFloat
+  else
+    Self.FDataType := ptString;
+
+  FOperator:= aFilter.FilterOperator;
+
+  if VarIsNull(aFilter.Value) then
     Self.SetNull
   else
-    FValue := aValue;
+    FValue := aFilter.Value;
 end;
 
 procedure TmQueryParameter.AsStringList(aList: TStringList);

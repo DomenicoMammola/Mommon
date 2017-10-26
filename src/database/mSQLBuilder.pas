@@ -17,7 +17,7 @@ unit mSQLBuilder;
 interface
 
 uses
-  mDatabaseConnectionClasses, mFilter,
+  mDatabaseConnectionClasses, mFilterOperators,
   mSQLDialectExpertImpl;
 
 const

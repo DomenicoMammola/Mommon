@@ -18,7 +18,7 @@ interface
 
 uses
   Classes,
-  mDatabaseConnectionClasses,
+  mDatabaseConnectionClasses, mFilterOperators,
   mSQLDialectExpertImpl, mSQLDialectExpertImplRegister, mIntList, mDoubleList;
 
 type
@@ -64,7 +64,7 @@ begin
     case aParam.DataType of
       ptDate:
         begin
-          if aParam.HasMultipleValues then
+          if (aParam.Operator = TmFilterOperator.foIn) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -78,12 +78,25 @@ begin
               IntegerList.Free;
             end;
           end
+          else if (aParam.Operator = TmFilterOperator.foBetween) then
+          begin
+            IntegerList := TIntegerList.Create;
+            try
+              aParam.AsDateList(IntegerList);
+              if IntegerList.Count = 2 then
+                Result := DateToSQLString(IntegerList.Items[0]) + ' AND ' + DateToSQLString(IntegerList.Items[1])
+              else
+                raise Exception.Create('Wrong number of values for BETWEEN operator');
+            finally
+              IntegerList.Free;
+            end;
+          end
           else
             Result := DateToSQLString(aParam.AsDate);
         end;
       ptDateTime:
         begin
-          if aParam.HasMultipleValues then
+          if (aParam.Operator = TmFilterOperator.foIn) then
           begin
             DoubleList := TDoubleList.Create;
             try
@@ -96,13 +109,25 @@ begin
             finally
               DoubleList.Free;
             end;
+          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          begin
+            DoubleList := TDoubleList.Create;
+            try
+              aParam.AsDateTimeList(DoubleList);
+              if DoubleList.Count = 2 then
+                Result := DateTimeToSQLString(DoubleList.Items[0]) + ' AND ' + DateTimeToSQLString(DoubleList.Items[1])
+              else
+                raise Exception.Create('Wrong number of values for BETWEEN operator');
+            finally
+              DoubleList.Free;
+            end;
           end
           else
             Result := DateTimeToSQLString(aParam.AsDateTime);
         end;
       ptString:
         begin
-          if aParam.HasMultipleValues then
+          if (aParam.Operator = TmFilterOperator.foIn) then
           begin
             StringList := TStringList.Create;
             try
@@ -115,13 +140,30 @@ begin
             finally
               StringList.Free;
             end;
-          end
+          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          begin
+            StringList := TStringList.Create;
+            try
+              aParam.AsStringList(StringList);
+              if StringList.Count = 2 then
+                Result := StringToSQLString(StringList.Strings[0]) + ' AND ' + StringToSQLString(StringList.Strings[1])
+              else
+                raise Exception.Create('Wrong number of values for BETWEEN operator');
+            finally
+              StringList.Free;
+            end;
+          end else if (aParam.Operator = TmFilterOperator.foLike) then
+            Result := StringToSQLString('%'+aParam.AsString + '%')
+          else if (aParam.Operator = TmFilterOperator.foStartWith) then
+            Result := StringToSQLString(aParam.AsString + '%')
+          else if (aParam.Operator = TmFilterOperator.foEndWith) then
+            Result := StringToSQLString('%'+aParam.AsString)
           else
             Result := StringToSQLString(aParam.AsString);
         end;
       ptWideString:
         begin
-          if aParam.HasMultipleValues then
+          if (aParam.Operator = TmFilterOperator.foIn) then
           begin
             StringList := TStringList.Create;
             try
@@ -135,12 +177,30 @@ begin
               StringList.Free;
             end;
           end
+          else if (aParam.Operator = TmFilterOperator.foBetween) then
+          begin
+            StringList := TStringList.Create;
+            try
+              aParam.AsStringList(StringList);
+              if StringList.Count = 2 then
+                Result := StringToSQLString(StringList.Strings[0]) + ' AND ' + StringToSQLString(StringList.Strings[1])
+              else
+                raise Exception.Create('Wrong number of values for BETWEEN operator');
+            finally
+              StringList.Free;
+            end;
+          end else if (aParam.Operator = TmFilterOperator.foLike) then
+            Result := StringToSQLString('%'+aParam.AsString + '%')
+          else if (aParam.Operator = TmFilterOperator.foStartWith) then
+            Result := StringToSQLString(aParam.AsString + '%')
+          else if (aParam.Operator = TmFilterOperator.foEndWith) then
+            Result := StringToSQLString('%'+aParam.AsString)
           else
             Result := StringToSQLString(aParam.AsWideString);
         end;
       ptInteger:
         begin
-          if aParam.HasMultipleValues then
+          if (aParam.Operator = TmFilterOperator.foIn) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -153,13 +213,25 @@ begin
             finally
               IntegerList.Free;
             end;
+          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          begin
+            IntegerList := TIntegerList.Create;
+            try
+              aParam.AsIntegerList(IntegerList);
+              if IntegerList.Count = 2 then
+                Result := IntToStr(IntegerList.Items[0]) + ' AND ' + IntToStr(IntegerList.Items[1])
+              else
+                raise Exception.Create('Wrong number of values for BETWEEN operator');
+            finally
+              IntegerList.Free;
+            end;
           end
           else
             Result := IntToStr(aParam.AsInteger);
         end;
       ptFloat:
         begin
-          if aParam.HasMultipleValues then
+          if (aParam.Operator = TmFilterOperator.foIn) then
           begin
             DoubleList := TDoubleList.Create;
             try
@@ -169,6 +241,18 @@ begin
                 Result := Result + Separator + FloatToSQLString(DoubleList.Nums[i]);
                 Separator := ',';
               end;
+            finally
+              DoubleList.Free;
+            end;
+          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          begin
+            DoubleList := TDoubleList.Create;
+            try
+              aParam.AsFloatList(DoubleList);
+              if DoubleList.Count = 2 then
+                Result := FloatToSQLString(DoubleList.Items[0]) + ' AND ' + FloatToSQLString(DoubleList.Items[1])
+              else
+                raise Exception.Create('Wrong number of values for BETWEEN operator');
             finally
               DoubleList.Free;
             end;

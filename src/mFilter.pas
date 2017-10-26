@@ -18,12 +18,10 @@ interface
 
 uses
   Contnrs, Classes, Variants, SysUtils,
-  mMaps, mUtility;
+  mMaps, mUtility, mFilterOperators, StrHashMap;
 
 type
-  TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foLike, foNotEq, foStartWith, foEndWith, foIn);
-
-  TmFilterOperatorsSet = set of TmFilterOperator;
+  TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtInteger, fdtFloat);
 
   { TmFilter }
 
@@ -32,9 +30,10 @@ type
     FFieldName : string;
     FFilterOperator : TmFilterOperator;
     FValue : Variant;
+    FDataType : TmFilterDataType;
 
     FValuesAsStrings : TStringList;
-    FValuesDictionary: TmStringDictionary;
+    FValuesDictionary: TStringHashMap;
     procedure SetValue(AValue: Variant);
   public
     constructor Create;
@@ -45,11 +44,10 @@ type
     procedure EndEvaluation;
     procedure CopyFrom (aSource : TmFilter);
 
-    function GetFormattedValueForSQL : Variant;
-
     property FieldName : string read FFieldName write FFieldName;
     property FilterOperator : TmFilterOperator read FFilterOperator write FFilterOperator;
     property Value : Variant read FValue write SetValue;
+    property DataType : TmFilterDataType read FDataType write FDataType;
   end;
 
 
@@ -168,6 +166,7 @@ begin
   FFilterOperator:= foUnknown;
   FValuesAsStrings:= nil;
   FValuesDictionary:= nil;
+  FDataType:= fdtString;
 end;
 
 destructor TmFilter.Destroy;
@@ -182,7 +181,7 @@ begin
   FreeAndNil(FValuesAsStrings);
   FreeAndnil(FValuesDictionary);
   FValuesAsStrings := TStringList.Create;
-  FValuesDictionary := TmStringDictionary.Create();
+  FValuesDictionary := TStringHashMap.Create();
 end;
 
 function TmFilter.Evaluate(aActualValue: Variant): boolean;
@@ -247,11 +246,11 @@ begin
           for i := 0 to FValuesAsStrings.Count - 1 do
           begin
             str := lowercase(FValuesAsStrings.Strings[i]);
-            if FValuesDictionary.Find(str) = nil then
+            if not FValuesDictionary.Contains(str) then
               FValuesDictionary.Add(str, FValuesAsStrings); // FValuesAsString is just a placeholder, to be able to check return value of find as nil
           end;
         end;
-        Result := FValuesDictionary.Find(lowercase(VarToStr(aActualValue))) <> nil;
+        Result := FValuesDictionary.Contains(lowercase(VarToStr(aActualValue)));
       end;
   end;
 end;
@@ -267,23 +266,6 @@ begin
   Self.FFieldName := aSource.FieldName;
   Self.FFilterOperator := aSource.FFilterOperator;
   Self.FValue := aSource.FValue;
-end;
-
-function TmFilter.GetFormattedValueForSQL: Variant;
-begin
-  if not VarIsNull(FValue) then
-  begin
-    if FFilterOperator = foLike then
-      Result := '%' + FValue + '%'
-    else if FFilterOperator = foStartWith then
-      Result := FValue + '%'
-    else if FFilterOperator = foEndWith then
-      Result := '%' + FValue
-    else
-      Result := FValue;
-  end
-  else
-    Result := FValue;
 end;
 
 end.
