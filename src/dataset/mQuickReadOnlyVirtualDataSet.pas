@@ -128,31 +128,26 @@ var
   idx: integer;
   actualIndex : integer;
 begin
-  if (aIndex >= 0) then
+  if FFiltered then
+    actualIndex:= FFilteredIndex.Nums[aIndex]
+  else
+    actualIndex:= aIndex;
+  if FSortedIndex.Count > 0 then
   begin
-    if FFiltered then
-      actualIndex:= FFilteredIndex.Nums[aIndex]
-    else
-      actualIndex:= aIndex;
-    if FSortedIndex.Count > 0 then
-    begin
-      tmpI := TDatumShell(FSortedIndex.Items[actualIndex]).Datum;
-      idx := TDatumShell(FSortedIndex.Items[actualIndex]).Idx;
-    end
-    else
-    begin
-      tmpI := FIDataProvider.GetDatum(actualIndex);
-      idx := aIndex;
-    end;
-    AValue := Null;
-
-   if CompareText(aFieldName, KEY_FIELD_NAME) = 0 then
-     aValue := idx
-   else
-     GetFieldValueFromDatum(tmpI, aFieldName, AValue);
+    tmpI := TDatumShell(FSortedIndex.Items[actualIndex]).Datum;
+    idx := TDatumShell(FSortedIndex.Items[actualIndex]).Idx;
   end
   else
-    aValue := null;
+  begin
+    tmpI := FIDataProvider.GetDatum(actualIndex);
+    idx := aIndex;
+  end;
+  AValue := Null;
+
+  if CompareText(aFieldName, KEY_FIELD_NAME) = 0 then
+    aValue := idx
+  else
+    GetFieldValueFromDatum(tmpI, aFieldName, AValue);
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.GetFieldValueFromDatum(const aDatum: IVDDatum; const aFieldName : string; out aValue: variant);
