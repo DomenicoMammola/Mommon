@@ -42,12 +42,15 @@ type
     FFieldsFromJoin : TStringList;
     FParser : TKAParser;
     FCurrentDatumForParser : IVDDatum;
+    FCurrentDatumForFilterEvaluation : IVDDatum;
+    FFiltersEvaluator: TmFiltersEvaluator;
 
     function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
     procedure InternalGetFieldValue (const aFieldName : string; const AIndex: Cardinal; out AValue: variant);
     procedure GetFieldValueFromDatum (const aDatum : IVDDatum; const aFieldName : string; out aValue :variant);
     procedure GetValueForParser(Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
     procedure GetStrValueForParser(Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
+    procedure GetValueForFilterEvaluator(const aFilterIndex : integer; out aValue : variant);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -245,6 +248,11 @@ begin
   end;
 end;
 
+procedure TReadOnlyVirtualDatasetProvider.GetValueForFilterEvaluator(const aFilterIndex: integer; out aValue: variant);
+begin
+  Self.GetFieldValueFromDatum(FCurrentDatumForFilterEvaluation, FilterConditions.Get(aFilterIndex).FieldName, aValue);
+end;
+
 
 constructor TReadOnlyVirtualDatasetProvider.Create;
 begin
@@ -261,6 +269,7 @@ begin
   FFieldsFromJoinsAreVisibleByDefault:= false;
   FFieldsFromJoin := TStringList.Create;
   FFormulaFields := TmFormulaFields.Create;
+  FFiltersEvaluator:= TmFiltersEvaluator.Create;
 end;
 
 destructor TReadOnlyVirtualDatasetProvider.Destroy;
@@ -274,6 +283,7 @@ begin
   FreeAndNil(FBuiltInJoins);
   FreeAndNil(FFieldsFromJoin);
   FreeAndNil(FFormulaFields);
+  FreeAndNil(FFiltersEvaluator);
   inherited Destroy;
 end;
 
@@ -363,8 +373,7 @@ function TReadOnlyVirtualDatasetProvider.Refresh(const aDoSort, aDoFilter: boole
 var
   i, k : integer;
   tmp : TDatumShell;
-  visibleRow : boolean;
-  currentDatum : IVDDatum;
+  //currentDatum : IVDDatum;
   tmpValue : variant;
 begin
   Result := false;
@@ -413,23 +422,16 @@ begin
       FFiltered := true;
       logger.Debug('[TReadOnlyVirtualDatasetProvider.Refresh] - start evaluation to apply filter');
 
-      FilterConditions.StartEvaluation;
+      FFiltersEvaluator.StartEvaluation(FilterConditions, Self.GetValueForFilterEvaluator);
       try
         logger.Debug('[TReadOnlyVirtualDatasetProvider.Refresh] - total row:' + IntToStr(FIDataProvider.Count));
         if FSortedIndex.Count > 0 then
         begin
           for i := 0 to FSortedIndex.Count - 1 do
           begin
-            visibleRow := true;
-            currentDatum := TDatumShell(FSortedIndex.Items[i]).Datum;
-            for k := 0 to FilterConditions.Count -1 do
-            begin
-              GetFieldValueFromDatum(currentDatum, FilterConditions.Get(k).FieldName, tmpValue);
-              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(tmpValue);
-              if not visibleRow then
-                break;
-            end;
-            if visibleRow then
+            FCurrentDatumForFilterEvaluation := TDatumShell(FSortedIndex.Items[i]).Datum;
+
+            if FFiltersEvaluator.Evaluate then
               FFilteredIndex.Add(i);
           end;
         end
@@ -437,21 +439,14 @@ begin
         begin
           for i := 0 to FIDataProvider.Count -1 do
           begin
-            visibleRow := true;
-            currentDatum := FIDataProvider.GetDatum(i);
-            for k := 0 to FilterConditions.Count -1 do
-            begin
-              GetFieldValueFromDatum(currentDatum, FilterConditions.Get(k).FieldName, tmpValue);
-              visibleRow := visibleRow and FilterConditions.Get(k).Evaluate(tmpValue);
-              if not visibleRow then
-                break;
-            end;
-            if visibleRow then
+            FCurrentDatumForFilterEvaluation := FIDataProvider.GetDatum(i);
+
+            if FFiltersEvaluator.Evaluate then
               FFilteredIndex.Add(i);
           end;
         end;
       finally
-        FilterConditions.EndEvaluation;
+        FFiltersEvaluator.EndEvaluation;
       end;
       logger.Debug('[TReadOnlyVirtualDatasetProvider.Refresh] - end evaluation. Found:' + IntToStr(FFilteredIndex.Count));
     end;
