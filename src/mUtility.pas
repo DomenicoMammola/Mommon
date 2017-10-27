@@ -592,7 +592,7 @@ var
 begin
   if VarIsArray(aValue) then
   begin
-    for i := 0 to VarArrayHighBound(aValue, 1) do
+    for i := VarArrayLowBound(aValue, 1) to VarArrayHighBound(aValue, 1) do
     begin
       aList.Add(VarToStr(aValue[i]));
     end;
@@ -607,7 +607,7 @@ var
 begin
   if VarIsArray(aValue) then
   begin
-    for i := 0 to VarArrayHighBound(aValue, 1) do
+    for i := VarArrayLowBound(aValue, 1) to VarArrayHighBound(aValue, 1) do
     begin
       aList.Add(VarAsType(aValue[i], varinteger));
     end;
@@ -622,7 +622,7 @@ var
 begin
   if VarIsArray(aValue) then
   begin
-    for i := 0 to VarArrayHighBound(aValue, 1) do
+    for i := VarArrayLowBound(aValue, 1) to VarArrayHighBound(aValue, 1) do
     begin
       aList.Add(VarAsType(aValue[i], vardouble));
     end;
@@ -638,16 +638,16 @@ var
 begin
   if VarIsArray(aValue) then
   begin
-    for i := 0 to VarArrayHighBound(aValue, 1) do
+    for i := VarArrayLowBound(aValue, 1) to VarArrayHighBound(aValue, 1) do
     begin
       tmpDate := VarAsType(aValue[i], vardate);
-      aList.Add(trunc(tmpDate));
+      aList.Add(round(tmpDate));
     end;
   end
   else
   begin
     tmpDate := VarAsType(aValue, vardate);
-    aList.Add(trunc(tmpDate));
+    aList.Add(round(tmpDate));
   end;
 end;
 
@@ -657,7 +657,7 @@ var
 begin
   if VarIsArray(aValue) then
   begin
-    for i := 0 to VarArrayHighBound(aValue, 1) do
+    for i := VarArrayLowBound(aValue, 1) to VarArrayHighBound(aValue, 1) do
     begin
       aList.Add(VarAsType(aValue[i], vardate));
     end;
