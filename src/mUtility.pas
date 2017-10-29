@@ -17,7 +17,7 @@ interface
 {$ENDIF}
 
 uses
-  Classes, SysUtils, Variants, Windows,
+  Classes, SysUtils, Variants, {$ifdef windows}Windows,{$endif}
   mIntList, mDoubleList;
 
 const
@@ -78,8 +78,13 @@ implementation
 
 uses
   DateUtils,
-  {$ifdef windows}shlobj,{$endif}
+  {$ifdef windows}shlobj,{$else}LazUTF8,{$endif}
+  {$ifdef linux}initc, ctypes,{$endif}
   mMathUtility;
+
+{$ifdef linux}
+function sysconf(i:cint):clong;cdecl;external name 'sysconf';
+{$endif}
 
 function AddZerosFront (aValue : integer; aLength : integer) : String;
 var
@@ -812,6 +817,7 @@ begin
   _MergeSort(List,0,List.Count-1,OnCompare);
 end;
 
+{$ifdef windows}
 function GetCPUCores : integer;
 var
   Info: TSystemInfo;
@@ -819,6 +825,56 @@ begin
   GetSystemInfo(Info);
   Result := Info.dwNumberOfProcessors;
 end;
+{$else}
+
+{$ifdef linux}
+function GetCPUCores : integer;
+begin
+  // http://forum.lazarus.freepascal.org/index.php?topic=33125.0
+  Result := sysconf(83);
+end;
+{$else}
+{$ifdef Darwin}
+// http://forum.lazarus.freepascal.org/index.php?topic=4098.0
+function GetCPUCores : integer;
+//returns number of CPUs for MacOSX computer
+//example - will return 4 if the computer has two dual core CPUs
+//requires Process in Uses Clause
+//see http://wiki.lazarus.freepascal.org/Executing_External_Programs
+var
+   lProcess: TProcess;
+   lLen,lPos: integer;
+   lStr: string;
+   lStringList: TStringList;
+ begin
+   Result := 1;
+   lProcess := TProcess.Create(nil);
+   lStringList := TStringList.Create;
+   lProcess.CommandLine := 'sysctl hw.ncpu';
+   lProcess.Options := lProcess.Options + [poWaitOnExit, poUsePipes];
+   lProcess.Execute;
+   lStringList.LoadFromStream(lProcess.Output);
+   lLen := length(lStringList.Text);
+   if lLen > 0 then begin
+      lStr := '';
+      for lPos := 1 to lLen do
+             if lStringList.Text[lPos] in ['0'..'9'] then
+                lStr := lStr + lStringList.Text[lPos];
+      if length(lStr) > 0 then
+         result := strtoint(lStr);
+   end;//if at least one character returned
+   lStringList.Free;
+   lProcess.Free;
+end;
+
+{$else}
+function GetCPUCores : integer;
+begin
+  raise Exception.Create('GetCPUCores missing implementation for this platform');
+end;
+{$endif}
+{$endif}
+{$endif}
 
 function GetApplicationLocalDataFolder(const aApplicationSubDir: string): String;
 var
