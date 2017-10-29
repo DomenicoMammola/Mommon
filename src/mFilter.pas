@@ -212,7 +212,6 @@ end;
 function TmFilterEvaluator.Evaluate(aActualValue: Variant): boolean;
 var
   str, strF : string;
-  i : integer;
 begin
   Result := false;
   case FCurrentFilter.FilterOperator of
