@@ -914,6 +914,7 @@ begin
   Result := IncludeTrailingPathDelimiter(tmpDir) + aApplicationSubDir;
   {$else}
     {$ifdef linux}
+    // GetAppConfigDir(false);
     raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');
     {$else}
     raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');

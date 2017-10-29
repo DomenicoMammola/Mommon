@@ -5,13 +5,17 @@ unit mUtilityTestCase;
 interface
 
 uses
-  Classes, SysUtils, fpcunit, testutils, testregistry, mUtility;
+  Classes, SysUtils, fpcunit, testutils, testregistry,
+  mUtility;
 
 type
+
+  { TTestCaseUtility }
 
   TTestCaseUtility= class(TTestCase)
   published
     procedure TestAddRemoveZeros;
+    procedure TestGetCPUCores;
   end;
 
 implementation
@@ -29,6 +33,11 @@ begin
   CheckEquals('12', AddZerosFront(12, 2));
   CheckEquals('12', AddZerosFront(12, 1));
   CheckEquals('0012', AddZerosFront(12, 4));
+end;
+
+procedure TTestCaseUtility.TestGetCPUCores;
+begin
+  CheckTrue(GetCPUCores > 0);
 end;
 
 
