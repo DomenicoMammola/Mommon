@@ -18,7 +18,7 @@ interface
 
 uses
   Contnrs, Classes, Variants, SysUtils,
-  mMaps, mUtility, mFilterOperators, StrHashMap;
+  mUtility, mFilterOperators, StrHashMap;
 
 type
   TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtInteger, fdtFloat);
