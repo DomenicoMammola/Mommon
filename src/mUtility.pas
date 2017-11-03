@@ -70,6 +70,8 @@ procedure ConvertVariantToDoubleList (const aValue : variant; aList : TDoubleLis
 procedure ConvertVariantToDateList (const aValue : variant; aList : TIntegerList);
 procedure ConvertVariantToDateTimeList (const aValue : variant; aList : TDoubleList);
 
+function ConvertStringListToVariant (const aList : TStringList): Variant;
+
 function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
 function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
@@ -818,6 +820,18 @@ begin
 end;
 
 {$ifdef windows}
+
+function ConvertStringListToVariant(const aList: TStringList): Variant;
+var
+  tmpVariant : variant;
+  i : integer;
+begin
+  tmpVariant := Variants.VarArrayCreate([0, aList.Count - 1], varolestr);
+  for i := 0 to aList.Count - 1 do
+    VarArrayPut(tmpVariant, aList.Strings[i], [i]);
+  Result := tmpVariant;
+end;
+
 function GetCPUCores : integer;
 var
   Info: TSystemInfo;
