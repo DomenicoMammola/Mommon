@@ -372,8 +372,6 @@ end;*)
 
 procedure TmFilter.SetValue(AValue: Variant);
 begin
-  if CompareVariants(FValue, AValue ) = 0 then
-    exit;
   FValue:=AValue;
 end;
 
