@@ -69,11 +69,13 @@ begin
             IntegerList := TIntegerList.Create;
             try
               aParam.AsDateList(IntegerList);
+              Result := Result + '(';
               for i := 0 to IntegerList.Count -1 do
               begin
                 Result := Result + Separator + DateToSQLString(IntegerList.Items[i]);
                 Separator := ',';
               end;
+              Result := Result + ')';
             finally
               IntegerList.Free;
             end;
@@ -101,11 +103,13 @@ begin
             DoubleList := TDoubleList.Create;
             try
               aParam.AsDateTimeList(DoubleList);
+              Result := Result + '(';
               for i := 0 to DoubleList.Count -1 do
               begin
                 Result := Result + Separator + DateTimeToSQLString(DoubleList.Nums[i]);
                 Separator := ',';
               end;
+              Result := Result + ')';
             finally
               DoubleList.Free;
             end;
@@ -132,11 +136,13 @@ begin
             StringList := TStringList.Create;
             try
               aParam.AsStringList(StringList);
+              Result := Result + '(';
               for i := 0 to StringList.Count -1 do
               begin
                 Result := Result + Separator + StringToSQLString(StringList.Strings[i]);
                 Separator := ',';
               end;
+              Result := Result + ')';
             finally
               StringList.Free;
             end;
@@ -168,11 +174,13 @@ begin
             StringList := TStringList.Create;
             try
               aParam.AsStringList(StringList);
+              Result := Result + '(';
               for i := 0 to StringList.Count -1 do
               begin
                 Result := Result + Separator + StringToSQLString(StringList.Strings[i]);
                 Separator := ',';
               end;
+              Result := Result + ')';
             finally
               StringList.Free;
             end;
@@ -205,11 +213,13 @@ begin
             IntegerList := TIntegerList.Create;
             try
               aParam.AsIntegerList(IntegerList);
+              Result := Result + '(';
               for i := 0 to IntegerList.Count -1 do
               begin
                 Result := Result + Separator + IntToStr(IntegerList.Items[i]);
                 Separator := ',';
               end;
+              Result := Result + ')';
             finally
               IntegerList.Free;
             end;
@@ -236,11 +246,13 @@ begin
             DoubleList := TDoubleList.Create;
             try
               aParam.AsFloatList(DoubleList);
+              Result := Result + '(';
               for i := 0 to DoubleList.Count -1 do
               begin
                 Result := Result + Separator + FloatToSQLString(DoubleList.Nums[i]);
                 Separator := ',';
               end;
+              Result := Result + ')';
             finally
               DoubleList.Free;
             end;
