@@ -161,6 +161,7 @@ var
   i : integer;
   start, stop : integer;
   str : string;
+  tmpDouble : double;
 begin
   FreeAndNil(FValuesAsStrings);
   FreeAndnil(FValuesDictionary);
@@ -191,8 +192,10 @@ begin
       FMaxStrValue := VarToStr(FCurrentFilter.Value[stop]);
     end else if aFilter.DataType = fdtDate then
     begin
-      FMinDoubleValue:= round(VarAsType(FCurrentFilter.Value[start], vardate));
-      FMaxDoubleValue:= round(VarAsType(FCurrentFilter.Value[stop], vardate));
+      tmpDouble := VarAsType(FCurrentFilter.Value[start], vardate);
+      FMinDoubleValue:= round(tmpDouble);
+      tmpDouble := VarAsType(FCurrentFilter.Value[stop], vardate);
+      FMaxDoubleValue:= round(tmpDouble);
     end else if aFilter.DataType = fdtDateTime then
     begin
       FMinDoubleValue:= VarAsType(FCurrentFilter.Value[start], vardate);
