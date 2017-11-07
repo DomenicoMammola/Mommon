@@ -206,11 +206,13 @@ begin
   (FThread as TmLogPublisherThread).StartEvent.SetEvent;
   FEndThreadEvent.WaitFor(INFINITE);
   FEndThreadEvent.Free;
+  FThread.Free;
 
   (FVCLThread as TmLogPublisherThread).Terminate;
   (FVCLThread as TmLogPublisherThread).StartEvent.SetEvent;
   FVCLEndThreadEvent.WaitFor(INFINITE);
   FVCLEndThreadEvent.Free;
+  FVCLThread.Free;
 
   FLogs.Free;
 
@@ -256,7 +258,7 @@ end;
 constructor TmLogPublisherThread.Create(aEndEvent : TEvent; aLogManager : TmLogManager);
 begin
   inherited Create(false);
-  Self.FreeOnTerminate:= true;
+  Self.FreeOnTerminate:= false;
   FStartEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, ''){$ENDIF};
   FEndEvent := aEndEvent;
   FLogManager := aLogManager;
