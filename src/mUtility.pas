@@ -37,7 +37,7 @@ function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarte
 
 // try to convert the input text from the user as a date value, if it fails it returns a blank string
 // user can edit date as ddmmyy or ddmmyyyy or dmyy or with separators like '/', '\', '-', ....
-function TryToUnderstandDateString(const aInputString : String; var aValue : TDateTime) : boolean;
+function TryToUnderstandDateString(const aInputString : String; out aValue : TDateTime) : boolean;
 
 // http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11
 function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string): TDateTime;
@@ -223,7 +223,7 @@ begin
   end;
 end;
 
-function TryToUnderstandDateString(const aInputString : String; var aValue : TDateTime) : boolean;
+function TryToUnderstandDateString(const aInputString : String; out aValue : TDateTime) : boolean;
 var
   l, idx : integer;
   tmp,  sep : string;
