@@ -51,7 +51,7 @@ type
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String);
     class function GetKeyField : String;
-    function GetPropertyByFieldName(aFieldName : String) : Variant;
+    function GetPropertyByFieldName(const aFieldName : String) : Variant;
 
     property Key : TBooleanDatumKey read FKey;
   end;
@@ -66,9 +66,9 @@ type
     constructor Create;
     destructor Destroy; override;
     function Count : integer;
-    function GetDatum(aIndex : integer) : IVDDatum;
-    function FindDatumByKey (aKey : IVDDatumKey) : IVDDatum;
-    function FindDatumByStringKey (aStringKey : string): IVDDatum;
+    function GetDatum(const aIndex : integer) : IVDDatum;
+    function FindDatumByKey (const aKey : IVDDatumKey) : IVDDatum;
+    function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure Clear;
   end;
 
@@ -114,7 +114,7 @@ begin
   Result := 2;
 end;
 
-function TBooleanDataProvider.GetDatum(aIndex: integer): IVDDatum;
+function TBooleanDataProvider.GetDatum(const aIndex: integer): IVDDatum;
 begin
   if aIndex = 0 then
     Result := FTrueValue
@@ -122,12 +122,12 @@ begin
     Result := FFalseValue;
 end;
 
-function TBooleanDataProvider.FindDatumByKey(aKey: IVDDatumKey): IVDDatum;
+function TBooleanDataProvider.FindDatumByKey(const aKey: IVDDatumKey): IVDDatum;
 begin
   Result := FindDatumByStringKey(aKey.AsString);
 end;
 
-function TBooleanDataProvider.FindDatumByStringKey(aStringKey: string): IVDDatum;
+function TBooleanDataProvider.FindDatumByStringKey(const aStringKey: string): IVDDatum;
 begin
   if aStringKey = BoolToStr(true, true) then
     Result := FTrueValue
@@ -172,7 +172,7 @@ begin
   Result := FLD_VALUE;
 end;
 
-function TBooleanDatum.GetPropertyByFieldName(aFieldName: String): Variant;
+function TBooleanDatum.GetPropertyByFieldName(const aFieldName: String): Variant;
 begin
   Result := BoolToStr(FKey.Value, true);
 end;

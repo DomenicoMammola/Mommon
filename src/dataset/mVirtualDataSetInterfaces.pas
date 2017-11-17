@@ -32,15 +32,15 @@ type
   IVDDatum = interface
     ['{DDB32FAA-C54E-47DF-A0D1-CFE37F092BAD}']
     function GetDatumKey : IVDDatumKey;
-    function GetPropertyByFieldName(aFieldName : String) : Variant;
+    function GetPropertyByFieldName(const aFieldName : String) : Variant;
   end;
 
   IVDListDataProvider = interface
     ['{F3F52A84-CEEF-4567-98CF-847BC64342E7}']
     function Count : integer;
-    function GetDatum(aIndex : integer) : IVDDatum;
-    function FindDatumByKey (aKey : IVDDatumKey): IVDDatum;
-    function FindDatumByStringKey (aStringKey : string): IVDDatum;
+    function GetDatum(const aIndex : integer) : IVDDatum;
+    function FindDatumByKey (const aKey : IVDDatumKey): IVDDatum;
+    function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure Clear;
   end;
 

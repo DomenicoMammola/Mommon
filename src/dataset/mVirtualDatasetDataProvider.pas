@@ -40,9 +40,9 @@ type
     destructor Destroy; override;
     procedure Clear;
     function Count : integer;
-    function GetDatum(aIndex : integer) : IVDDatum;
-    function FindDatumByKey (aKey : IVDDatumKey) : IVDDatum;
-    function FindDatumByStringKey (aStringKey : string): IVDDatum;
+    function GetDatum(const aIndex : integer) : IVDDatum;
+    function FindDatumByKey (const aKey : IVDDatumKey) : IVDDatum;
+    function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure RebuildIndex;
   end;
 
@@ -120,17 +120,17 @@ begin
   Result := FList.Count;
 end;
 
-function TmDatasetDataProvider.GetDatum(aIndex: integer): IVDDatum;
+function TmDatasetDataProvider.GetDatum(const aIndex: integer): IVDDatum;
 begin
   Result := InternalGetDatum(aIndex) as IVDDatum;
 end;
 
-function TmDatasetDataProvider.FindDatumByKey(aKey: IVDDatumKey): IVDDatum;
+function TmDatasetDataProvider.FindDatumByKey(const aKey: IVDDatumKey): IVDDatum;
 begin
   Result := FindDatumByStringKey(aKey.AsString);
 end;
 
-function TmDatasetDataProvider.FindDatumByStringKey (aStringKey : string): IVDDatum;
+function TmDatasetDataProvider.FindDatumByStringKey (const aStringKey : string): IVDDatum;
 begin
   Result := Self.InternalFindByString(aStringKey) as IVDDatum;
 end;
