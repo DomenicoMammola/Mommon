@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, variants, sysutils,
-  mArrays;
+  mArrays, mNullables;
 
 const
   sInvalidString = 1;
@@ -1478,7 +1478,7 @@ begin
     lexResult.Token := tkEOF;
     exit;
   end;
-  // ------------ forse un numero..
+  // ------------ a number?
 
   if CharInSet(lexState.CurrentChar, ['0'..'9']) then
   begin
@@ -1521,7 +1521,7 @@ begin
     exit;
   end;
 
-  // ------------ forse una stringa..
+  // ------------ a string?
 
   if IsStringSeparator(lexState.CurrentChar) then
   begin
@@ -1552,7 +1552,7 @@ begin
     exit;
   end;
 
-  // ------------ forse un identificatore..
+  // ------------ an identifier?
 
   if CharInSet(lexState.CurrentChar, ['A'..'Z','a'..'z','_', '@']) then
   begin
@@ -1570,7 +1570,7 @@ begin
     exit;
   end;
 
-  // ------------ forse un operatore..
+  // ------------ a operator?
 
   opChar := lexState.currentChar;
   lexState.Advance;
