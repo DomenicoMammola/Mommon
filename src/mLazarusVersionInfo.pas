@@ -67,7 +67,7 @@ Const
 Implementation
 
 Uses
-  resource, versiontypes, versionresource, LCLVersion, InterfaceBase;
+  resource, versiontypes, versionresource, LCLVersion, InterfaceBase, LCLPlatformDef;
 
 Function GetWidgetSet: String;
 Begin
