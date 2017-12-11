@@ -19,7 +19,7 @@ interface
 
 uses
   Classes,
-  mSortConditions, mFilter;
+  mSortConditions, mFilter, mSummary;
 
 type
   ISortableDatasetManager = interface
@@ -37,6 +37,14 @@ type
     function GetFiltered : boolean;
     function GetFilters : TmFilters;
     procedure ClearFilter;
+  end;
+
+  ISummaryDatasetManager = interface
+    ['{48E41715-7DB6-4876-9E7F-AB313E0287E7}']
+    function GetSummaryDefinitions : TmSummaryDefinitions;
+    function GetSummaryValues : TmSummaryValues;
+    procedure Refresh;
+    //procedure RegisterListener (aOnRefresh : TNotifyEvent);
   end;
 
 implementation

@@ -22,7 +22,7 @@ uses
   {$ENDIF}
   Forms, DB,
   mVirtualFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
-  mInterfaces, mFilter, mVirtualDataSetJoins;
+  mInterfaces, mFilter, mVirtualDataSetJoins, mSummary;
 
 {$REGION 'Documentation'}
 {
@@ -150,6 +150,8 @@ type
     FVirtualFieldDefs : TmVirtualFieldDefs;
     FSortConditions : TSortByConditions;
     FFilterConditions : TmFilters;
+    FSummaryDefinitions : TmSummaryDefinitions;
+    FSummaryValues : TmSummaryValues;
   protected
     procedure FillFieldDefOfDataset (aSource : TmVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
   public
@@ -164,6 +166,7 @@ type
 
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; virtual; abstract;
     procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); virtual; abstract;
+    procedure CalculateSummaries; virtual; abstract;
 
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly : boolean); virtual;
     procedure SetDefaultVisibilityOfFields (aFields : TFields); virtual;
@@ -171,7 +174,8 @@ type
     property SortConditions : TSortByConditions read FSortConditions;
     property FilterConditions : TmFilters read FFilterConditions;
     property VirtualFieldDefs : TmVirtualFieldDefs read FVirtualFieldDefs;
-
+    property SummaryDefinitions : TmSummaryDefinitions read FSummaryDefinitions;
+    property SummaryValues : TmSummaryValues read FSummaryValues;
   end;
 
   { TBlobStream }
@@ -204,6 +208,7 @@ type
 
   TmVirtualDatasetSortableManager = class;
   TmVirtualDatasetFilterManager = class;
+  TmVirtualDatasetSummaryManager = class;
 
   { TmCustomVirtualDataset }
 
@@ -231,6 +236,7 @@ type
     FVirtualDatasetProvider : TmVirtualDatasetDataProvider;
     FSortManager : TmVirtualDatasetSortableManager;
     FFilterManager : TmVirtualDatasetFilterManager;
+    FSummaryManager : TmVirtualDatasetSummaryManager;
 
     procedure DateTimeToNative(
       ADataType : TFieldType;
@@ -252,6 +258,8 @@ type
 
     function DoFilter : boolean;
     procedure ClearFilter;
+
+    procedure RefreshSummaries;
 
 
     // event dispatch methods
@@ -340,6 +348,7 @@ type
     function Lookup(const KeyFields: string; const KeyValues: Variant; const ResultFields: string): Variant; override;
     function SortManager : ISortableDatasetManager;
     function FilterManager : IFilterDatasetManager;
+    function SummaryManager : ISummaryDatasetManager;
 
     function GetFieldData(Field: TField; {$IFNDEF FPC}var{$ENDIF} Buffer: TValueBuffer): Boolean; override;
 
@@ -432,6 +441,18 @@ type
     procedure ClearFilter;
   end;
 
+  { TmVirtualDatasetSummaryManager }
+
+  TmVirtualDatasetSummaryManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}ISummaryDatasetManager)
+  protected
+    FVirtualDataset : TmCustomVirtualDataset;
+  public
+    function GetSummaryDefinitions : TmSummaryDefinitions;
+    function GetSummaryValues : TmSummaryValues;
+    procedure Refresh;
+    //procedure RegisterListener (aOnRefresh : TNotifyEvent);
+  end;
+
 procedure VirtualDatasetError(
   const AMessage : string;
         ADataset : TmCustomVirtualDataset = nil
@@ -486,6 +507,23 @@ begin
   Result   := 0;
   for I    := 0 to Dataset.Fields.Count - 1 do
     Result := Result + (NativeUInt(Dataset.Fields[I]) shr (I mod 16));
+end;
+
+{ TmVirtualDatasetSummaryManager }
+
+function TmVirtualDatasetSummaryManager.GetSummaryDefinitions: TmSummaryDefinitions;
+begin
+  Result := FVirtualDataset.DatasetDataProvider.SummaryDefinitions;
+end;
+
+function TmVirtualDatasetSummaryManager.GetSummaryValues: TmSummaryValues;
+begin
+  Result := FVirtualDataset.DatasetDataProvider.SummaryValues;
+end;
+
+procedure TmVirtualDatasetSummaryManager.Refresh;
+begin
+  FVirtualDataset.RefreshSummaries;
 end;
 
 { TmVirtualDatasetFilterManager }
@@ -710,6 +748,8 @@ begin
   FSortManager.FVirtualDataset := Self;
   FFilterManager := TmVirtualDatasetFilterManager.Create;
   FFilterManager.FVirtualDataset := Self;
+  FSummaryManager := TmVirtualDatasetSummaryManager.Create;
+  FSummaryManager.FVirtualDataset := Self;
   FSorted := false;
   FFiltered:= false;
 end;
@@ -720,6 +760,7 @@ begin
   FMasterDataLink.Free;
   FSortManager.Free;
   FFilterManager.Free;
+  FSummaryManager.Free;
   inherited;
 end;
 
@@ -1481,6 +1522,11 @@ begin
   Result := FFilterManager;
 end;
 
+function TmCustomVirtualDataset.SummaryManager: ISummaryDatasetManager;
+begin
+  Result := FSummaryManager;
+end;
+
 
 function TmCustomVirtualDataset.DoSort : boolean;
 begin
@@ -1528,10 +1574,18 @@ end;
 procedure TmCustomVirtualDataset.ClearFilter;
 begin
   FFiltered := false;
-  FVirtualDatasetProvider.FilterConditions.Clear;
   if Assigned(FVirtualDatasetProvider) then
+  begin
+    FVirtualDatasetProvider.FilterConditions.Clear;
     FVirtualDatasetProvider.Refresh(FSorted, false);
+  end;
   Resync([]);
+end;
+
+procedure TmCustomVirtualDataset.RefreshSummaries;
+begin
+  FVirtualDatasetProvider.CalculateSummaries;
+  // update of summary panel?
 end;
 
 procedure TmCustomVirtualDataset.MasterChanged(Sender: TObject);
@@ -1700,6 +1754,8 @@ begin
   FVirtualFieldDefs := TmVirtualFieldDefs.Create;
   FSortConditions := TSortByConditions.Create;
   FFilterConditions := TmFilters.Create;
+  FSummaryDefinitions := TmSummaryDefinitions.Create;
+  FSummaryValues := TmSummaryValues.Create;
 end;
 
 destructor TmVirtualDatasetDataProvider.Destroy;
@@ -1707,6 +1763,8 @@ begin
   FSortConditions.Free;
   FFilterConditions.Free;
   FVirtualFieldDefs.Free;
+  FSummaryDefinitions.Free;
+  FSummaryValues.Free;
   inherited;
 end;
 

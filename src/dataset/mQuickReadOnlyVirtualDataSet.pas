@@ -64,6 +64,7 @@ type
     function GetRecordCount : integer; override;
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly: boolean); override;
     procedure SetDefaultVisibilityOfFields (aFields : TFields); override;
+    procedure CalculateSummaries; override;
 
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; override;
     procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); override;
@@ -369,6 +370,40 @@ begin
   end;
 end;
 
+procedure TReadOnlyVirtualDatasetProvider.CalculateSummaries;
+  procedure AddDatumToSummaries (const aDatum : IVDDatum);
+  var
+    i : integer;
+  begin
+    for i := 0 to SummaryValues.Count -1 do
+    begin
+      SummaryValues.Get(i).ComputeDatumInSummaries(aDatum);
+    end;
+  end;
+var
+  i : integer;
+begin
+  SummaryValues.Clear;
+
+  for i := 0 to SummaryDefinitions.Count -1 do
+    SummaryValues.AddValue(SummaryDefinitions.Get(i));
+
+  if FFiltered then
+  begin
+    for i:= 0 to FFilteredIndex.Count - 1 do
+    begin
+      AddDatumToSummaries(FIDataProvider.GetDatum(FFilteredIndex.Items[i]));
+    end;
+  end
+  else
+  begin
+    for i := 0 to FIDataProvider.Count - 1 do
+    begin
+      AddDatumToSummaries(FIDataProvider.GetDatum(i));
+    end;
+  end;
+end;
+
 function TReadOnlyVirtualDatasetProvider.Refresh(const aDoSort, aDoFilter: boolean): boolean;
 var
   i, k : integer;
@@ -414,7 +449,11 @@ begin
     if (not aDoFilter) then
     begin
       FFilteredIndex.Clear;
-      FFiltered := false;
+      if FFiltered then
+      begin
+        FFiltered := false;
+        Self.CalculateSummaries;
+      end;
     end
     else
     begin
@@ -448,6 +487,7 @@ begin
       finally
         FFiltersEvaluator.EndEvaluation;
       end;
+      Self.CalculateSummaries;
       logger.Debug('[TReadOnlyVirtualDatasetProvider.Refresh] - end evaluation. Found:' + IntToStr(FFilteredIndex.Count));
     end;
   end;
