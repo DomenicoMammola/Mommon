@@ -17,7 +17,7 @@ unit mSummary;
 interface
 
 uses
-  Classes, contnrs,
+  Classes, contnrs, db,
   mVirtualDataSetInterfaces;
 
 type
@@ -29,12 +29,16 @@ type
   strict private
     FFieldName : string;
     FCaption : string;
+    FFieldType : TFieldType;
     FSummaryOperator : TmSummaryOperator;
     procedure SetFieldName(AValue: string);
   public
+    constructor Create;
+
     property FieldName : string read FFieldName write SetFieldName;
     property Caption : string read FCaption write FCaption;
     property SummaryOperator : TmSummaryOperator read FSummaryOperator write FSummaryOperator;
+    property FieldType : TFieldType read FFieldType write FFieldType;
   end;
 
 
@@ -111,6 +115,14 @@ begin
   if FFieldName=AValue then Exit;
   FFieldName:=AValue;
   FCaption := AValue;
+end;
+
+constructor TmSummaryDefinition.Create;
+begin
+  FFieldName:= '';
+  FCaption:= '';
+  FFieldType:= ftUnknown;
+  FSummaryOperator:= soCount;
 end;
 
 { TmSummaryValues }

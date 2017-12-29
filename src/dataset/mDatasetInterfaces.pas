@@ -44,7 +44,8 @@ type
     function GetSummaryDefinitions : TmSummaryDefinitions;
     function GetSummaryValues : TmSummaryValues;
     procedure Refresh;
-    //procedure RegisterListener (aOnRefresh : TNotifyEvent);
+    procedure RegisterListener (aOnRefresh : TNotifyEvent);
+    //procedure RemoveListener (const aIndex : integer);
   end;
 
 implementation

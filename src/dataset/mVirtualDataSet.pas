@@ -16,7 +16,7 @@ interface
 
 uses
   Dialogs,
-  Classes, SysUtils, Variants,
+  Classes, SysUtils, Variants, contnrs,
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
@@ -446,11 +446,15 @@ type
   TmVirtualDatasetSummaryManager = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}ISummaryDatasetManager)
   protected
     FVirtualDataset : TmCustomVirtualDataset;
+    FListeners : TObjectList;
   public
+    constructor Create;
+    destructor Destroy; override;
+
     function GetSummaryDefinitions : TmSummaryDefinitions;
     function GetSummaryValues : TmSummaryValues;
     procedure Refresh;
-    //procedure RegisterListener (aOnRefresh : TNotifyEvent);
+    procedure RegisterListener (aOnRefresh : TNotifyEvent);
   end;
 
 procedure VirtualDatasetError(
@@ -482,6 +486,16 @@ resourcestring
   SCircularDataLink = 'Circular datalinks are not allowed';
   {$ENDIF}
 
+type
+
+  { TNotifyEventShell }
+
+  TNotifyEventShell = class
+  public
+    event : TNotifyEvent;
+    constructor Create (aEvent : TNotifyEvent);
+  end;
+
 {$REGION 'interfaced routines'}
 procedure VirtualDatasetError(const AMessage: string;
   ADataset: TmCustomVirtualDataset = nil);
@@ -509,7 +523,24 @@ begin
     Result := Result + (NativeUInt(Dataset.Fields[I]) shr (I mod 16));
 end;
 
+{ TNotifyEventShell }
+
+constructor TNotifyEventShell.Create(aEvent: TNotifyEvent);
+begin
+  event := aEvent;
+end;
+
 { TmVirtualDatasetSummaryManager }
+
+constructor TmVirtualDatasetSummaryManager.Create;
+begin
+  FListeners := TObjectList.Create (true);
+end;
+
+destructor TmVirtualDatasetSummaryManager.Destroy;
+begin
+  FListeners.Free;
+end;
 
 function TmVirtualDatasetSummaryManager.GetSummaryDefinitions: TmSummaryDefinitions;
 begin
@@ -522,8 +553,19 @@ begin
 end;
 
 procedure TmVirtualDatasetSummaryManager.Refresh;
+var
+  i : integer;
 begin
   FVirtualDataset.RefreshSummaries;
+  for i := 0 to FListeners.Count - 1 do
+  begin
+    (FListeners.Items[i] as TNotifyEventShell).event(Self);
+  end;
+end;
+
+procedure TmVirtualDatasetSummaryManager.RegisterListener(aOnRefresh: TNotifyEvent);
+begin
+  FListeners.Add(TNotifyEventShell.Create(aOnRefresh));
 end;
 
 { TmVirtualDatasetFilterManager }
@@ -1586,6 +1628,7 @@ procedure TmCustomVirtualDataset.RefreshSummaries;
 begin
   FVirtualDatasetProvider.CalculateSummaries;
   // update of summary panel?
+//  FSummaryManager.Refresh;
 end;
 
 procedure TmCustomVirtualDataset.MasterChanged(Sender: TObject);

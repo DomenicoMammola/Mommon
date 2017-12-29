@@ -48,8 +48,6 @@ type
 
 implementation
 
-
-
 { TmDatasetDataProvider }
 
 procedure TmDatasetDataProvider.InternalAdd(aDatum: TObject);
@@ -87,9 +85,7 @@ var
 begin
   FMap.Clear;
   for i := 0 to Self.Count -1 do
-  begin
     FMap.Add(Self.GetDatum(i).GetDatumKey.AsString, Self.InternalGetDatum(i));
-  end;
   FMustRebuildIndex:= false;
 end;
 
