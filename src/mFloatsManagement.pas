@@ -22,6 +22,8 @@ function SafeDiv (numer, denom: double): double;
 
 procedure SetDefaultDecimalNumbers (aDecimalNumbers : integer);
 
+function RoundDoubleToStandardPrecision (const aValue : double) : double;
+
 implementation
 
 uses
@@ -53,6 +55,11 @@ begin
     DefaultCompareValue := Power(10, -1 * aDecimalNumbers) - Power(10, -1 * (aDecimalNumbers + 1)) - Power(10, -1 * (aDecimalNumbers + 2));
     DefaultDecimalNumbers := aDecimalNumbers;
   end;
+end;
+
+function RoundDoubleToStandardPrecision(const aValue: double): double;
+begin
+  Result := RoundTo(aValue, -1 * DefaultDecimalNumbers);
 end;
 
 function DoubleIsLessThan(const aValue1, aValue2: double): boolean;
