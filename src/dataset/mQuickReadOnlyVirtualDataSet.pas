@@ -64,9 +64,9 @@ type
     function GetRecordCount : integer; override;
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly: boolean); override;
     procedure SetDefaultVisibilityOfFields (aFields : TFields); override;
-    procedure CalculateSummaries; override;
 
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; override;
+    procedure CalculateSummaries; override;
     procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); override;
 
     property BuiltInJoins : TmBuiltInJoins read FBuiltInJoins;

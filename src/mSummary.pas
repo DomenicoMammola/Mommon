@@ -7,20 +7,28 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-
 unit mSummary;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$interfaces corba}
 {$ENDIF}
 
 interface
 
 uses
   Classes, contnrs, db,
-  mVirtualDataSetInterfaces;
+  mVirtualDataSetInterfaces, mFloatsManagement, mNullables;
 
 type
+
+  ISummaryPanel = interface
+    ['{27724709-FC36-4A12-B154-B92F566F0E94}']
+    procedure Hide;
+    procedure Show;
+    procedure SetSummaryValues (aList : TStringList);
+  end;
+
   TmSummaryOperator = (soCount, soSum, soMax, soMin);
 
   { TmSummaryDefinition }
@@ -34,6 +42,7 @@ type
     procedure SetFieldName(AValue: string);
   public
     constructor Create;
+    procedure Assign(const aSource : TmSummaryDefinition);
 
     property FieldName : string read FFieldName write SetFieldName;
     property Caption : string read FCaption write FCaption;
@@ -57,23 +66,29 @@ type
     function Add : TmSummaryDefinition;
     procedure Delete (const aIndex : integer);
     procedure Remove (const aDefinition : TmSummaryDefinition);
+    procedure Clear;
   end;
 
   { TmSummaryValue }
 
   TmSummaryValue = class
   private
-    FValue : variant;
+    FDoubleValue : TNullableDouble;
+    FStringValue: TNullableString;
+    FIntegerValue: TNullableInteger;
+
     FDefinition : TmSummaryDefinition;
 
+    function GetValueAsString: string;
     procedure Init;
   public
     constructor Create;
+    destructor Destroy; override;
 
     procedure ComputeDatumInSummaries (const aDatum : IVDDatum);
 
     property Definition : TmSummaryDefinition read FDefinition;
-    property Value : Variant read FValue;
+    property ValueAsString : string read GetValueAsString;
   end;
 
   { TmSummaryValues }
@@ -125,6 +140,14 @@ begin
   FSummaryOperator:= soCount;
 end;
 
+procedure TmSummaryDefinition.Assign(const aSource: TmSummaryDefinition);
+begin
+  FFieldName := aSource.FFieldName;
+  FCaption := aSource.FCaption;
+  FFieldType := aSource.FFieldType;
+  FSummaryOperator := aSource.FSummaryOperator;
+end;
+
 { TmSummaryValues }
 
 constructor TmSummaryValues.Create;
@@ -142,7 +165,7 @@ function TmSummaryValues.AddValue(const aDefinition: TmSummaryDefinition): TmSum
 begin
   Result := TmSummaryValue.Create;
   FList.Add(Result);
-  Result.FDefinition := aDefinition;
+  Result.FDefinition.Assign(aDefinition);
   Result.Init;
 end;
 
@@ -166,56 +189,151 @@ end;
 procedure TmSummaryValue.Init;
 begin
   if FDefinition.SummaryOperator = soCount then
-    FValue:= 0;
+    FIntegerValue.Value:= 0;
+end;
+
+function TmSummaryValue.GetValueAsString: string;
+begin
+  Result := '-';
+  if FDefinition.SummaryOperator = soCount then
+    Result := FIntegerValue.AsString
+  else
+  case FDefinition.FieldType of
+    ftInteger, ftLargeint: Result := FIntegerValue.AsString;
+    ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+    begin
+      if FDoubleValue.IsNull then
+        Result := '-'
+      else
+        Result := FloatToStr(RoundDoubleToStandardPrecision(FDoubleValue.AsFloat));
+    end;
+    ftString, ftGuid: Result := FStringValue.AsString;
+  end;
 end;
 
 constructor TmSummaryValue.Create;
 begin
-  FDefinition := nil;
-  FValue := Null;
+  FDefinition:= TmSummaryDefinition.Create;
+  FDoubleValue:= TNullableDouble.Create();
+  FStringValue:= TNullableString.Create();
+  FIntegerValue:= TNullableInteger.Create();
+end;
+
+destructor TmSummaryValue.Destroy;
+begin
+  FDefinition.Free;
+  FDoubleValue.Free;
+  FStringValue.Free;
+  FIntegerValue.Free;
+  inherited Destroy;
 end;
 
 procedure TmSummaryValue.ComputeDatumInSummaries(const aDatum: IVDDatum);
 var
   tmpValue : Variant;
+  tmpInt : integer;
+  tmpString : string;
+  tmpDouble : double;
 begin
   tmpValue := aDatum.GetPropertyByFieldName(FDefinition.FieldName);
   case FDefinition.SummaryOperator of
     soCount:
       begin
         if not VarIsNull (tmpValue) then
-          FValue := FValue + 1;
+          FIntegerValue.Value := FIntegerValue.Value + 1;
       end;
     soSum:
       begin
         if not VarIsNull(tmpValue) then
         begin
-          if VarIsNull(FValue) then
-            FValue := tmpValue
-          else
-            FValue := FValue + tmpValue;
+          case FDefinition.FieldType of
+            ftInteger, ftLargeint:
+              begin
+                tmpInt:= tmpValue;
+                if FIntegerValue.IsNull then
+                  FIntegerValue.Value := tmpInt
+                else
+                  FIntegerValue.Value := FIntegerValue.Value + tmpInt;
+              end;
+            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+              begin
+                tmpDouble:= RoundDoubleToStandardPrecision(tmpValue);
+                if FDoubleValue.IsNull then
+                  FDoubleValue.Value := tmpDouble
+                else
+                  FDoubleValue.Value := FDoubleValue.Value + tmpDouble;
+              end;
+          end;
         end;
       end;
     soMax:
       begin
         if not VarIsNull(tmpValue) then
         begin
-          if VarIsNull(FValue) then
-            FValue := tmpValue
-          else
-            if FValue < tmpValue then
-              FValue := tmpValue;
+          case FDefinition.FieldType of
+            ftInteger, ftLargeint:
+              begin
+                tmpInt:= tmpValue;
+                if FIntegerValue.IsNull then
+                  FIntegerValue.Value := tmpInt
+                else
+                  if FIntegerValue.Value < tmpInt then
+                    FIntegerValue.Value := tmpInt;
+              end;
+            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+              begin
+                tmpDouble:= RoundDoubleToStandardPrecision(tmpValue);
+                if FDoubleValue.IsNull then
+                  FDoubleValue.Value := tmpDouble
+                else
+                  if FDoubleValue.Value < tmpDouble then
+                    FDoubleValue.Value := tmpDouble;
+              end;
+            ftString, ftGuid:
+              begin
+                tmpString := VarToStr(tmpValue);
+                if FStringValue.IsNull then
+                  FStringValue.Value := tmpString
+                else
+                  if FStringValue.Value < tmpString then
+                    FStringValue.Value := tmpString;
+              end;
+          end;
         end;
       end;
     soMin:
       begin
         if not VarIsNull(tmpValue) then
         begin
-          if VarIsNull(FValue) then
-            FValue := tmpValue
-          else
-            if FValue > tmpValue then
-              FValue := tmpValue;
+          case FDefinition.FieldType of
+            ftInteger, ftLargeint:
+              begin
+                tmpInt:= tmpValue;
+                if FIntegerValue.IsNull then
+                  FIntegerValue.Value := tmpInt
+                else
+                  if FIntegerValue.Value > tmpInt then
+                    FIntegerValue.Value := tmpInt;
+              end;
+            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+              begin
+                tmpDouble:= RoundDoubleToStandardPrecision(tmpValue);
+                if FDoubleValue.IsNull then
+                  FDoubleValue.Value := tmpDouble
+                else
+                  if FDoubleValue.Value > tmpDouble then
+                    FDoubleValue.Value := tmpDouble;
+              end;
+            ftString, ftGuid:
+              begin
+                tmpString := VarToStr(tmpValue);
+                if FStringValue.IsNull then
+                  FStringValue.Value := tmpString
+                else
+                  if FStringValue.Value > tmpString then
+                    FStringValue.Value := tmpString;
+              end;
+          end;
         end;
       end;
   end;
@@ -276,6 +394,11 @@ end;
 procedure TmSummaryDefinitions.Remove(const aDefinition: TmSummaryDefinition);
 begin
   FList.Remove(aDefinition);
+end;
+
+procedure TmSummaryDefinitions.Clear;
+begin
+  FList.Clear;
 end;
 
 end.

@@ -43,7 +43,8 @@ type
     ['{48E41715-7DB6-4876-9E7F-AB313E0287E7}']
     function GetSummaryDefinitions : TmSummaryDefinitions;
     function GetSummaryValues : TmSummaryValues;
-    procedure Refresh;
+    procedure RefreshSummaries;
+    procedure NotifyChanges;
     procedure RegisterListener (aOnRefresh : TNotifyEvent);
     //procedure RemoveListener (const aIndex : integer);
   end;

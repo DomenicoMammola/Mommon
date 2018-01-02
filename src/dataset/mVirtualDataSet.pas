@@ -164,7 +164,7 @@ type
     procedure EditRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
 
-    function Refresh (const aDoSort, aDoFilter : boolean): boolean; virtual; abstract;
+    function Refresh (const aDoSort, aDoFilter: boolean): boolean; virtual; abstract;
     procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); virtual; abstract;
     procedure CalculateSummaries; virtual; abstract;
 
@@ -258,9 +258,6 @@ type
 
     function DoFilter : boolean;
     procedure ClearFilter;
-
-    procedure RefreshSummaries;
-
 
     // event dispatch methods
     procedure DoDeleteRecord(AIndex: Integer); virtual;
@@ -453,7 +450,8 @@ type
 
     function GetSummaryDefinitions : TmSummaryDefinitions;
     function GetSummaryValues : TmSummaryValues;
-    procedure Refresh;
+    procedure RefreshSummaries;
+    procedure NotifyChanges;
     procedure RegisterListener (aOnRefresh : TNotifyEvent);
   end;
 
@@ -552,11 +550,16 @@ begin
   Result := FVirtualDataset.DatasetDataProvider.SummaryValues;
 end;
 
-procedure TmVirtualDatasetSummaryManager.Refresh;
+procedure TmVirtualDatasetSummaryManager.RefreshSummaries;
+begin
+  FVirtualDataset.DatasetDataProvider.CalculateSummaries;
+  Self.NotifyChanges;
+end;
+
+procedure TmVirtualDatasetSummaryManager.NotifyChanges;
 var
   i : integer;
 begin
-  FVirtualDataset.RefreshSummaries;
   for i := 0 to FListeners.Count - 1 do
   begin
     (FListeners.Items[i] as TNotifyEventShell).event(Self);
@@ -809,7 +812,11 @@ end;
 procedure TmCustomVirtualDataset.Refresh;
 begin
   if Assigned(FVirtualDatasetProvider) then
+  begin
     FVirtualDatasetProvider.Refresh(FSorted, FFiltered);
+    FVirtualDatasetProvider.CalculateSummaries;
+    FSummaryManager.NotifyChanges;
+  end;
   inherited Refresh;
 end;
 
@@ -1611,6 +1618,7 @@ begin
   begin
     FFiltered := false;
   end;
+  FSummaryManager.NotifyChanges;
 end;
 
 procedure TmCustomVirtualDataset.ClearFilter;
@@ -1622,13 +1630,7 @@ begin
     FVirtualDatasetProvider.Refresh(FSorted, false);
   end;
   Resync([]);
-end;
-
-procedure TmCustomVirtualDataset.RefreshSummaries;
-begin
-  FVirtualDatasetProvider.CalculateSummaries;
-  // update of summary panel?
-//  FSummaryManager.Refresh;
+  FSummaryManager.NotifyChanges;
 end;
 
 procedure TmCustomVirtualDataset.MasterChanged(Sender: TObject);
