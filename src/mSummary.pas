@@ -200,12 +200,21 @@ begin
   else
   case FDefinition.FieldType of
     ftInteger, ftLargeint: Result := FIntegerValue.AsString;
-    ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+    ftFloat,ftDateTime, ftDate, ftTime, ftTimeStamp:
     begin
       if FDoubleValue.IsNull then
         Result := '-'
       else
-        Result := FloatToStr(RoundDoubleToStandardPrecision(FDoubleValue.AsFloat));
+      begin
+        if FDefinition.FieldType = ftFloat then
+          Result := FloatToStr(RoundDoubleToStandardPrecision(FDoubleValue.Value))
+        else if FDefinition.FieldType = ftDate then
+          Result := DateToStr(Round(FDoubleValue.Value))
+        else if FDefinition.FieldType = ftTime then
+          Result := TimeToStr(FDoubleValue.Value)
+        else
+          Result := DateTimeToStr(FDoubleValue.Value);
+      end;
     end;
     ftString, ftGuid: Result := FStringValue.AsString;
   end;
