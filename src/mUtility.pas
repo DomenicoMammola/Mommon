@@ -76,6 +76,7 @@ function ConvertIntegerListToVariant (const aList : TIntegerList): Variant;
 function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
 function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
+function GetOSUser : string;
 
 implementation
 
@@ -948,6 +949,13 @@ begin
   {$endif}
   if not DirectoryExists(Result) then
     ForceDirectories(Result);
+end;
+
+function GetOSUser: string;
+begin
+  Result := SysUtils.GetEnvironmentVariable('USERNAME');
+  if Result = '' then
+    Result := SysUtils.GetEnvironmentVariable('USER');
 end;
 
 
