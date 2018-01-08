@@ -26,71 +26,70 @@ const
   sFunctionError = 3;
   sWrongParamCount = 4;
 
-  mP_intfunc_trunc = 'trunc';
-  mP_intfunc_sin = 'sin';
-  mP_intfunc_cos = 'cos';
-  mP_intfunc_tan = 'tan';
-  mP_intfunc_frac = 'frac';
-  mP_intfunc_int = 'int';
+  mpConst_now = '_now_';
+  mpConst_today = '_today_';
+  mpConst_true = 'true';
+  mpConst_false = 'false';
+  mpConst_pi = 'pi';
 
-  mP_intconst_now = '_now_';
-  mP_intconst_today = '_today_';
-  mP_intconst_true = 'true';
-  mP_intconst_false = 'false';
-  mP_intconst_pi = 'pi';
+  mpFunction_trunc = 'trunc';
+  mpFunction_sin = 'sin';
+  mpFunction_cos = 'cos';
+  mpFunction_tan = 'tan';
+  mpFunction_frac = 'frac';
+  mpFunction_int = 'int';
+  mpFunction_if = 'if';
+  mpFunction_empty = 'empty';
+  mpFunction_len = 'len';
+  mpFunction_and = 'and';
+  mpFunction_or = 'or';
+  mpFunction_safediv = 'safediv';
+  mpFunction_between = 'between';
+  mpFunction_concatenate = 'concatenate';
+  mpFunction_concat = 'concat';
+  mpFunction_repl = 'repl';
+  mpFunction_left = 'left';
+  mpFunction_right = 'right';
+  mpFunction_substr = 'substr';
+  mpFunction_tostr = 'tostr';
+  mpFunction_pos = 'pos';
+  mpFunction_trim = 'trim';
+  mpFunction_ltrim = 'ltrim';
+  mpFunction_rtrim = 'rtrim';
+  mpFunction_uppercase = 'uppercase';
+  mpFunction_lowercase = 'lowercase';
+  mpFunction_compare = 'compare';
+  mpFunction_comparestr = 'comparestr';
+  mpFunction_comparetext = 'comparetext';
+  mpFunction_round = 'round';
+  mpFunction_ceil = 'ceil';
+  mpFunction_floor = 'floor';
+  mpFunction_not = 'not';
+  mpFunction_sum = 'sum';
+  mpFunction_max = 'max';
+  mpFunction_min = 'min';
+  mpFunction_avg = 'avg';
+  mpFunction_count = 'count';
+  mpFunction_now = 'now';
+  mpFunction_getday = 'getday';
+  mpFunction_getweek = 'getweek';
+  mpFunction_getmonth = 'getmonth';
+  mpFunction_getyear = 'getyear';
+  mpFunction_startoftheweek = 'startoftheweek';
+  mpFunction_startofthemonth = 'startofthemonth';
+  mpFunction_endofthemonth = 'endofthemonth';
+  mpFunction_todate = 'todate';
+  mpFunction_todatetime = 'todatetime';
+  mpFunction_today = 'today';
+  mpFunction_stringtodatetime = 'stringtodatetime';
+  mpFunction_todouble = 'todouble';
 
-  mp_specfunc_if = 'if';
-  mp_specfunc_empty = 'empty';
-  mp_specfunc_len = 'len';
-  mp_specfunc_and = 'and';
-  mp_specfunc_or = 'or';
-  mp_specfunc_safediv = 'safediv';
-  mp_specfunc_between = 'between';
-  mp_specfunc_concatenate = 'concatenate';
-  mp_specfunc_concat = 'concat';
-  mp_specfunc_repl = 'repl';
-  mp_specfunc_left = 'left';
-  mp_specfunc_right = 'right';
-  mp_specfunc_substr = 'substr';
-  mp_specfunc_tostr = 'tostr';
-  mp_specfunc_pos = 'pos';
-  mp_specfunc_trim = 'trim';
-  mp_specfunc_ltrim = 'ltrim';
-  mp_specfunc_rtrim = 'rtrim';
-  mp_specfunc_uppercase = 'uppercase';
-  mp_specfunc_lowercase = 'lowercase';
-  mp_specfunc_compare = 'compare';
-  mp_specfunc_comparestr = 'comparestr';
-  mp_specfunc_comparetext = 'comparetext';
-  mp_specfunc_round = 'round';
-  mp_specfunc_ceil = 'ceil';
-  mp_specfunc_floor = 'floor';
-  mp_specfunc_not = 'not';
-  mp_specfunc_sum = 'sum';
-  mp_specfunc_max = 'max';
-  mp_specfunc_min = 'min';
-  mp_specfunc_avg = 'avg';
-  mp_specfunc_count = 'count';
-  mp_specfunc_now = 'now';
-  mp_specfunc_getday = 'getday';
-  mp_specfunc_getweek = 'getweek';
-  mp_specfunc_getmonth = 'getmonth';
-  mp_specfunc_getyear = 'getyear';
-  mp_specfunc_startoftheweek = 'startoftheweek';
-  mp_specfunc_startofthemonth = 'startofthemonth';
-  mp_specfunc_endofthemonth = 'endofthemonth';
-  mp_specfunc_todate = 'todate';
-  mp_specfunc_todatetime = 'todatetime';
-  mp_specfunc_today = 'today';
-  mp_specfunc_stringtodatetime = 'stringtodatetime';
-  mp_specfunc_todouble = 'todouble';
-
-  mp_rangefunc_childsnotnull = 'childsnotnull';
-  mp_rangefunc_parentnotnull = 'parentnotnull';
-  mp_rangefunc_parentsnotnull = 'parentsnotnull';
-  mp_rangefunc_childs = 'childs';
-  mp_rangefunc_parents = 'parents';
-  mp_rangefunc_parent = 'parent';
+  mpRangeFunction_childsnotnull = 'childsnotnull';
+  mpRangeFunction_parentnotnull = 'parentnotnull';
+  mpRangeFunction_parentsnotnull = 'parentsnotnull';
+  mpRangeFunction_childs = 'childs';
+  mpRangeFunction_parents = 'parents';
+  mpRangeFunction_parent = 'parent';
 
 type
 
@@ -585,19 +584,19 @@ begin
   if calculation = calculateValue then
   begin
     Result := true;
-    if CompareText(subFormula, mP_intconst_now) = 0 then
+    if CompareText(subFormula, mpConst_now) = 0 then
       resValue := Now
     else
-    if CompareText(subFormula, mP_intconst_today) = 0 then
+    if CompareText(subFormula, mpConst_today) = 0 then
       resValue := Date
     else
-    if CompareText(subFormula, mP_intconst_true) = 0 then
+    if CompareText(subFormula, mpConst_true) = 0 then
       resValue := 1
     else
-    if CompareText(subFormula, mP_intconst_false) = 0 then
+    if CompareText(subFormula, mpConst_false) = 0 then
       resValue := 0
     else
-    if CompareText(subFormula, mP_intconst_pi) = 0 then
+    if CompareText(subFormula, mpConst_pi) = 0 then
       resValue := Pi
     else
     begin
@@ -610,22 +609,22 @@ begin
   else // calculation = calculateFunction
   begin
     Result := true;
-    if compareText(subFormula, mP_intfunc_trunc) = 0 then
+    if compareText(subFormula, mpFunction_trunc) = 0 then
       resValue := trunc(resValue)
     else
-    if compareText(subFormula, mP_intfunc_sin) = 0 then
+    if compareText(subFormula, mpFunction_sin) = 0 then
       resValue := sin(resValue)
     else
-    if compareText(subFormula, mP_intfunc_cos) = 0 then
+    if compareText(subFormula, mpFunction_cos) = 0 then
       resValue := cos(resValue)
     else
-    if compareText(subFormula, mP_intfunc_tan) = 0 then
+    if compareText(subFormula, mpFunction_tan) = 0 then
       resValue := tan(resValue)
     else
-    if compareText(subFormula, mP_intfunc_frac) = 0 then
+    if compareText(subFormula, mpFunction_frac) = 0 then
       resValue := frac(resValue)
     else
-    if compareText(subFormula, mP_intfunc_int) = 0 then
+    if compareText(subFormula, mpFunction_int) = 0 then
       resValue := int(resValue)
     else
     begin
@@ -650,13 +649,13 @@ begin
   Result := false;
   if calculation = calculateFunction then
   begin
-    if CompareText(subFormula, mp_specfunc_trim) = 0 then
+    if CompareText(subFormula, mpFunction_trim) = 0 then
       resValue := trim(resValue)
     else
-    if CompareText(subFormula, mp_specfunc_ltrim) = 0 then
+    if CompareText(subFormula, mpFunction_ltrim) = 0 then
       resValue := TrimLeft(resValue)
     else
-    if CompareText(subFormula, mp_specfunc_rtrim) = 0 then
+    if CompareText(subFormula, mpFunction_rtrim) = 0 then
       resValue := TrimRight(resValue)
     else
     begin
@@ -703,7 +702,7 @@ var
 begin
   Result := 0.0;
 
-  if CompareText(funct, mp_specfunc_if) = 0 then
+  if CompareText(funct, mpFunction_if) = 0 then
   begin
     if ParametersList.Count <> 3 then
       RaiseError(sWrongParamCount);
@@ -714,7 +713,7 @@ begin
       Self.Calculate(ParametersList.Strings[2], Result);
   end
   else
-  if CompareText(funct, mp_specfunc_len) = 0 then
+  if CompareText(funct, mpFunction_len) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(sWrongParamCount);
@@ -722,7 +721,7 @@ begin
     Result := Length(TempStrValue);
   end
   else
-  if CompareText(funct, mp_specfunc_pos) = 0 then
+  if CompareText(funct, mpFunction_pos) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(sWrongParamCount);
@@ -731,7 +730,7 @@ begin
     Result := Pos(TempStrValue, TempStrValue2);
   end
   else
-  if (CompareText(funct, mp_specfunc_todouble) = 0) then
+  if (CompareText(funct, mpFunction_todouble) = 0) then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(sWrongParamCount);
@@ -739,7 +738,7 @@ begin
     Result := StrToFloatExt(TempStrValue);
   end
   else
-  if CompareText(funct, mp_specfunc_today) = 0 then
+  if CompareText(funct, mpFunction_today) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(sWrongParamCount);
@@ -747,7 +746,7 @@ begin
     Result := Date - TempDouble;
   end
   else
-  if CompareText(funct, mp_specfunc_now) = 0 then
+  if CompareText(funct, mpFunction_now) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(sWrongParamCount);
@@ -755,7 +754,7 @@ begin
     Result := Now - TempDouble;
   end
   else
-  if CompareText(funct, mp_specfunc_getday) = 0 then
+  if CompareText(funct, mpFunction_getday) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(sWrongParamCount);
@@ -763,7 +762,7 @@ begin
     Result := DayOfTheMonth(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_getyear) = 0 then
+  if CompareText(funct, mpFunction_getyear) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -771,7 +770,7 @@ begin
     Result := YearOf(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_getweek) = 0 then
+  if CompareText(funct, mpFunction_getweek) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -779,7 +778,7 @@ begin
     Result := WeekOfTheYear(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_getmonth) = 0 then
+  if CompareText(funct, mpFunction_getmonth) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -787,7 +786,7 @@ begin
     Result := MonthOfTheYear(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_startoftheweek) = 0 then
+  if CompareText(funct, mpFunction_startoftheweek) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -795,7 +794,7 @@ begin
     Result := StartOfTheWeek(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_startofthemonth) = 0 then
+  if CompareText(funct, mpFunction_startofthemonth) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -803,7 +802,7 @@ begin
     Result := StartOfTheMonth(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_endofthemonth) = 0 then
+  if CompareText(funct, mpFunction_endofthemonth) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -811,7 +810,7 @@ begin
     Result := EndOfTheMonth(TempDouble);
   end
   else
-  if (CompareText(funct, mp_specfunc_todate)=0)  then
+  if (CompareText(funct, mpFunction_todate)=0)  then
   begin
     if ParametersList.Count <> 3 then
       RaiseError(SWrongParamCount);
@@ -821,7 +820,7 @@ begin
     Result := EncodeDate(round(TempDouble), round(TempDouble2), round(TempDouble3));
   end
   else
-  if (CompareText(funct, mp_specfunc_todatetime)=0) then
+  if (CompareText(funct, mpFunction_todatetime)=0) then
   begin
     if ParametersList.Count <> 6 then
       RaiseError(SWrongParamCount);
@@ -834,7 +833,7 @@ begin
     Result := EncodeDateTime(round(TempDouble), round(TempDouble2), round(TempDouble3), round(TempDouble4), round(TempDouble5), round(TempDouble6), 0);
   end
   else
-  if CompareText(funct, mp_specfunc_empty) = 0 then
+  if CompareText(funct, mpFunction_empty) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(sWrongParamCount);
@@ -842,7 +841,7 @@ begin
     Result := BooleanToFloat(Length(Trim(TempStrValue)) = 0);
   end
   else
-  if CompareText(funct, mp_specfunc_compare) = 0 then
+  if CompareText(funct, mpFunction_compare) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(sWrongParamCount);
@@ -851,7 +850,7 @@ begin
     Result := BooleanToFloat(CompareStr(TempStrValue, TempStrValue2) = 0);
   end
   else
-  if CompareText(funct, mp_specfunc_comparestr) = 0 then
+  if CompareText(funct, mpFunction_comparestr) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(sWrongParamCount);
@@ -860,7 +859,7 @@ begin
     Result := CompareStr(TempStrValue, TempStrValue2);
   end
   else
-  if CompareText(funct, mp_specfunc_comparetext) = 0 then
+  if CompareText(funct, mpFunction_comparetext) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(sWrongParamCount);
@@ -869,7 +868,7 @@ begin
     Result := CompareText(TempStrValue, TempStrValue2);
   end
   else
-  if CompareText(funct,mp_specfunc_and) = 0 then
+  if CompareText(funct,mpFunction_and) = 0 then
   begin
     if ParametersList.Count < 2 then
       RaiseError(SWrongParamCount);
@@ -888,7 +887,7 @@ begin
     Result := BooleanToFloat(TempBoolean);
   end
   else
-  if CompareText(funct,mp_specfunc_or) = 0 then
+  if CompareText(funct,mpFunction_or) = 0 then
   begin
     if ParametersList.Count < 2 then
       RaiseError(SWrongParamCount);
@@ -907,7 +906,7 @@ begin
     Result := BooleanToFloat(TempBoolean);
   end
   else
-  if CompareText(funct, mp_specfunc_safediv) = 0 then
+  if CompareText(funct, mpFunction_safediv) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(SWrongParamCount);
@@ -916,7 +915,7 @@ begin
     Result:= SafeDiv(TempDouble, TempDouble2);
   end
   else
-  if CompareText(funct, mp_specfunc_between) = 0 then
+  if CompareText(funct, mpFunction_between) = 0 then
   begin
     if ParametersList.Count <> 3 then
       RaiseError(SWrongParamCount);
@@ -930,7 +929,7 @@ begin
       ((TempDouble >= TempDouble2) and (TempDouble <= TempDouble3)));
   end
   else
-  if CompareText(funct, mp_specfunc_round) = 0 then
+  if CompareText(funct, mpFunction_round) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(SWrongParamCount);
@@ -940,7 +939,7 @@ begin
     Result := StrToFloat(Format('%.*f', [Round(TempDouble2), TempDouble]));
   end
   else
-  if CompareText(funct, mp_specfunc_ceil) = 0 then
+  if CompareText(funct, mpFunction_ceil) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -948,7 +947,7 @@ begin
     Result := Math.Ceil(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_floor) = 0 then
+  if CompareText(funct, mpFunction_floor) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -956,7 +955,7 @@ begin
     Result := Math.Floor(TempDouble);
   end
   else
-  if CompareText(funct, mp_specfunc_stringtodatetime) = 0 then
+  if CompareText(funct, mpFunction_stringtodatetime) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(SWrongParamCount);
@@ -965,7 +964,7 @@ begin
     Result := DateTimeStrEval(TempStrValue2, TempStrValue);
   end
   else
-  if CompareText(funct, mp_specfunc_not) = 0 then
+  if CompareText(funct, mpFunction_not) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -976,7 +975,7 @@ begin
       Result := 1;
   end
   else
-  if CompareText(funct, mp_specfunc_sum) = 0 then
+  if CompareText(funct, mpFunction_sum) = 0 then
   begin
     if ParametersList.Count < 1 then
       RaiseError(SWrongParamCount);
@@ -990,7 +989,7 @@ begin
     Result := TempDouble;
   end
   else
-  if CompareText(funct, mp_specfunc_max) = 0 then
+  if CompareText(funct, mpFunction_max) = 0 then
   begin
     if ParametersList.Count < 1 then
       RaiseError(SWrongParamCount);
@@ -1010,7 +1009,7 @@ begin
     end;
   end
   else
-  if CompareText(funct, mp_specfunc_min) = 0 then
+  if CompareText(funct, mpFunction_min) = 0 then
   begin
     if ParametersList.Count < 1 then
       RaiseError(SWrongParamCount);
@@ -1030,7 +1029,7 @@ begin
     end;
   end
   else
-  if CompareText(funct, mp_specfunc_avg) = 0 then
+  if CompareText(funct, mpFunction_avg) = 0 then
   begin
     if ParametersList.Count < 1 then
       RaiseError(SWrongParamCount);
@@ -1048,7 +1047,7 @@ begin
       Result := 0;
   end
   else
-  if CompareText(funct, mp_specfunc_count) = 0 then
+  if CompareText(funct, mpFunction_count) = 0 then
   begin
     if ParametersList.Count < 1 then
       RaiseError(SWrongParamCount);
@@ -1068,7 +1067,7 @@ var
 begin
   Result := '';
 
-  if CompareText(funct, mp_specfunc_if) = 0 then
+  if CompareText(funct, mpFunction_if) = 0 then
   begin
     if ParametersList.Count <> 3 then
       RaiseError(SWrongParamCount);
@@ -1083,7 +1082,7 @@ begin
     Result := TempStrValue;
   end
   else
-  if CompareText(funct, mp_specfunc_repl) = 0 then
+  if CompareText(funct, mpFunction_repl) = 0 then
   begin
     if ParametersList.Count <> 3 then
       RaiseError(SWrongParamCount);
@@ -1095,8 +1094,8 @@ begin
       Result := Result + TempStrValue;
   end
   else
-  if (CompareText(funct, mp_specfunc_concatenate) = 0) or
-    (CompareText(funct, mp_specfunc_concat) = 0) then
+  if (CompareText(funct, mpFunction_concatenate) = 0) or
+    (CompareText(funct, mpFunction_concat) = 0) then
   begin
     if ParametersList.Count < 2 then
       RaiseError(SWrongParamCount);
@@ -1109,7 +1108,7 @@ begin
     end;
   end
   else
-  if CompareText(funct, mp_specfunc_tostr) = 0 then
+  if CompareText(funct, mpFunction_tostr) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -1118,7 +1117,7 @@ begin
     Result := FloatToStr(TempValue);
   end
   else
-  if CompareText(funct, mp_specfunc_uppercase) = 0 then
+  if CompareText(funct, mpFunction_uppercase) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -1127,7 +1126,7 @@ begin
     Result := Uppercase(TempStrValue);
   end
   else
-  if CompareText(funct, mp_specfunc_lowercase) = 0 then
+  if CompareText(funct, mpFunction_lowercase) = 0 then
   begin
     if ParametersList.Count <> 1 then
       RaiseError(SWrongParamCount);
@@ -1136,7 +1135,7 @@ begin
     Result := LowerCase(TempStrValue);
   end
   else
-  if CompareText(funct, mp_specfunc_left) = 0 then
+  if CompareText(funct, mpFunction_left) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(SWrongParamCount);
@@ -1146,7 +1145,7 @@ begin
     Result := Copy(TempStrValue, 1, Round(TempValue));
   end
   else
-  if CompareText(funct, mp_specfunc_right) = 0 then
+  if CompareText(funct, mpFunction_right) = 0 then
   begin
     if ParametersList.Count <> 2 then
       RaiseError(SWrongParamCount);
@@ -1156,7 +1155,7 @@ begin
     Result := Copy(TempStrValue, Length(TempStrValue) - Round(TempValue) + 1, Length(TempStrValue));
   end
   else
-  if CompareText(funct, mp_specfunc_substr) = 0 then
+  if CompareText(funct, mpFunction_substr) = 0 then
   begin
     if ParametersList.Count <> 3 then
       RaiseError(SWrongParamCount);
@@ -1167,7 +1166,7 @@ begin
     Result := Copy(TempStrValue, round(TempValue), round(TempValue2));
   end
   else
-  if CompareText(funct, mp_specfunc_sum) = 0 then
+  if CompareText(funct, mpFunction_sum) = 0 then
   begin
     ManageRangeFunction(funct,ParametersList, vtString, TempStrArray);
     Result := '';
@@ -1177,7 +1176,7 @@ begin
     end;
   end
   else
-  if CompareText(funct, mp_specfunc_max) = 0 then
+  if CompareText(funct, mpFunction_max) = 0 then
   begin
     ManageRangeFunction(funct,ParametersList, vtString, TempStrArray);
     Result := '';
@@ -1188,7 +1187,7 @@ begin
     end;
   end
   else
-  if CompareText(funct, mp_specfunc_min) = 0 then
+  if CompareText(funct, mpFunction_min) = 0 then
   begin
     ManageRangeFunction(funct,ParametersList, vtString, TempStrArray);
     Result := '';
@@ -1199,7 +1198,7 @@ begin
     end;
   end
   else
-  if CompareText(funct, mp_specfunc_count) = 0 then
+  if CompareText(funct, mpFunction_count) = 0 then
   begin
     ManageRangeFunction(funct,ParametersList, vtString, TempStrArray);
     Result := IntToStr(length(TempStrArray));
@@ -1237,8 +1236,8 @@ var
   temp : string;
 begin
   temp := LowerCase(functionName);
-  Result := (temp=mP_intfunc_trunc) or (temp=mP_intfunc_sin) or (temp=mP_intfunc_cos) or (temp=mP_intfunc_tan) or
-    (temp=mP_intfunc_frac) or (temp=mP_intfunc_int);
+  Result := (temp=mpFunction_trunc) or (temp=mpFunction_sin) or (temp=mpFunction_cos) or (temp=mpFunction_tan) or
+    (temp=mpFunction_frac) or (temp=mpFunction_int);
 end;
 
 
@@ -1257,52 +1256,52 @@ var
   temp : string;
 begin
   temp := LowerCase(functionName);
-  Result := (temp = mp_specfunc_if) or
-    (temp = mp_specfunc_empty) or
-    (temp = mp_specfunc_len) or
-    (temp = mp_specfunc_and) or
-    (temp = mp_specfunc_or) or
-    (temp = mp_specfunc_safediv) or
-    (temp = mp_specfunc_between) or
-    (temp = mp_specfunc_concatenate) or
-    (temp = mp_specfunc_concat) or
-    (temp = mp_specfunc_repl) or
-    (temp = mp_specfunc_left) or
-    (temp = mp_specfunc_right) or
-    (temp = mp_specfunc_substr) or
-    (temp = mp_specfunc_tostr) or
-    (temp = mp_specfunc_pos) or
-    (temp = mp_specfunc_trim) or
-    (temp = mp_specfunc_ltrim) or
-    (temp = mp_specfunc_rtrim) or
-    (temp = mp_specfunc_uppercase) or
-    (temp = mp_specfunc_lowercase) or
-    (temp = mp_specfunc_compare) or
-    (temp = mp_specfunc_comparestr) or
-    (temp = mp_specfunc_comparetext) or
-    (temp = mp_specfunc_round) or
-    (temp = mp_specfunc_ceil) or
-    (temp = mp_specfunc_floor) or
-    (temp = mp_specfunc_not) or
-    (temp = mp_specfunc_sum) or
-    (temp = mp_specfunc_max) or
-    (temp = mp_specfunc_min) or
-    (temp = mp_specfunc_avg) or
-    (temp = mp_specfunc_count) or
-    (temp = mp_specfunc_now) or
-    (temp = mp_specfunc_getday) or
-    (temp = mp_specfunc_getweek) or
-    (temp = mp_specfunc_getmonth) or
-    (temp = mp_specfunc_getyear) or
-    (temp = mp_specfunc_startoftheweek) or
-    (temp = mp_specfunc_startofthemonth) or
-    (temp = mp_specfunc_endofthemonth) or
-    (temp = mp_specfunc_todate) or
-    (temp = mp_specfunc_todatetime) or
-    (temp = mp_specfunc_now) or
-    (temp = mp_specfunc_today) or
-    (temp = mp_specfunc_stringtodatetime) or
-    (temp = mp_specfunc_todouble);
+  Result := (temp = mpFunction_if) or
+    (temp = mpFunction_empty) or
+    (temp = mpFunction_len) or
+    (temp = mpFunction_and) or
+    (temp = mpFunction_or) or
+    (temp = mpFunction_safediv) or
+    (temp = mpFunction_between) or
+    (temp = mpFunction_concatenate) or
+    (temp = mpFunction_concat) or
+    (temp = mpFunction_repl) or
+    (temp = mpFunction_left) or
+    (temp = mpFunction_right) or
+    (temp = mpFunction_substr) or
+    (temp = mpFunction_tostr) or
+    (temp = mpFunction_pos) or
+    (temp = mpFunction_trim) or
+    (temp = mpFunction_ltrim) or
+    (temp = mpFunction_rtrim) or
+    (temp = mpFunction_uppercase) or
+    (temp = mpFunction_lowercase) or
+    (temp = mpFunction_compare) or
+    (temp = mpFunction_comparestr) or
+    (temp = mpFunction_comparetext) or
+    (temp = mpFunction_round) or
+    (temp = mpFunction_ceil) or
+    (temp = mpFunction_floor) or
+    (temp = mpFunction_not) or
+    (temp = mpFunction_sum) or
+    (temp = mpFunction_max) or
+    (temp = mpFunction_min) or
+    (temp = mpFunction_avg) or
+    (temp = mpFunction_count) or
+    (temp = mpFunction_now) or
+    (temp = mpFunction_getday) or
+    (temp = mpFunction_getweek) or
+    (temp = mpFunction_getmonth) or
+    (temp = mpFunction_getyear) or
+    (temp = mpFunction_startoftheweek) or
+    (temp = mpFunction_startofthemonth) or
+    (temp = mpFunction_endofthemonth) or
+    (temp = mpFunction_todate) or
+    (temp = mpFunction_todatetime) or
+    (temp = mpFunction_now) or
+    (temp = mpFunction_today) or
+    (temp = mpFunction_stringtodatetime) or
+    (temp = mpFunction_todouble);
 
 end;
 
@@ -1728,48 +1727,48 @@ begin
   if ParametersList.Count = 1 then
   begin
     lowercaseFunct := LowerCase(funct);
-    k := Pos(mp_rangefunc_childsnotnull, lowercaseFunct);
+    k := Pos(mpRangeFunction_childsnotnull, lowercaseFunct);
     if k >= 1 then
     begin
-      TempString := Copy(funct, k + length(mp_rangefunc_childsnotnull), length(funct));
-      DoInternalRangeCalculate(mp_rangefunc_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
+      TempString := Copy(funct, k + length(mpRangeFunction_childsnotnull), length(funct));
+      DoInternalRangeCalculate(mpRangeFunction_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
       exit;
     end;
-    k := Pos(mp_rangefunc_parentnotnull, lowercaseFunct);
+    k := Pos(mpRangeFunction_parentnotnull, lowercaseFunct);
     if k >= 1 then
     begin
-      TempString := Copy(funct, k + length(mp_rangefunc_childsnotnull), length(funct));
-      DoInternalRangeCalculate(mp_rangefunc_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
+      TempString := Copy(funct, k + length(mpRangeFunction_childsnotnull), length(funct));
+      DoInternalRangeCalculate(mpRangeFunction_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
       exit;
     end;
-    k := Pos(mp_rangefunc_parentsnotnull, lowercaseFunct);
+    k := Pos(mpRangeFunction_parentsnotnull, lowercaseFunct);
     if k >= 1 then
     begin
-      TempString := Copy(funct, k + length(mp_rangefunc_childsnotnull), length(funct));
-      DoInternalRangeCalculate(mp_rangefunc_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
+      TempString := Copy(funct, k + length(mpRangeFunction_childsnotnull), length(funct));
+      DoInternalRangeCalculate(mpRangeFunction_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
       exit;
     end;
-    k := Pos(mp_rangefunc_childs, lowercaseFunct);
+    k := Pos(mpRangeFunction_childs, lowercaseFunct);
     if k >= 1 then
     begin
-      TempString := Copy(funct, k + length(mp_rangefunc_childsnotnull), length(funct));
-      DoInternalRangeCalculate(mp_rangefunc_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
-      exit;
-    end;
-
-    k := Pos(mp_rangefunc_parents, lowercaseFunct);
-    if k >= 1 then
-    begin
-      TempString := Copy(funct, k + length(mp_rangefunc_childsnotnull), length(funct));
-      DoInternalRangeCalculate(mp_rangefunc_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
+      TempString := Copy(funct, k + length(mpRangeFunction_childsnotnull), length(funct));
+      DoInternalRangeCalculate(mpRangeFunction_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
       exit;
     end;
 
-    k := Pos(mp_rangefunc_parent, lowercaseFunct);
+    k := Pos(mpRangeFunction_parents, lowercaseFunct);
     if k >= 1 then
     begin
-      TempString := Copy(funct, k + length(mp_rangefunc_childsnotnull), length(funct));
-      DoInternalRangeCalculate(mp_rangefunc_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
+      TempString := Copy(funct, k + length(mpRangeFunction_childsnotnull), length(funct));
+      DoInternalRangeCalculate(mpRangeFunction_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
+      exit;
+    end;
+
+    k := Pos(mpRangeFunction_parent, lowercaseFunct);
+    if k >= 1 then
+    begin
+      TempString := Copy(funct, k + length(mpRangeFunction_childsnotnull), length(funct));
+      DoInternalRangeCalculate(mpRangeFunction_childsnotnull, InsideBraces(TempString), ValueType, TempValuesArray);
       exit;
     end;
   end;
