@@ -17,7 +17,7 @@ interface
 {$ENDIF}
 
 uses
-  Classes, SysUtils, Variants, {$ifdef windows}Windows,{$endif}
+  Classes, SysUtils, Variants, {$ifdef windows}Windows, {$ifdef fpc}InterfaceBase,{$endif} Forms,{$endif}
   mIntList, mDoubleList;
 
 const
@@ -77,6 +77,7 @@ function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
 function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
 function GetOSUser : string;
+procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
 
 implementation
 
@@ -956,6 +957,15 @@ begin
   Result := SysUtils.GetEnvironmentVariable('USERNAME');
   if Result = '' then
     Result := SysUtils.GetEnvironmentVariable('USER');
+end;
+
+procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
+begin
+  {$ifdef windows}
+  // http://forum.lazarus.freepascal.org/index.php?topic=33574.0
+  If aFlashEvenIfActive or (not Application.Active) Then
+    FlashWindow({$ifdef fpc}WidgetSet.AppHandle{$else}Application.Handle{$endif}, True);
+  {$endif}
 end;
 
 
