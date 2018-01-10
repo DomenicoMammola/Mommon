@@ -48,6 +48,7 @@ type
     destructor Destroy; override;
 
     function GetDatumKey : IVDDatumKey;
+    function AsObject: TObject;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String);
     class function GetKeyField : String;
@@ -155,6 +156,11 @@ end;
 function TBooleanDatum.GetDatumKey: IVDDatumKey;
 begin
   Result := Key;
+end;
+
+function TBooleanDatum.AsObject: TObject;
+begin
+  Result := Self;
 end;
 
 class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String);
