@@ -101,24 +101,24 @@ type
 
   TDeleteRecordEvent = procedure(
     Sender : TmCustomVirtualDataset;
-    Index  : Integer
+    Index  : Longint
   ) of object;
 
   TGetRecordCountEvent = procedure(
         Sender : TmCustomVirtualDataset;
-    var Count  : Integer
+    var Count  : Longint
   ) of object;
 
   TGetFieldValueEvent = procedure(
         Sender : TmCustomVirtualDataset;
         Field  : TField;
-        Index  : Integer;
+        Index  : Longint;
     var Value  : variant
   ) of object;
 
   TPostDataEvent = procedure(
     Sender : TmCustomVirtualDataset;
-    Index  : Integer
+    Index  : Longint
   ) of object;
 
   TLocateEvent = procedure(
@@ -126,7 +126,7 @@ type
     const KeyFields : string;
     const KeyValues : Variant;
           Options   : TLocateOptions;
-      var Index     : Integer
+      var Index     : Longint
   ) of object;
 
   TLookupValueEvent = procedure(
@@ -139,7 +139,7 @@ type
 
   PRecordInfo = ^TRecordInfo;
   TRecordInfo = record
-    Bookmark     : Integer;
+    Bookmark     : Longint; //Integer;
     BookmarkFlag : TBookmarkFlag;
   end;
 
@@ -215,7 +215,7 @@ type
   TmCustomVirtualDataset = class(TDataSet)
   strict private
     FInternalOpen     : Boolean;
-    FCurrentRecord    : Integer;      // current record (0 to FRecordCount - 1)
+    FCurrentRecord    : Longint;      // current record (0 to FRecordCount - 1)
     FFilterBuffer     : TRecordBuffer;
     FReadOnly         : Boolean;
     FRecordBufferSize : Integer;      // data + housekeeping (TRecordInfo)
@@ -223,7 +223,8 @@ type
     FMasterDataLink : TVirtualMasterDataLink;
     FModifiedFields : TList;
     FOldValueBuffer : TRecordBuffer;
-    FReserved       : Pointer;
+    FLastFieldListCheckSum : {$IFDEF FPC}PtrUInt{$ELSE}NativeUInt{$ENDIF};
+    FLastFieldListCheckSumValid : boolean;
 
     FOnDeleteRecord   : TDeleteRecordEvent;
     FOnGetFieldValue  : TGetFieldValueEvent;
@@ -245,8 +246,8 @@ type
     );
 
     function GetMasterSource: TDataSource;
-    function GetTopIndex: Integer;
-    function GetTopRecNo: Integer;
+    function GetTopIndex: Longint;
+    function GetTopRecNo: Longint;
     procedure SetTopIndex(Value: Integer);
     procedure SetMasterSource(Value: TDataSource);
   protected
@@ -280,10 +281,10 @@ type
     function GetCanModify: Boolean; override;
     function GetRecNo: Longint; override;
     function GetRecordCount: Integer; override;
-    procedure DataEvent(Event: TDataEvent; Info: NativeInt); override;
+    procedure DataEvent(Event: TDataEvent; Info: Ptrint); override;
     procedure DoOnNewRecord; override;
     procedure InternalEdit; override;
-    procedure SetRecNo(Value: Integer); override;
+    procedure SetRecNo(Value: Longint); override;
 
     // Abstract overrides
     function AllocRecordBuffer: TRecordBuffer; override;
@@ -334,8 +335,7 @@ type
 
     { Standard public overrides }
     function BookmarkValid(ABookmark: TBookmark): Boolean; override;
-    function CompareBookmarks(Bookmark1, Bookmark2: TBookmark)
-      : Integer; override;
+    function CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Longint; override;
 //    function CreateBlobStream(Field: TField; Mode: TBlobStreamMode)
 //      : TStream; override;
     {$IFNDEF FPC}
@@ -512,13 +512,13 @@ end;
 {$ENDREGION}
 
 {$REGION 'non-interfaced routines'}
-function FieldListCheckSum(Dataset: TDataSet): NativeUInt;
+function FieldListCheckSum(Dataset: TDataSet): {$IFDEF FPC}PtrUInt{$ELSE}NativeUInt{$ENDIF};
 var
   I: Integer;
 begin
   Result   := 0;
   for I    := 0 to Dataset.Fields.Count - 1 do
-    Result := Result + (NativeUInt(Dataset.Fields[I]) shr (I mod 16));
+    Result := Result + (NativeUInt(pointer(Dataset.Fields[I])) shr (I mod 16));
 end;
 
 { TNotifyEventShell }
@@ -782,6 +782,7 @@ end;
 procedure TmCustomVirtualDataset.AfterConstruction;
 begin
   inherited;
+  FLastFieldListCheckSumValid := false;
   FInternalOpen                  := False;
   FReadOnly                      := False;
   FModifiedFields                := TList.Create;
@@ -837,7 +838,7 @@ begin
   Result := SizeOf(TRecordInfo);
 end;
 
-function TmCustomVirtualDataset.GetTopIndex: Integer;
+function TmCustomVirtualDataset.GetTopIndex: Longint;
 begin
   if BufferCount = 0 then
     Result := -1
@@ -845,7 +846,7 @@ begin
     Result := PRecordInfo(Buffers[0])^.Bookmark;
 end;
 
-procedure TmCustomVirtualDataset.SetTopIndex(Value: Integer);
+procedure TmCustomVirtualDataset.SetTopIndex(Value: Longint);
 begin
   ClearBuffers;
   FCurrentRecord := Value;
@@ -859,7 +860,7 @@ begin
   DataEvent(deDataSetChange, 0);
 end;
 
-function TmCustomVirtualDataset.GetTopRecNo: Integer;
+function TmCustomVirtualDataset.GetTopRecNo: Longint;
 begin
   Result := TopIndex + 1;
 end;
@@ -876,7 +877,7 @@ begin
 //  Logger.ExitMethod(Self, 'GetRecNo');
 end;
 
-procedure TmCustomVirtualDataset.SetRecNo(Value: Integer);
+procedure TmCustomVirtualDataset.SetRecNo(Value: Longint);
 begin
   CheckBrowseMode;
   Value := Min(Max(Value, 1), RecordCount);
@@ -914,12 +915,22 @@ begin
 end;
 
 function TmCustomVirtualDataset.BookmarkValid(ABookmark: TBookmark): Boolean;
+var
+  tmpLongint : Longint;
 begin
-  if Assigned(ABookmark) and (PInteger(ABookmark)^ >= 0) and
+  Result := false;
+  if Assigned(ABookmark) then
+  begin
+    tmpLongint := 0;
+    Move(aBookmark, tmpLongint, BookmarkSize);
+    if (tmpLongint >= 0) and (tmpLongint < RecordCount) then
+      Result := True;
+  end;
+(*  if Assigned(ABookmark) and (PInteger(ABookmark)^ >= 0) and
     (PInteger(ABookmark)^ < RecordCount) then
     Result := True
   else
-    Result := False;
+    Result := False;*)
 end;
 
 procedure TmCustomVirtualDataset.BufferToVariant(AField: TField;
@@ -943,7 +954,7 @@ begin
     ftWord:
       AVariant := Word(ABuffer^);
     ftBoolean:
-      AVariant := {$IFDEF FPC}(Integer(ABuffer^) = 1){$ELSE}WordBool(ABuffer^){$ENDIF};
+      AVariant := {$IFDEF FPC}(PInteger(ABuffer)^ = 1){$ELSE}WordBool(ABuffer^){$ENDIF};
     ftFloat, ftCurrency:
       AVariant := Double(ABuffer^);
     ftBlob, ftMemo, ftGraphic, ftWideMemo:
@@ -986,13 +997,39 @@ begin
   end;
 end;
 
-function TmCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark)
-  : Integer;
-const
-  RetCodes: array [Boolean, Boolean] of ShortInt = ((2, -1), (1, 0));
-
+function TmCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Longint;
+//const
+//  RetCodes: array [Boolean, Boolean] of ShortInt = ((2, -1), (1, 0));
+var
+  tmpLongint1, tmpLongint2 : longint;
 begin
-  Result := RetCodes[Bookmark1 = nil, Bookmark2 = nil];
+  if (Bookmark1 = nil) then
+  begin
+    if (Bookmark2 = nil) then
+      Result := 0
+    else
+      Result := -1
+  end
+  else
+  begin
+    if (Bookmark2 = nil) then
+      Result := 1
+    else
+    begin
+      tmpLongint1 := 0;
+      tmpLongint2 := 0;
+      Move(Bookmark1, tmpLongint1, BookmarkSize);
+      Move(Bookmark2, tmpLongint2, BookmarkSize);
+      if tmpLongint1 < tmpLongint2 then
+        Result := -1
+      else if tmpLongint1 > tmpLongint2 then
+        Result := 1
+      else
+        Result := 0;
+    end;
+  end;
+
+(*  Result := RetCodes[Bookmark1 = nil, Bookmark2 = nil];
   if Result = 2 then
   begin
     if PInteger(Bookmark1)^ < PInteger(Bookmark2)^ then
@@ -1001,7 +1038,7 @@ begin
       Result := 1
     else
       Result := 0;
-  end;
+  end;*)
 end;
 
 (*function TmCustomVirtualDataset.CreateBlobStream(Field: TField;
@@ -1010,13 +1047,12 @@ begin
   Result := TBlobStream.Create(Field as TBlobField, Mode);
 end;*)
 
-procedure TmCustomVirtualDataset.DataEvent(Event: TDataEvent; Info: NativeInt);
+procedure TmCustomVirtualDataset.DataEvent(Event: TDataEvent; Info: Ptrint);
 begin
   case Event of
     deLayoutChange:
-      if Active and Assigned(FReserved) and
-        (FieldListCheckSum(Self) <> NativeUInt(FReserved)) then
-        FReserved := nil;
+      if Active and (FLastFieldListCheckSumValid) and (FieldListCheckSum(Self) <> FLastFieldListCheckSum) then
+        FLastFieldListCheckSumValid := false;
   end;
   inherited;
 end;
@@ -1130,7 +1166,7 @@ procedure TmCustomVirtualDataset.GetBookmarkData(Buffer: TRecordBuffer;
   Data: Pointer);
 begin
 //  Logger.EnterMethod(Self, 'GetBookmarkData');
-  PInteger(Data)^ := PRecordInfo(Buffer)^.Bookmark;
+  PLongint(Data)^ := PRecordInfo(Buffer)^.Bookmark;
 //  Logger.ExitMethod(Self, 'GetBookmarkData');
 end;
 
@@ -1262,9 +1298,9 @@ begin
       begin
         {$IFDEF FPC}
         if AVariant then
-          Integer(ABuffer^) := 1
+          PInteger(ABuffer)^ := 1
         else
-          Integer(ABuffer^) := 0;
+          PInteger(ABuffer)^ := 0;
         {$ELSE}
         VarAsType(AVariant, VT_BOOL);
         WordBool(ABuffer^) := tagVariant(AVariant).vbool;
@@ -1343,7 +1379,7 @@ end;
 function TmCustomVirtualDataset.InternalGetRecord(ABuffer: TRecordBuffer;
   AGetMode: TGetMode; ADoCheck: Boolean): TGetResult;
 var
-  iRecCount: Integer;
+  iRecCount: Longint;
 begin
 //  Logger.EnterMethod(Self, 'InternalGetRecord');
   try
@@ -1400,7 +1436,7 @@ end;
 
 procedure TmCustomVirtualDataset.InternalGotoBookmark(ABookmark: Pointer);
 begin
-  FCurrentRecord := PInteger(ABookmark)^;
+  FCurrentRecord := PLongint(ABookmark)^;
 end;
 
 procedure TmCustomVirtualDataset.InternalAddRecord(Buffer: Pointer;
@@ -1484,12 +1520,10 @@ begin
 end;
 
 procedure TmCustomVirtualDataset.InternalOpen;
-var
-  i : integer;
 begin
   FInternalOpen := True;
   InternalFirst;
-  BookmarkSize := SizeOf(Integer);
+  BookmarkSize := SizeOf(Longint);
   FieldDefs.Updated := False;
   FieldDefs.Update;
   Fields.Clear;
@@ -1530,7 +1564,7 @@ end;
 function TmCustomVirtualDataset.Locate(const KeyFields: string;
   const KeyValues: Variant; Options: TLocateOptions): Boolean;
 var
-  P: Integer;
+  P: Longint;
 begin
   if Assigned(FOnLocate) then
   begin
@@ -1665,7 +1699,7 @@ procedure TmCustomVirtualDataset.SetBookmarkData(Buffer: TRecordBuffer;
   Data: Pointer);
 begin
   if PRecordInfo(Buffer)^.BookmarkFlag in [bfCurrent, bfInserted] then
-    PRecordInfo(Buffer)^.Bookmark := PInteger(Data)^
+    PRecordInfo(Buffer)^.Bookmark := PLongint(Data)^
   else
     PRecordInfo(Buffer)^.Bookmark := -1;
 end;
@@ -1740,14 +1774,15 @@ var
 
   procedure RefreshBuffers;
   begin
-    FReserved := Pointer(FieldListCheckSum(Self));
+    FLastFieldListCheckSum:= FieldListCheckSum(Self);
+    FLastFieldListCheckSumValid:= (FLastFieldListCheckSum <> 0);
     UpdateCursorPos;
     Resync([]);
   end;
 
 begin
 //  Logger.EnterMethod(Self, 'GetFieldData');
-  if not Assigned(FReserved) then
+  if not FLastFieldListCheckSumValid then
     RefreshBuffers;
   if (State = dsOldValue) and (FModifiedFields.IndexOf(Field) <> -1) then
   // Requesting the old value of a modified field
