@@ -89,6 +89,7 @@ type
 
     function GetDatumKey : IVDDatumKey;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
+    function AsObject: TObject;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String);
     class function GetKeyField : String;
@@ -230,6 +231,11 @@ begin
     Result := FEvent.EventDate
   else
     Result := Null;
+end;
+
+function TmUprightDatum.AsObject: TObject;
+begin
+  Result := Self;
 end;
 
 class procedure TmUprightDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String);
