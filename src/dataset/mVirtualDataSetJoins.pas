@@ -70,8 +70,8 @@ type
 
 implementation
 
-var
-  logger : TmLog;
+//var
+//  logger : TmLog;
 
 procedure ExtractPrefixAndFieldName(const aSource: String; var aPrefix, aFieldName: string);
 var
@@ -183,7 +183,7 @@ begin
   inherited Destroy;
 end;
 
-initialization
-  logger := logManager.AddLog('mVirtualDataSetJoins');
+//initialization
+//  logger := logManager.AddLog('mVirtualDataSetJoins');
 
 end.

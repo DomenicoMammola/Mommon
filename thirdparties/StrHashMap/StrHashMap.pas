@@ -154,7 +154,7 @@ function StrHash(const S: string): THashValue;
 function TextHash(const S: string): THashValue;
 function DataHash(var AValue; ASize: Cardinal): THashValue;
 function Iterate_FreeObjects(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
-function Iterate_Dispose(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
+//function Iterate_Dispose(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
 function Iterate_FreeMem(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
 
 type
@@ -228,12 +228,12 @@ begin
   Result := True;
 end;
 
-function Iterate_Dispose(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
+(*function Iterate_Dispose(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
 begin
   Dispose(AData);
   AData := nil;
   Result := True;
-end;
+end;*)
 
 function Iterate_FreeMem(AUserData: PUserData; const AStr: string; var AData: PData): Boolean;
 begin

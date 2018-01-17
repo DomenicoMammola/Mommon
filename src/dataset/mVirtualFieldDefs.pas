@@ -42,7 +42,7 @@ type
     FOnChangeName : TNotifyEvent;
   public
     constructor Create(ACollection: TCollection); override;
-    procedure Assign(const aSource : TmVirtualFieldDef);
+    procedure Assign(const aSource : TmVirtualFieldDef); reintroduce;
   public
     property Name : string read FName write SetName;
     property DataType : TmVirtualFieldDefType read FDataType write SetDataType;
@@ -63,7 +63,7 @@ type
     constructor Create; reintroduce;
     destructor Destroy; override;
     function AddFieldDef: TmVirtualFieldDef;
-    procedure Assign (const aSource : TmVirtualFieldDefs);
+    procedure Assign (const aSource : TmVirtualFieldDefs); reintroduce;
     function FindByName (const aName : string) : TmVirtualFieldDef;
 
     property VirtualFieldDefs[I: Integer]: TmVirtualFieldDef read GetVirtualFieldDef; default;

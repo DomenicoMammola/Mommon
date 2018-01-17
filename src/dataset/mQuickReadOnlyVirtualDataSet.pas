@@ -406,10 +406,10 @@ end;
 
 function TReadOnlyVirtualDatasetProvider.Refresh(const aDoSort, aDoFilter: boolean): boolean;
 var
-  i, k : integer;
+  i : integer;
   tmp : TDatumShell;
   //currentDatum : IVDDatum;
-  tmpValue : variant;
+  //tmpValue : variant;
 begin
   Result := false;
   if not Assigned(FIDataProvider) then

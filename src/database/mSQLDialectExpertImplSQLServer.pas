@@ -204,7 +204,7 @@ begin
           else if (aParam.Operator = TmFilterOperator.foEndWith) then
             Result := StringToSQLString('%'+aParam.AsString)
           else
-            Result := StringToSQLString(aParam.AsWideString);
+            Result := StringToSQLString(aParam.AsString);
         end;
       ptInteger:
         begin
