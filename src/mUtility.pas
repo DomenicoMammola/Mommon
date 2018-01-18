@@ -28,6 +28,7 @@ type
 
 function GenerateRandomIdString : string; overload;
 function GenerateRandomIdString(aLength : integer): string; overload;
+function CreateUniqueIdentifier : String; // actually a GUID without parentheses, to be used as unique indentifier in db tables
 
 function AddZerosFront (aValue : integer; aLength : integer) : String;
 function RemoveZerosFromFront (aValue : String) : String;
@@ -966,6 +967,27 @@ begin
   If aFlashEvenIfActive or (not Application.Active) Then
     FlashWindow({$ifdef fpc}WidgetSet.AppHandle{$else}Application.Handle{$endif}, True);
   {$endif}
+end;
+
+function CreateUniqueIdentifier: String;
+var
+  tmp : TGuid;
+  lg : integer;
+begin
+  if CreateGUID(tmp) <> 0 then
+    raise Exception.Create('Failed to create a new GUID');
+  Result := GUIDToString(tmp);
+  lg := Length(Result);
+  if lg > 2 then
+  begin
+    if Result[1] = '{' then
+    begin
+      Result := Copy(Result, 2, 9999);
+      dec(lg);
+    end;
+    if Result[lg] = '}' then
+      Result := Copy(Result, 1, lg -1);
+  end;
 end;
 
 
