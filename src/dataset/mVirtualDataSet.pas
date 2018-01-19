@@ -915,22 +915,12 @@ begin
 end;
 
 function TmCustomVirtualDataset.BookmarkValid(ABookmark: TBookmark): Boolean;
-var
-  tmpLongint : Longint;
 begin
-  Result := false;
-  if Assigned(ABookmark) then
-  begin
-    tmpLongint := 0;
-    Move(aBookmark, tmpLongint, BookmarkSize);
-    if (tmpLongint >= 0) and (tmpLongint < RecordCount) then
-      Result := True;
-  end;
-(*  if Assigned(ABookmark) and (PInteger(ABookmark)^ >= 0) and
-    (PInteger(ABookmark)^ < RecordCount) then
+  if Assigned(ABookmark) and (PLongint(ABookmark)^ >= 0) and
+    (PLongint(ABookmark)^ < RecordCount) then
     Result := True
   else
-    Result := False;*)
+    Result := False;
 end;
 
 procedure TmCustomVirtualDataset.BufferToVariant(AField: TField;
@@ -998,10 +988,6 @@ begin
 end;
 
 function TmCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Longint;
-//const
-//  RetCodes: array [Boolean, Boolean] of ShortInt = ((2, -1), (1, 0));
-var
-  tmpLongint1, tmpLongint2 : longint;
 begin
   if (Bookmark1 = nil) then
   begin
@@ -1016,20 +1002,23 @@ begin
       Result := 1
     else
     begin
-      tmpLongint1 := 0;
-      tmpLongint2 := 0;
-      Move(Bookmark1, tmpLongint1, BookmarkSize);
-      Move(Bookmark2, tmpLongint2, BookmarkSize);
-      if tmpLongint1 < tmpLongint2 then
+      if PInteger(Bookmark1)^ < PInteger(Bookmark2)^ then
         Result := -1
-      else if tmpLongint1 > tmpLongint2 then
+      else if PInteger(Bookmark1)^ > PInteger(Bookmark2)^ then
         Result := 1
       else
         Result := 0;
     end;
   end;
+end;
+(*
+function TmCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark)
+  : Integer;
+const
+  RetCodes: array [Boolean, Boolean] of ShortInt = ((2, -1), (1, 0));
 
-(*  Result := RetCodes[Bookmark1 = nil, Bookmark2 = nil];
+begin
+  Result := RetCodes[Bookmark1 = nil, Bookmark2 = nil];
   if Result = 2 then
   begin
     if PInteger(Bookmark1)^ < PInteger(Bookmark2)^ then
@@ -1038,8 +1027,11 @@ begin
       Result := 1
     else
       Result := 0;
-  end;*)
+  end;
 end;
+*)
+
+
 
 (*function TmCustomVirtualDataset.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
@@ -1520,6 +1512,8 @@ begin
 end;
 
 procedure TmCustomVirtualDataset.InternalOpen;
+var
+  i : integer;
 begin
   FInternalOpen := True;
   InternalFirst;
@@ -2213,3 +2207,4 @@ Last  : Goto the last record. Returns True or False
 
 AppendBuffer : Append a buffer to the records.
 }
+
