@@ -12,6 +12,7 @@ unit mNullables;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$modeswitch advancedrecords}
 {$ENDIF}
 
 interface
@@ -54,9 +55,11 @@ type
     procedure Assign(aSourceField : TField); override; overload;
     procedure Assign(const aValue : String); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
+    procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
     function AsVariant: Variant; override;
     procedure Trim();
+    procedure ChangeToBlankIfNull;
 
     class function StringToVariant(const aValue : String) : Variant;
 
@@ -224,11 +227,123 @@ type
     property Value : TColor read GetValue write SetValue;
   end;
 
+  { TNullableStringRecord }
+
+  TNullableStringRecord = record
+  public
+    Value : string;
+    IsNull : boolean;
+
+    procedure CreateAsNull;
+    procedure CreateWithValue (const aValue : String);
+
+    procedure Assign(aSource : TNullableStringRecord); overload;
+    procedure Assign(aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aValue : Variant);overload;
+    procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
+    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
+    function AsVariant: Variant;
+    procedure Trim();
+    procedure ChangeToBlankIfNull;
+    function AsString : String;
+  end;
+
 
 implementation
 
 uses
   SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
+
+{ TNullableStringRecord }
+
+procedure TNullableStringRecord.CreateAsNull;
+begin
+  IsNull:= true;
+end;
+
+procedure TNullableStringRecord.CreateWithValue(const aValue: String);
+begin
+  IsNull := false;
+  Value:= aValue;
+end;
+
+procedure TNullableStringRecord.Assign(aSource: TNullableStringRecord);
+begin
+  IsNull := aSource.IsNull;
+  Value := aSource.Value;
+end;
+
+procedure TNullableStringRecord.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsString;
+end;
+
+procedure TNullableStringRecord.Assign(const aValue: String);
+begin
+  Self.Assign(TNullableString.StringToVariant(aValue));
+end;
+
+procedure TNullableStringRecord.Assign(const aValue: Variant);
+begin
+  CheckIfDifferentAndAssign(aValue);
+end;
+
+procedure TNullableStringRecord.Assign(const aValue: String; const aAllowBlankValue: boolean);
+begin
+  Self.Assign(aValue);
+  if aAllowBlankValue then
+    Self.ChangeToBlankIfNull;
+end;
+
+function TNullableStringRecord.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
+begin
+  if VarIsNull(aValue) then
+  begin
+    Result := not IsNull;
+    Self.IsNull:= true
+  end
+  else
+  begin
+    if Self.IsNull then
+      Result := true
+    else
+      Result := aValue <> Value;
+    if Result then
+      Self.Value:= aValue;
+  end;
+end;
+
+function TNullableStringRecord.AsVariant: Variant;
+begin
+  if IsNull then
+    Result := Null
+  else
+    Result := Value;
+end;
+
+procedure TNullableStringRecord.Trim();
+begin
+  if not IsNull then
+    Value:= SysUtils.Trim(Self.Value);
+end;
+
+procedure TNullableStringRecord.ChangeToBlankIfNull;
+begin
+  if IsNull then
+    Value:= '';
+end;
+
+function TNullableStringRecord.AsString: String;
+begin
+  if IsNull then
+    Result := ''
+  else
+    Result := Value;
+end;
 
 { TNullableColor }
 
@@ -519,6 +634,13 @@ begin
   CheckIfDifferentAndAssign(aValue);
 end;
 
+procedure TNullableString.Assign(const aValue: String; const aAllowBlankValue: boolean);
+begin
+  Self.Assign(aValue);
+  if aAllowBlankValue then
+    Self.ChangeToBlankIfNull;
+end;
+
 function TNullableString.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 begin
   if VarIsNull(aValue) then
@@ -549,6 +671,12 @@ procedure TNullableString.Trim();
 begin
   if not Self.IsNull then
     Self.Value:= SysUtils.Trim(Self.Value);
+end;
+
+procedure TNullableString.ChangeToBlankIfNull;
+begin
+  if Self.IsNull then
+    Self.Value:= '';
 end;
 
 class function TNullableString.StringToVariant(const aValue: String): Variant;
