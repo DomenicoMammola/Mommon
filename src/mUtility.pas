@@ -79,12 +79,15 @@ function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : Str
 function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
 function GetOSUser : string;
 procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
+// http://forum.codecall.net/topic/69184-solved-file-association-and-the-registry/
+function RegisterDefaultApplication(const aFullPathExe : string; const aFileExtension : string; var aError : string): boolean;
+
 
 implementation
 
 uses
   DateUtils,
-  {$ifdef windows}shlobj,{$else}LazUTF8,{$endif}
+  {$ifdef windows}shlobj, registry,{$else}LazUTF8,{$endif}
   {$ifdef linux}initc, ctypes,{$endif}
   mMathUtility;
 
@@ -967,6 +970,91 @@ begin
   If aFlashEvenIfActive or (not Application.Active) Then
     FlashWindow({$ifdef fpc}WidgetSet.AppHandle{$else}Application.Handle{$endif}, True);
   {$endif}
+end;
+
+function RegisterDefaultApplication(const aFullPathExe: string; const aFileExtension: string; var aError : string) : boolean;
+{$ifdef windows}
+var
+  a: byte;
+  tmpRegistry : TRegistry;
+  tmpFileExt : String;
+begin
+  // http://forum.codecall.net/topic/69184-solved-file-association-and-the-registry/
+  Result := false;
+  tmpFileExt := trim (aFileExtension);
+  if Length(tmpFileExt) > 1 then
+    if tmpFileExt[1] = '.' then
+      tmpFileExt := Copy(tmpFileExt, 2, 999);
+  if Length(tmpFileExt) = 0 then
+    exit;
+
+  a := 0;
+  tmpRegistry := TRegistry.Create;
+  try
+    tmpRegistry.RootKey:= HKEY_CLASSES_ROOT;
+    tmpRegistry.DeleteKey('\.' + tmpFileExt+ '\');
+    if tmpRegistry.OpenKey('\.' + tmpFileExt + '\', True) then
+      tmpRegistry.WriteString('', tmpFileExt + 'file')
+    else
+    begin
+      {$WARNINGS OFF}
+      aError := tmpRegistry.LastErrorMsg;
+      {$WARNINGS ON}
+      exit;
+    end;
+    if not tmpRegistry.OpenKey('\.' + tmpFileExt+ '\OpenWithList\ehshell.exe\', True) then
+    begin
+      {$WARNINGS OFF}
+      aError := tmpRegistry.LastErrorMsg;
+      {$WARNINGS ON}
+      exit;
+    end;
+
+    if tmpRegistry.OpenKey('\.' + tmpFileExt + '\OpenWithProgIds\', True) then
+      tmpRegistry.WriteBinaryData(tmpFileExt + 'file', a, 1)
+    else
+    begin
+      {$WARNINGS OFF}
+      aError := tmpRegistry.LastErrorMsg;
+      {$WARNINGS ON}
+      exit;
+    end;
+
+    if tmpRegistry.OpenKey('\' + tmpFileExt + 'file\shell\open\command\', True) then
+      tmpRegistry.WriteString('', '"' + aFullPathExe + '" "%1"')
+    else
+    begin
+      {$WARNINGS OFF}
+      aError := tmpRegistry.LastErrorMsg;
+      {$WARNINGS ON}
+      exit;
+    end;
+
+    tmpRegistry.RootKey := HKEY_CURRENT_USER;
+
+    tmpRegistry.DeleteKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\');
+
+    if tmpRegistry.OpenKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\OpenW​ithProgids\', True) then
+      tmpRegistry.WriteBinaryData(tmpFileExt + 'file', a, 1)
+    else
+    begin
+      {$WARNINGS OFF}
+      aError := tmpRegistry.LastErrorMsg;
+      {$WARNINGS ON}
+      exit;
+    end;
+
+  finally
+    tmpRegistry.Free;
+  end;
+
+  SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nil, nil);
+  Result := true;
+{$else}
+begin
+  Result := false;
+  aError := 'OS not supported';
+{$endif}
 end;
 
 function CreateUniqueIdentifier: String;
