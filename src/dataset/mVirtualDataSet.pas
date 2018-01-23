@@ -250,6 +250,7 @@ type
     function GetTopRecNo: Longint;
     procedure SetTopIndex(Value: Integer);
     procedure SetMasterSource(Value: TDataSource);
+    procedure UpdateDisplayFormats;
   protected
     FSorted : boolean;
     FFiltered : boolean;
@@ -846,7 +847,7 @@ begin
     Result := PRecordInfo(Buffers[0])^.Bookmark;
 end;
 
-procedure TmCustomVirtualDataset.SetTopIndex(Value: Longint);
+procedure TmCustomVirtualDataset.SetTopIndex(Value: Integer);
 begin
   ClearBuffers;
   FCurrentRecord := Value;
@@ -895,6 +896,22 @@ begin
   if IsLinkedTo(Value) then
     DatabaseError(SCircularDataLink, Self);
   MasterDataLink.DataSource := Value;
+end;
+
+procedure TmCustomVirtualDataset.UpdateDisplayFormats;
+var
+  i: integer;
+  tmpField: TField;
+begin
+  for i := 0 to FVirtualDatasetProvider.VirtualFieldDefs.Count - 1 do
+  begin
+    if (FVirtualDatasetProvider.VirtualFieldDefs.VirtualFieldDefs[i].DefaultFormat <> '') then
+    begin
+      tmpField := Self.FieldByName(FVirtualDatasetProvider.VirtualFieldDefs.VirtualFieldDefs[i].Name);
+      if Assigned(tmpField) and (tmpField is TFloatField) then
+        (tmpField as TFloatField).DisplayFormat:= FVirtualDatasetProvider.VirtualFieldDefs.VirtualFieldDefs[i].DefaultFormat;
+    end;
+  end;
 end;
 
 function TmCustomVirtualDataset.GetCanModify: Boolean;
@@ -1709,7 +1726,8 @@ end;
 procedure TmCustomVirtualDataset.DoAfterOpen;
 begin
   if FAutomaticInitFieldsFormat then
-    ApplyStandardSettingsToFields(Self, '##.##');
+    ApplyStandardSettingsToFields(Self, '0.00');
+  UpdateDisplayFormats;
   inherited DoAfterOpen;
 end;
 

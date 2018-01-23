@@ -36,6 +36,7 @@ type
     FReadOnly : boolean;
     FRequired : boolean;
     FPrecision : integer;
+    FDefaultFormat : string;
     procedure SetDataType(AValue: TmVirtualFieldDefType);
     procedure SetName(AValue: string);
   private
@@ -50,6 +51,7 @@ type
     property Required : boolean read FRequired write FRequired default false;
     property ReadOnly : boolean read FReadOnly write FReadOnly default false;
     property Precision : integer read FPrecision write FPrecision default 0;
+    property DefaultFormat: string read FDefaultFormat write FDefaultFormat;
   end;
 
   { TmVirtualFieldDefs }
@@ -117,6 +119,7 @@ begin
   FDataType:= vftUnknown;
   FName := '';
   FOnChangeName:= nil;
+  FDefaultFormat:= '';
 end;
 
 procedure TmVirtualFieldDef.Assign(const aSource: TmVirtualFieldDef);
