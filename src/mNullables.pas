@@ -586,15 +586,15 @@ end;
 function TNullableString.GetValue: String;
 begin
   if (FIsNull) then
-       Result := null
-    else
-      Result := FValue;
+    Result:= ''
+  else
+    Result:= FValue;
 end;
 
 procedure TNullableString.SetValue(AValue: String);
 begin
   FValue:= aValue;
-  FIsNull := False;
+  FIsNull:= False;
 end;
 
 constructor TNullableString.Create();
@@ -611,9 +611,9 @@ end;
 procedure TNullableString.Assign(aSource: TNullableString);
 begin
   if not aSource.IsNull then
-    Self.Value := aSource.Value
+    Self.Value:= aSource.Value
   else
-    Self.IsNull := true;
+    Self.IsNull:= true;
 end;
 
 procedure TNullableString.Assign(aSourceField: TField);
@@ -645,15 +645,15 @@ function TNullableString.CheckIfDifferentAndAssign(const aValue: Variant): boole
 begin
   if VarIsNull(aValue) then
   begin
-    Result := Self.NotNull;
+    Result:= Self.NotNull;
     Self.IsNull:= true
   end
   else
   begin
     if Self.IsNull then
-      Result := true
+      Result:= true
     else
-      Result := aValue <> FValue;
+      Result:= aValue <> FValue;
     if Result then
       Self.Value:= aValue;
   end;
