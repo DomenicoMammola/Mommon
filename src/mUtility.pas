@@ -32,6 +32,7 @@ function CreateUniqueIdentifier : String; // actually a GUID without parentheses
 
 function AddZerosFront (aValue : integer; aLength : integer) : String;
 function RemoveZerosFromFront (aValue : String) : String;
+function CountOccurancesOfChar(const aValue: Char; const aStr : String): integer;
 
 function DateTimeToSeconds(const aDateTime : TDateTime; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted) : integer;
 function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted): TDateTime;
@@ -127,6 +128,16 @@ begin
   end
   else
     Result := aValue;
+end;
+
+function CountOccurancesOfChar(const aValue: Char; const aStr: String): integer;
+var
+  c: Char;
+begin
+  Result := 0;
+  for c in aStr do
+    if c = aValue then
+      inc(Result);
 end;
 
 function GenerateRandomIdString(aLength : integer): string;
