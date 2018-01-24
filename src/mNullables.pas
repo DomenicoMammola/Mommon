@@ -18,7 +18,7 @@ unit mNullables;
 interface
 
 uses
-  db, Graphics, variants,
+  db, Graphics, variants, math,
   mUtility, mMathUtility, mFloatsManagement;
 
 type
@@ -61,7 +61,8 @@ type
     procedure Trim();
     procedure ChangeToBlankIfNull;
 
-    class function StringToVariant(const aValue : String) : Variant;
+    class function StringToVariant(const aValue: String): Variant;
+    class function VariantToString(const aValue: Variant): String;
 
     function AsString : String;
 
@@ -125,9 +126,10 @@ type
       function AsVariant: Variant; override;
       function CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 
-      class function StringToVariant(const aValue : String) : Variant;
+      class function StringToVariant(const aValue : String): Variant;
+      class function VariantToString(const aValue: Variant; const aShowTime: boolean): String;
 
-      function AsString (aShowTime : boolean) : String;
+      function AsString (const aShowTime : boolean) : String;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -136,8 +138,10 @@ type
 
   TNullableDouble = class (TAbstractNullable)
   private
-    FValue : Double;
+    FValue: Double;
+    FDigits: byte;
     function GetValue : Double;
+    procedure SetDigits(AValue: byte);
     procedure SetValue (AValue : Double);
   public
     constructor Create(); override; overload;
@@ -149,7 +153,8 @@ type
     procedure Assign(const aValue: String); override; overload;
     function AsVariant: Variant; override;
 
-    class function StringToVariant(const aValue : String) : Variant;
+    class function StringToVariant(const aValue: String): Variant;
+    class function VariantToString(const aValue: Variant; const aDigits : byte): String;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
 
@@ -157,6 +162,7 @@ type
     function AsFloat : Double;
 
     property Value : Double read GetValue write SetValue;
+    property Digits : byte read FDigits write SetDigits;
   end;
 
   { TNullableBoolean }
@@ -176,8 +182,9 @@ type
     procedure Assign (const aValue : string); override; overload;
     function AsVariant: Variant; override;
 
-    class function StringToVariant(const aValue : String) : Variant;
-
+    class function StringToVariant(const aValue: String): Variant;
+    class function VariantToString(const aValue: Variant): String;
+  public
     property Value : Boolean read GetValue write SetValue;
   end;
 
@@ -202,7 +209,8 @@ type
     function AsString : String;
 
     class function StringToVariant(const aValue : String) : Variant;
-
+    class function VariantToString(const aValue : Variant) : String;
+  public
     property Value : Integer read GetValue write SetValue;
   end;
 
@@ -602,10 +610,7 @@ end;
 
 function TNullableInteger.AsString: String;
 begin
-  if Self.IsNull then
-    Result := ''
-  else
-    Result := IntToStr(Self.Value);
+  Result := TNullableInteger.VariantToString(Self.AsVariant);
 end;
 
 class function TNullableInteger.StringToVariant(const aValue: String): Variant;
@@ -614,6 +619,14 @@ begin
     Result := StrToInt(aValue)
   else
     Result := Null;
+end;
+
+class function TNullableInteger.VariantToString(const aValue: Variant): String;
+begin
+  if VarIsNull(aValue) then
+    Result := ''
+  else
+    Result := IntToStr(aValue);
 end;
 
 { TNullableBoolean }
@@ -683,6 +696,14 @@ begin
     Result := Null
   else
     Result:= StrToBool(aValue);
+end;
+
+class function TNullableBoolean.VariantToString(const aValue: Variant): String;
+begin
+  if VarIsNull(aValue) then
+    Result := ''
+  else
+    Result := BoolToStr(aValue, true);
 end;
 
 { TNullableString }
@@ -786,17 +807,22 @@ end;
 class function TNullableString.StringToVariant(const aValue: String): Variant;
 begin
   if aValue = '' then
-    Result := Null
+    Result:= Null
   else
-    Result := aValue;
+    Result:= aValue;
+end;
+
+class function TNullableString.VariantToString(const aValue: Variant): String;
+begin
+  if VarIsNull(aValue) then
+    Result:= ''
+  else
+    Result:= aValue;
 end;
 
 function TNullableString.AsString: String;
 begin
-  if Self.IsNull then
-    Result := ''
-  else
-    Result := Self.Value;
+  Result := TNullableString.VariantToString(Self.AsVariant);
 end;
 
 { TNullableDouble }
@@ -806,26 +832,39 @@ begin
   Result := FValue;
 end;
 
+procedure TNullableDouble.SetDigits(AValue: byte);
+begin
+  if FDigits=AValue then Exit;
+  FDigits:=AValue;
+  if Self.NotNull then
+    FValue:= RoundTo(AValue, -1 * FDigits);
+end;
+
 procedure TNullableDouble.SetValue(AValue: Double);
 begin
-  FValue:= aValue;
+  if FDigits > 0 then
+    FValue:= RoundTo(AValue, -1 * FDigits)
+  else
+    FValue:= aValue;
   FIsNull := false;
 end;
 
 constructor TNullableDouble.Create();
 begin
   inherited Create;
+  FDigits := 0;
 end;
 
 constructor TNullableDouble.Create(aValue: Double);
 begin
   inherited Create;
-  FValue := aValue;
+  Value := aValue;
 end;
 
 
 procedure TNullableDouble.Assign(aSource: TNullableDouble);
 begin
+  Self.FDigits:= aSource.Digits;
   if not aSource.IsNull then
     Self.Value := aSource.Value
   else
@@ -866,6 +905,27 @@ begin
     Result:= StrToFloat(aValue);
 end;
 
+class function TNullableDouble.VariantToString(const aValue: Variant; const aDigits : byte): String;
+var
+  i : integer;
+  str : String;
+begin
+  if VarIsNull(aValue) then
+    Result := ''
+  else
+  begin
+    if aDigits > 0 then
+    begin
+      str := '0.';
+      for i := 0 to aDigits -1 do
+        str := str + '0';
+      Result := FormatFloat(str, aValue);
+    end
+    else
+      Result := FloatToStr(aValue);
+  end;
+end;
+
 function TNullableDouble.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpDouble : double;
@@ -889,10 +949,7 @@ end;
 
 function TNullableDouble.AsString: String;
 begin
-  if Self.IsNull then
-    Result := ''
-  else
-    Result := FloatToStr(Self.Value);
+  Result := TNullableDouble.VariantToString(Self.AsVariant, FDigits);
 end;
 
 function TNullableDouble.AsFloat: Double;
@@ -1054,19 +1111,24 @@ begin
       raise Exception.Create('This string cannot be converted to date: ' + aValue);
 end;
 
-function TNullableDateTime.AsString(aShowTime: boolean): String;
+class function TNullableDateTime.VariantToString(const aValue: Variant; const aShowTime: boolean): String;
 begin
-  if Self.IsNull then
+  if VarIsNull(aValue) then
     Result := ''
   else
   begin
     if (aShowTime) then
     begin
-      Result := DateTimeToStr(Value, true);
+      Result := DateTimeToStr(aValue, true);
     end
     else
-      Result := DateToStr(Value);
+      Result := DateToStr(aValue);
   end;
+end;
+
+function TNullableDateTime.AsString(const aShowTime: boolean): String;
+begin
+  Result := TNullableDateTime.VariantToString(Self.AsVariant, aShowTime);
 end;
 
 { TAbstractNullable }
