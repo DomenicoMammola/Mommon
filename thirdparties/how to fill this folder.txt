@@ -18,7 +18,9 @@ in folder:
 Indy10
 
 http://www.indyproject.org/Sockets/Download/svn.EN.aspx
-rev.5432
+rev.5446
+
+https://indy.fulgan.com/ZIP/
 
 to remove "voluntary" memory leaks : http://forum.lazarus.freepascal.org/index.php?topic=14556.0
 
