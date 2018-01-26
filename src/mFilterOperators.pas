@@ -21,6 +21,32 @@ type
 
   TmFilterOperatorsSet = set of TmFilterOperator;
 
+  function TmFilterOperatorToString (const aValue: TmFilterOperator) : String;
+
 implementation
+
+function TmFilterOperatorToString(const aValue: TmFilterOperator): String;
+begin
+  if aValue = foUnknown then
+    Result := ''
+  else if aValue = foEq then
+    Result := '='
+  else if aValue = foGtOrEq then
+    Result := '>='
+  else if aValue = foLtOrEq then
+    Result := '<='
+  else if aValue = foLike then
+    Result := 'contains'
+  else if aValue = foNotEq then
+    Result := '<>'
+  else if aValue = foStartWith then
+    Result := 'starts'
+  else if aValue = foEndWith then
+    Result := 'ends'
+  else if aValue = foIn then
+    Result := 'in'
+  else if aValue = foBetween then
+    Result := 'between';
+end;
 
 end.
