@@ -837,7 +837,6 @@ begin
   _MergeSort(List,0,List.Count-1,OnCompare);
 end;
 
-{$ifdef windows}
 
 function ConvertStringListToVariant(const aList: TStringList): Variant;
 var
@@ -861,6 +860,7 @@ begin
   Result := tmpVariant;
 end;
 
+{$ifdef windows}
 function GetCPUCores : integer;
 var
   Info: TSystemInfo;
