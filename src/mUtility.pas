@@ -30,7 +30,8 @@ function GenerateRandomIdString : string; overload;
 function GenerateRandomIdString(aLength : integer): string; overload;
 function CreateUniqueIdentifier : String; // actually a GUID without parentheses, to be used as unique indentifier in db tables
 
-function AddZerosFront (aValue : integer; aLength : integer) : String;
+function AddZerosFront (const aValue : integer; const aLength : integer) : String; overload;
+function AddZerosFront (const aValue : string; const aLength : integer) : String; overload;
 function RemoveZerosFromFront (aValue : String) : String;
 function CountOccurancesOfChar(const aValue: Char; const aStr : String): integer;
 
@@ -96,11 +97,16 @@ uses
 function sysconf(i:cint):clong;cdecl;external name 'sysconf';
 {$endif}
 
-function AddZerosFront (aValue : integer; aLength : integer) : String;
+function AddZerosFront (const aValue : integer; const aLength : integer) : String;
+begin
+  Result := AddZerosFront(IntToStr(aValue), aLength);
+end;
+
+function AddZerosFront(const aValue: string; const aLength: integer): String;
 var
   i, l : integer;
 begin
-  Result := IntToStr(aValue);
+  Result := aValue;
   l := Length(Result);
   if l < aLength then
   begin
@@ -109,6 +115,7 @@ begin
       Result := '0' + Result;
     end;
   end;
+
 end;
 
 function RemoveZerosFromFront(aValue: String): String;
