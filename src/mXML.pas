@@ -13,7 +13,8 @@ unit mXML;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils,
+  mNullables;
 
 type
   TmXMLString = string;
@@ -57,18 +58,26 @@ type
 
     function AddElement(Name: TmXMLString): TmXmlElement;
     function HasAttribute(const Name: TmXMLString): boolean;
-    procedure SetAttribute(Name, Value: TmXmlString);
-    function GetAttribute(Name: TmXmlString): TmXmlString; overload;
-    function GetAttribute(Name: TmXmlString; DefaultValue: TmXmlString): TmXmlString; overload;
-    procedure SetDateTimeAttribute(Name : TmXmlString; Value: TDateTime);
-    function GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload;
-    function GetDateTimeAttribute(Name: TmXmlString; DefaultValue : TDateTime): TDateTime; overload;
-    procedure SetFloatAttribute(Name : TmXmlString; Value: Double);
-    function GetFloatAttribute(Name: TmXmlString): Double; overload;
-    function GetFloatAttribute(Name: TmXmlString; DefaultValue : Double): Double; overload;
-    procedure SetIntegerAttribute(Name : TmXmlString; Value: integer);
-    function GetIntegerAttribute(Name: TmXmlString): integer; overload;
-    function GetIntegerAttribute(Name: TmXmlString; DefaultValue : integer): integer; overload;
+    procedure SetAttribute(aName, aValue: TmXmlString); overload;
+    procedure SetAttribute(aName: TmXmlString; const aValue: TNullableString); overload;
+    function GetAttribute(const aName: TmXmlString): TmXmlString; overload;
+    function GetAttribute(const aName: TmXmlString; const aDefaultValue: TmXmlString): TmXmlString; overload;
+    procedure GetAttribute(const aName: TmXmlString; const aValue: TNullableString);
+    procedure SetDateTimeAttribute(const aName : TmXmlString; const aValue: TDateTime); overload;
+    procedure SetDateTimeAttribute(const aName: TmXmlString; const aValue: TNullableDateTime); overload;
+    function GetDateTimeAttribute(const aName: TmXmlString): TDateTime; overload;
+    function GetDateTimeAttribute(const aName: TmXmlString; const aDefaultValue : TDateTime): TDateTime; overload;
+    procedure GetDateTimeAttribute(const aName: TmXmlString; aValue: TNullableDateTime);
+    procedure SetFloatAttribute(const aName : TmXmlString; const aValue: Double); overload;
+    procedure SetFloatAttribute(const aName: TmXmlString; const aValue: TNullableDouble); overload;
+    function GetFloatAttribute(const aName: TmXmlString): Double; overload;
+    function GetFloatAttribute(const aName: TmXmlString; const aDefaultValue : Double): Double; overload;
+    procedure GetFloatAttribute(const aName: TmXmlString; aValue: TNullableDouble);
+    procedure SetIntegerAttribute(const aName: TmXmlString; const aValue: integer); overload;
+    procedure SetIntegerAttribute(const aName: TmXmlString; const aValue: TNullableInteger); overload;
+    function GetIntegerAttribute(const aName: TmXmlString): integer; overload;
+    function GetIntegerAttribute(const aName: TmXmlString; const aDefaultValue : integer): integer; overload;
+    procedure GetIntegerAttribute(const aName: TmXmlString; aValue : TNullableInteger);
     procedure SetBooleanAttribute(Name : TmXmlString; Value : Boolean);
     function GetBooleanAttribute(Name: TmXMLString): boolean; overload;
     function GetBooleanAttribute(Name: TmXMLString; DefaultValue : boolean): boolean; overload;
@@ -168,45 +177,82 @@ begin
   inherited;
 end;
 
-function TmXmlElement.GetAttribute(Name: TmXmlString; DefaultValue: TmXmlString
-  ): TmXmlString;
+function TmXmlElement.GetAttribute(const aName: TmXmlString; const aDefaultValue: TmXmlString): TmXmlString;
 begin
-  Result := FImpl._GetAttribute(Name, DefaultValue);
+  Result := FImpl._GetAttribute(aName, aDefaultValue);
 end;
 
-function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString): TDateTime;
+procedure TmXmlElement.GetAttribute(const aName: TmXmlString; const aValue: TNullableString);
 begin
-  Result := FImpl._GetDateTimeAttribute(Name);
+  if Self.HasAttribute(aName) then
+    aValue.Value:= Self.GetAttribute(aName)
+  else
+    aValue.IsNull:= true;
 end;
 
-function TmXmlElement.GetDateTimeAttribute(Name: TmXmlString; DefaultValue: TDateTime): TDateTime;
+function TmXmlElement.GetDateTimeAttribute(const aName: TmXmlString): TDateTime;
 begin
-  Result := FImpl._GetDateTimeAttribute(Name, DefaultValue);
+  Result := FImpl._GetDateTimeAttribute(aName);
 end;
 
-procedure TmXmlElement.SetFloatAttribute(Name: TmXmlString; Value: Double);
+function TmXmlElement.GetDateTimeAttribute(const aName: TmXmlString; const aDefaultValue: TDateTime): TDateTime;
 begin
-  FImpl._SetFloatAttribute(Name, Value);
+  Result := FImpl._GetDateTimeAttribute(aName, aDefaultValue);
 end;
 
-function TmXmlElement.GetFloatAttribute(Name: TmXmlString): Double;
+procedure TmXmlElement.GetDateTimeAttribute(const aName: TmXmlString; aValue: TNullableDateTime);
 begin
-  Result := FImpl._GetFloatAttribute(Name);
+  if Self.HasAttribute(aName) then
+    aValue.Value:= Self.GetDateTimeAttribute(aName)
+  else
+    aValue.IsNull:= true;
 end;
 
-function TmXmlElement.GetFloatAttribute(Name: TmXmlString; DefaultValue: Double): Double;
+procedure TmXmlElement.SetFloatAttribute(const aName: TmXmlString; const aValue: Double);
 begin
-  Result := FImpl._GetFloatAttribute(Name, DefaultValue);
+  FImpl._SetFloatAttribute(aName, aValue);
 end;
 
-function TmXmlElement.GetIntegerAttribute(Name: TmXmlString): integer;
+procedure TmXmlElement.SetFloatAttribute(const aName: TmXmlString; const aValue: TNullableDouble);
 begin
-  Result := FImpl._GetIntegerAttribute(Name);
+  if aValue.NotNull then
+    Self.SetFloatAttribute(aName, aValue.Value);
 end;
 
-function TmXmlElement.GetIntegerAttribute(Name: TmXmlString; DefaultValue: integer): integer;
+function TmXmlElement.GetFloatAttribute(const aName: TmXmlString): Double;
 begin
-  Result := FImpl._GetIntegerAttribute(Name, DefaultValue)
+  Result := FImpl._GetFloatAttribute(aName);
+end;
+
+function TmXmlElement.GetFloatAttribute(const aName: TmXmlString; const aDefaultValue: Double): Double;
+begin
+  Result := FImpl._GetFloatAttribute(aName, aDefaultValue);
+end;
+
+procedure TmXmlElement.GetFloatAttribute(const aName: TmXmlString; aValue: TNullableDouble);
+begin
+  if Self.HasAttribute(aName) then
+    aValue.Value := Self.GetFloatAttribute(aName)
+  else
+    aValue.IsNull:= true;
+end;
+
+function TmXmlElement.GetIntegerAttribute(const aName: TmXmlString): integer;
+begin
+  Result := FImpl._GetIntegerAttribute(aName);
+end;
+
+function TmXmlElement.GetIntegerAttribute(const aName: TmXmlString; const aDefaultValue: integer): integer;
+begin
+  Result := FImpl._GetIntegerAttribute(aName, aDefaultValue)
+end;
+
+procedure TmXmlElement.GetIntegerAttribute(const aName: TmXmlString; aValue: TNullableInteger);
+begin
+  if Self.HasAttribute(aName) then
+    aValue.Value:= Self.GetIntegerAttribute(aName)
+  else
+    aValue.IsNull:= true;
 end;
 
 procedure TmXmlElement.SetBooleanAttribute(Name: TmXmlString; Value: Boolean);
@@ -224,9 +270,9 @@ begin
   Result := StrToBool(Self.GetAttribute(Name, BoolToStr(DefaultValue, true)));
 end;
 
-function TmXmlElement.GetAttribute(Name: TmXmlString): TmXmlString;
+function TmXmlElement.GetAttribute(const aName: TmXmlString): TmXmlString;
 begin
-  Result := FImpl._GetAttribute(Name);
+  Result := FImpl._GetAttribute(aName);
 end;
 
 function TmXmlElement.HasAttribute(const Name: TmXMLString): boolean;
@@ -235,19 +281,37 @@ begin
 end;
 
 
-procedure TmXmlElement.SetAttribute(Name, Value: TmXmlString);
+procedure TmXmlElement.SetAttribute(aName, aValue: TmXmlString);
 begin
-  FImpl._SetAttribute(Name, Value)
+  FImpl._SetAttribute(aName, aValue);
 end;
 
-procedure TmXmlElement.SetDateTimeAttribute(Name: TmXmlString; Value: TDateTime);
+procedure TmXmlElement.SetAttribute(aName: TmXmlString; const aValue: TNullableString);
 begin
-  FImpl._SetDateTimeAttribute(Name, Value);
+  if aValue.NotNull then
+    Self.SetAttribute(aName, aValue.Value);
 end;
 
-procedure TmXmlElement.SetIntegerAttribute(Name: TmXmlString; Value: integer);
+procedure TmXmlElement.SetDateTimeAttribute(const aName: TmXmlString; const aValue: TDateTime);
 begin
-  FImpl._SetIntegerAttribute(Name, Value);
+  FImpl._SetDateTimeAttribute(aName, aValue);
+end;
+
+procedure TmXmlElement.SetDateTimeAttribute(const aName: TmXmlString; const aValue: TNullableDateTime);
+begin
+  if aValue.NotNull then
+    Self.SetDateTimeAttribute(aName, aValue.Value);
+end;
+
+procedure TmXmlElement.SetIntegerAttribute(const aName: TmXmlString; const aValue: integer);
+begin
+  FImpl._SetIntegerAttribute(aName, aValue);
+end;
+
+procedure TmXmlElement.SetIntegerAttribute(const aName: TmXmlString; const aValue: TNullableInteger);
+begin
+  if aValue.NotNull  then
+    Self.SetIntegerAttribute(aName, aValue.Value);
 end;
 
 { TmXmlDocument }
