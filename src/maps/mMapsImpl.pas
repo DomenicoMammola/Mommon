@@ -19,11 +19,12 @@ type
   TmStringDictionaryImpl = class
   public
     constructor Create; virtual; abstract;
-    procedure _Add(const aStringKey : String; aObject : TObject); virtual; abstract;
+    procedure _Add(const aStringKey: String; aObject: TObject); virtual; abstract;
     procedure _Clear; virtual; abstract;
-    function _Find(const aStringKey : String) : TObject; virtual; abstract;
-    function _Count : integer; virtual; abstract;
-    procedure _Remove(const aStringKey : String); virtual; abstract;
+    function _Find(const aStringKey: String): TObject; virtual; abstract;
+    function _Contains(const aStringKey: String): boolean; virtual; abstract;
+    function _Count: integer; virtual; abstract;
+    procedure _Remove(const aStringKey: String); virtual; abstract;
   end;
 
   { TmIntegerDictionaryImpl }
@@ -45,22 +46,26 @@ type
 implementation
 
 uses
+  mMapsImplFastString
   {$IFDEF FPC}
-  mMapsImplFPC
+  ,mMapsImplFPC
   {$ELSE}
-  SysUtils,
-  mMapsImplDelphi
+  ,SysUtils
+  ,mMapsImplDelphi
   {$ENDIF}
   ;
 
 
 function CreateTmStringDictionary: TmStringDictionaryImpl;
 begin
+  Result := TmStringDictionaryImplFast.Create;
+(*
   {$IFDEF FPC}
     Result := TmStringDictionaryImplFPC.Create;
   {$ELSE}
     Result := TmStringDictionaryImplDelphi.Create;
   {$ENDIF}
+*)
 end;
 
 function CreateTmIntegerDictionary : TmIntegerDictionaryImpl;

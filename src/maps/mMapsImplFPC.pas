@@ -33,6 +33,7 @@ type
     procedure _Add(const aStringKey : String; aObject : TObject); override;
     procedure _Clear; override;
     function _Find(const aStringKey : String) : TObject; override;
+    function _Contains(const aStringKey: String): boolean; override;
     function _Count: integer; override;
     procedure _Remove(const aStringKey : String); override;
   end;
@@ -134,6 +135,11 @@ begin
     Result := FInternalDictionary.Data[tmpIndex]
   else
     Result := nil;
+end;
+
+function TmStringDictionaryImplFPC._Contains(const aStringKey: String): boolean;
+begin
+  Result := Assigned(_Find(aStringKey));
 end;
 
 function TmStringDictionaryImplFPC._Count: integer;

@@ -26,9 +26,10 @@ type
       constructor Create();
       destructor Destroy; override;
 
-      procedure Add(const aStringKey : String; aObject : TObject);
-      function Find(const aStringKey : String) : TObject;
-      procedure Remove (const aStringKey : String);
+      procedure Add(const aStringKey: String; aObject: TObject);
+      function Find(const aStringKey: String): TObject;
+      function Contains(const aStringKey: String): boolean;
+      procedure Remove (const aStringKey: String);
       procedure Clear;
       function Count : integer;
   end;
@@ -48,9 +49,6 @@ type
       procedure Clear;
       function Count : integer;
   end;
-
-
-
 
 implementation
 
@@ -94,7 +92,7 @@ end;
 
 { TmStringDictionary }
 
-constructor TmStringDictionary.Create;
+constructor TmStringDictionary.Create();
 begin
   FImpl := CreateTmStringDictionary;
 end;
@@ -112,7 +110,12 @@ end;
 
 function TmStringDictionary.Find(const aStringKey: String): TObject;
 begin
-  Result := FImpl._Find(aStringKey);
+  Result:= FImpl._Find(aStringKey);
+end;
+
+function TmStringDictionary.Contains(const aStringKey: String): boolean;
+begin
+  Result:= FImpl._Contains(aStringKey);
 end;
 
 procedure TmStringDictionary.Remove(const aStringKey: String);
