@@ -746,7 +746,7 @@ begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
-    Self.Value:= aSourceField.AsString;
+    Self.Assign(aSourceField.AsString);
 end;
 
 procedure TNullableString.Assign(const aValue: String);
