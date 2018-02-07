@@ -27,8 +27,9 @@ type
 
   TAbstractNullable = class abstract
   protected
-    FIsNull : Boolean;
-    function GetNotNull : Boolean;
+    FTagChanged: Boolean;
+    FIsNull: Boolean;
+    function GetNotNull: Boolean;
   public
     constructor Create(); virtual;
     function AsVariant: Variant; virtual; abstract;
@@ -36,8 +37,11 @@ type
     procedure Assign (const aValue : String); overload; virtual; abstract;
     procedure Assign(const aValue: variant); overload; virtual; abstract;
 
-    property IsNull : Boolean read FIsNull write FIsNull;
-    property NotNull : Boolean read GetNotNull;
+    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; virtual; abstract;
+
+    property IsNull: Boolean read FIsNull write FIsNull;
+    property NotNull: Boolean read GetNotNull;
+    property TagChanged: Boolean read FTagChanged;
   end;
 
   { TNullableString }
@@ -56,7 +60,7 @@ type
     procedure Assign(const aValue : String); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
     procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
-    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
+    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
     procedure Trim();
     procedure ChangeToBlankIfNull;
@@ -124,7 +128,7 @@ type
       procedure Assign (const aValue: Variant); override; overload;
       procedure Assign (const aValue: String); override; overload;
       function AsVariant: Variant; override;
-      function CheckIfDifferentAndAssign(const aValue: Variant): boolean;
+      function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
 
       class function StringToVariant(const aValue : String): Variant;
       class function VariantToString(const aValue: Variant; const aShowTime: boolean): String;
@@ -156,7 +160,7 @@ type
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant; const aDigits : byte): String;
 
-    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
+    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
 
     function AsString : String;
     function AsFloat : Double;
@@ -180,6 +184,8 @@ type
     procedure Assign(aSourceField : TField); override; overload;
     procedure Assign (const aValue : Variant); override; overload;
     procedure Assign (const aValue : string); override; overload;
+
+    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
 
     class function StringToVariant(const aValue: String): Variant;
@@ -204,7 +210,7 @@ type
     procedure Assign(const aValue : String); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
 
-    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
+    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant : Variant; override;
     function AsString : String;
 
@@ -229,6 +235,7 @@ type
     procedure Assign(aSourceField: TField); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
     procedure Assign(const aValue : String); override; overload;
+    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant : Variant; override;
     function AsString : String;
 
@@ -487,6 +494,7 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+  FTagChanged:= false;
 end;
 
 procedure TNullableColor.Assign(aSourceField: TField);
@@ -495,6 +503,7 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= StringToColor(aSourceField.AsString);
+  FTagChanged:= false;
 end;
 
 procedure TNullableColor.Assign(const aValue: Variant);
@@ -503,6 +512,7 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= StringToColor(VarToStr(aValue));
+  FTagChanged:= false;
 end;
 
 procedure TNullableColor.Assign(const aValue: String);
@@ -511,6 +521,29 @@ var
 begin
   tmp := aValue;
   Self.Assign(tmp);
+  FTagChanged:= false;
+end;
+
+function TNullableColor.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
+var
+  tmpValue : TColor;
+begin
+  if VarIsNull(aValue) then
+  begin
+    Result:= Self.NotNull;
+    Self.IsNull:= true
+  end
+  else
+  begin
+    tmpValue:= StringToColor(VarToStr(aValue));
+    if Self.IsNull then
+      Result:= true
+    else
+      Result:= tmpValue <> FValue;
+    if Result then
+      Self.Value:= tmpValue;
+  end;
+  Self.FTagChanged:= Result;
 end;
 
 function TNullableColor.AsVariant: Variant;
@@ -559,6 +592,7 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+  FTagChanged:= false;
 end;
 
 procedure TNullableInteger.Assign(aSourceField: TField);
@@ -567,6 +601,7 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsInteger;
+  FTagChanged:= false;
 end;
 
 procedure TNullableInteger.Assign(const aValue: String);
@@ -577,6 +612,7 @@ end;
 procedure TNullableInteger.Assign(const aValue: Variant);
 begin
   CheckIfDifferentAndAssign(aValue);
+  FTagChanged:= false;
 end;
 
 function TNullableInteger.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
@@ -598,6 +634,7 @@ begin
     if Result then
       Self.Value:= tmpInt;
   end;
+  Self.FTagChanged:= Result;
 end;
 
 function TNullableInteger.AsVariant: Variant;
@@ -659,6 +696,7 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+  FTagChanged:= false;
 end;
 
 procedure TNullableBoolean.Assign(aSourceField: TField);
@@ -667,6 +705,7 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsBoolean;
+  FTagChanged:= false;
 end;
 
 procedure TNullableBoolean.Assign(const aValue: Variant);
@@ -675,6 +714,7 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aValue;
+  FTagChanged:= false;
 end;
 
 procedure TNullableBoolean.Assign(const aValue: string);
@@ -688,6 +728,28 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+function TNullableBoolean.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
+var
+  tmpBool : boolean;
+begin
+  if VarIsNull(aValue) then
+  begin
+    Result := Self.NotNull;
+    Self.IsNull:= true;
+  end
+  else
+  begin
+    tmpBool := aValue;
+    if Self.IsNull then
+      Result := true
+    else
+      Result := tmpBool <> Self.Value;
+    if Result then
+      Self.Value:= tmpBool;
+  end;
+  Self.FTagChanged:= Result;
 end;
 
 class function TNullableBoolean.StringToVariant(const aValue: String): Variant;
@@ -739,6 +801,7 @@ begin
     Self.Value:= aSource.Value
   else
     Self.IsNull:= true;
+  FTagChanged:= false;
 end;
 
 procedure TNullableString.Assign(aSourceField: TField);
@@ -747,6 +810,7 @@ begin
     Self.IsNull:= true
   else
     Self.Assign(aSourceField.AsString);
+  FTagChanged:= false;
 end;
 
 procedure TNullableString.Assign(const aValue: String);
@@ -757,6 +821,7 @@ end;
 procedure TNullableString.Assign(const aValue: Variant);
 begin
   CheckIfDifferentAndAssign(aValue);
+  FTagChanged:= false;
 end;
 
 procedure TNullableString.Assign(const aValue: String; const aAllowBlankValue: boolean);
@@ -764,6 +829,7 @@ begin
   Self.Assign(aValue);
   if aAllowBlankValue then
     Self.ChangeToBlankIfNull;
+  FTagChanged:= false;
 end;
 
 function TNullableString.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
@@ -782,6 +848,7 @@ begin
     if Result then
       Self.Value:= aValue;
   end;
+  Self.FTagChanged:= Result;
 end;
 
 function TNullableString.AsVariant: Variant;
@@ -869,6 +936,7 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+  FTagChanged:= false;
 end;
 
 procedure TNullableDouble.Assign(aSourceField: TField);
@@ -877,11 +945,13 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsFloat;
+  FTagChanged:= false;
 end;
 
 procedure TNullableDouble.Assign(const aValue: Variant);
 begin
   CheckIfDifferentAndAssign(aValue);
+  FTagChanged:= false;
 end;
 
 procedure TNullableDouble.Assign(const aValue: String);
@@ -945,6 +1015,7 @@ begin
     if Result then
       Self.Value:= tmpDouble;
   end;
+  Self.FTagChanged:= Result;
 end;
 
 function TNullableDouble.AsString: String;
@@ -1049,6 +1120,7 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+  FTagChanged:= false;
 end;
 
 procedure TNullableDateTime.Assign(aSourceField: TField);
@@ -1057,11 +1129,13 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsDateTime;
+  FTagChanged:= false;
 end;
 
 procedure TNullableDateTime.Assign(const aValue: Variant);
 begin
   Self.CheckIfDifferentAndAssign(aValue);
+  FTagChanged:= false;
 end;
 
 procedure TNullableDateTime.Assign(const aValue: String);
@@ -1096,6 +1170,7 @@ begin
     if Result then
       Self.Value:= tmpDate;
   end;
+  Self.FTagChanged:= Result;
 end;
 
 class function TNullableDateTime.StringToVariant(const aValue: String): Variant;
@@ -1140,7 +1215,8 @@ end;
 
 constructor TAbstractNullable.Create;
 begin
-  FIsNull := true;
+  FIsNull:= true;
+  FTagChanged:= false;
 end;
 
 { TNullableUnicodeString }
