@@ -19,6 +19,15 @@ interface
 uses
   mMathUtility;
 
+resourcestring
+  SErrorWrongLength = 'Wrong length. Must be 11 characters.';
+  SErrorWrongOwnerCode = 'Owner code must be composed by 3 letters.';
+  SErrorWrongCategoryIdentifier ='Wrong category identifier. Must be U or J or Z.';
+  SErrorWrongSerialNumber = 'Only digits are allowed in serial number.';
+  SErrorCheckDigitNotANumber = 'Check digit is not a digit.';
+  SErrorWrongCheckDigit = 'Wrong check digit. It should be: ';
+
+
 // http://www.gvct.co.uk/2011/09/how-is-the-check-digit-of-a-container-calculated/
 // https://en.wikipedia.org/wiki/ISO_6346
 // https://www.bic-code.org/bic-codes/
@@ -73,7 +82,7 @@ begin
 
   if not (Length(aContainerCode) = 11) then
   begin
-    aErrorMessage:= 'Wrong length. Must be 11 characters.';
+    aErrorMessage:= SErrorWrongLength;
     exit;
   end;
 
@@ -82,7 +91,7 @@ begin
   begin
     if (OwnerCode[i] <= 'A') or (OwnerCode[i] >= 'Z') then
     begin
-      aErrorMessage:= 'Owner code must be composed by 3 letters.';
+      aErrorMessage:= SErrorWrongOwnerCode;
       exit;
     end;
   end;
@@ -90,28 +99,28 @@ begin
   CategoryIdentifier:= Copy(aContainerCode, 4, 1);
   if (CategoryIdentifier <> 'U') and (CategoryIdentifier <> 'J') and (CategoryIdentifier <> 'Z') then
   begin
-    aErrorMessage:= 'Wrong category identifier. Must be U or J or Z.';
+    aErrorMessage:= SErrorWrongCategoryIdentifier;
     exit;
   end;
 
   SerialNumberStr:= Copy(aContainerCode, 5, 6);
   if not IsNumeric(SerialNumberStr, false) then
   begin
-    aErrorMessage:= 'Only digits are allowed in serial number.';
+    aErrorMessage:= SErrorWrongSerialNumber;
     exit;
   end;
 
   CheckDigitStr:= Copy(aContainerCode, 11, 1);
   if not IsNumeric(CheckDigitStr, false) then
   begin
-    aErrorMessage:= 'Check digit is not a digit.';
+    aErrorMessage:= SErrorCheckDigitNotANumber;
     exit;
   end;
 
   GoodCheckDigit:= CalculateContainerCheckDigit(aContainerCode);
   if StrToInt(CheckDigitStr) <> GoodCheckDigit then
   begin
-    aErrorMessage:= 'Wrong check digit. It should be ' + IntToStr(GoodCheckDigit) + '.';
+    aErrorMessage:= SErrorWrongCheckDigit + IntToStr(GoodCheckDigit) + '.';
     exit;
   end;
 
