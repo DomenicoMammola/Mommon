@@ -307,7 +307,9 @@ end;
 
 procedure TImpl_oxml_mXmlDocument._LoadFromFile(FileName: string);
 begin
-  FXML.LoadFromFile(FileName);
+  if not FXML.LoadFromFile(FileName) then
+    FXML.GetParseError.RaiseException;
+
   if Assigned(FRootElement) then
     FRootElement.Free;
   FRootElement := nil;
