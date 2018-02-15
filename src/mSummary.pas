@@ -199,7 +199,13 @@ begin
     Result := FIntegerValue.AsString
   else
   case FDefinition.FieldType of
-    ftInteger, ftLargeint: Result := FIntegerValue.AsString;
+    ftInteger, ftLargeint:
+    begin
+      if FIntegerValue.IsNull then
+        Result := '-'
+      else
+        Result := FormatFloat('#,##0', FIntegerValue.Value);
+    end;
     ftFloat,ftDateTime, ftDate, ftTime, ftTimeStamp:
     begin
       if FDoubleValue.IsNull then
@@ -207,7 +213,7 @@ begin
       else
       begin
         if FDefinition.FieldType = ftFloat then
-          Result := FloatToStr(RoundDoubleToStandardPrecision(FDoubleValue.Value))
+          Result := FormatFloat('#,##0.0000', RoundDoubleToStandardPrecision(FDoubleValue.Value))
         else if FDefinition.FieldType = ftDate then
           Result := DateToStr(Round(FDoubleValue.Value))
         else if FDefinition.FieldType = ftTime then
