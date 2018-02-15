@@ -164,6 +164,7 @@ type
 
     function AsString : String;
     function AsFloat : Double;
+    function AsFormattedString (aFormat: String): String;
 
     property Value : Double read GetValue write SetValue;
     property Digits : byte read FDigits write SetDigits;
@@ -211,8 +212,9 @@ type
     procedure Assign(const aValue : Variant); override; overload;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
-    function AsVariant : Variant; override;
-    function AsString : String;
+    function AsVariant: Variant; override;
+    function AsString: String;
+    function AsFormattedString (aFormat: String): String;
 
     class function StringToVariant(const aValue : String) : Variant;
     class function VariantToString(const aValue : Variant) : String;
@@ -650,6 +652,14 @@ begin
   Result := TNullableInteger.VariantToString(Self.AsVariant);
 end;
 
+function TNullableInteger.AsFormattedString(aFormat: String): String;
+begin
+  if Self.IsNull then
+    Result := ''
+  else
+    Result := FormatFloat(aFormat, Self.Value);
+end;
+
 class function TNullableInteger.StringToVariant(const aValue: String): Variant;
 begin
   if IsNumeric(aValue, false) then
@@ -1029,6 +1039,14 @@ begin
     Result := 0
   else
     Result := Self.Value;
+end;
+
+function TNullableDouble.AsFormattedString(aFormat: String): String;
+begin
+  if Self.IsNull then
+    Result := ''
+  else
+    Result := FormatFloat(aFormat, Self.Value);
 end;
 
 { TNullableAnsiString }
