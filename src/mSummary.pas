@@ -22,11 +22,42 @@ uses
 
 type
 
+  TmSummaryValueType = (svtDouble, svtInteger, svtString, svtDate, svtDateTime);
+
+  { TmSummaryScreenValue }
+
+  TmSummaryScreenValue = class
+  strict private
+    FFormattedValue: string;
+    FRawValue: variant;
+    FDataType: TmSummaryValueType;
+  public
+    constructor Create;
+
+    property FormattedValue: string read FFormattedValue write FFormattedValue;
+    property RawValue: variant read FRawValue write FRawValue;
+    property DataType: TmSummaryValueType read FDataType write FDataType;
+  end;
+
+  { TmSummaryScreenValues }
+
+  TmSummaryScreenValues = class
+  strict private
+    FList : TObjectList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Count: integer;
+    function Get(const aIndex: integer): TmSummaryScreenValue;
+    function Add: TmSummaryScreenValue;
+    procedure Clear;
+  end;
+
   ISummaryPanel = interface
     ['{27724709-FC36-4A12-B154-B92F566F0E94}']
     procedure Hide;
     procedure Show;
-    procedure SetSummaryValues (aList : TStringList);
+    procedure SetSummaryValues (aScreenValues: TmSummaryScreenValues);
   end;
 
   TmSummaryOperator = (soCount, soSum, soMax, soMin);
@@ -79,7 +110,9 @@ type
 
     FDefinition : TmSummaryDefinition;
 
+    function GetDataType: TmSummaryValueType;
     function GetValueAsString: string;
+    function GetValueAsVariant: variant;
     procedure Init;
   public
     constructor Create;
@@ -88,7 +121,9 @@ type
     procedure ComputeDatumInSummaries (const aDatum : IVDDatum);
 
     property Definition : TmSummaryDefinition read FDefinition;
-    property ValueAsString : string read GetValueAsString;
+    property ValueAsString: string read GetValueAsString;
+    property ValueAsVariant: variant read GetValueAsVariant;
+    property DataType: TmSummaryValueType read GetDataType;
   end;
 
   { TmSummaryValues }
@@ -121,6 +156,48 @@ begin
     soMax : Result := 'Max';
     soMin : Result := 'Min';
   end;
+end;
+
+{ TmSummaryScreenValues }
+
+constructor TmSummaryScreenValues.Create;
+begin
+  FList:= TObjectList.Create(true);
+end;
+
+destructor TmSummaryScreenValues.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+function TmSummaryScreenValues.Count: integer;
+begin
+  Result:= FList.Count;
+end;
+
+function TmSummaryScreenValues.Get(const aIndex: integer): TmSummaryScreenValue;
+begin
+  Result:= FList.Items[aIndex] as TmSummaryScreenValue;
+end;
+
+function TmSummaryScreenValues.Add: TmSummaryScreenValue;
+begin
+  Result:= TmSummaryScreenValue.Create;
+  FList.Add(Result);
+end;
+
+procedure TmSummaryScreenValues.Clear;
+begin
+  Flist.Clear;
+end;
+
+{ TmSummaryScreenValue }
+
+constructor TmSummaryScreenValue.Create;
+begin
+  FFormattedValue:= '';
+  FRawValue:= null;
 end;
 
 { TmSummaryDefinition }
@@ -223,6 +300,29 @@ begin
       end;
     end;
     ftString, ftGuid: Result := FStringValue.AsString;
+  end;
+end;
+
+function TmSummaryValue.GetDataType: TmSummaryValueType;
+begin
+  case FDefinition.FieldType of
+    ftInteger, ftLargeint: Result:= svtInteger;
+    ftFloat: Result:= svtDouble;
+    ftDateTime, ftTime, ftTimeStamp: Result:= svtDateTime;
+    ftDate: Result:= svtDate;
+    else
+      Result:= svtString;
+  end;
+end;
+
+function TmSummaryValue.GetValueAsVariant: variant;
+begin
+  case FDefinition.FieldType of
+    ftInteger, ftLargeint: Result := FIntegerValue.AsVariant;
+    ftFloat,ftDateTime, ftDate, ftTime, ftTimeStamp: Result := FDoubleValue.AsVariant;
+    ftString, ftGuid: Result := FStringValue.AsVariant;
+    else
+      Result := Null
   end;
 end;
 
