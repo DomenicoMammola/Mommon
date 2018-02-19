@@ -30,13 +30,17 @@ type
     procedure ClearSort;
   end;
 
+  { IFilterDatasetManager }
+
   IFilterDatasetManager = interface
     ['{6BCEF289-FCB4-4EFE-B594-8D08DBC1B09A}']
     procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
-    function Filter : boolean;
+    function DoFilter : boolean;
     function GetFiltered : boolean;
     function GetFilters : TmFilters;
-    procedure ClearFilter;
+    procedure RemoveFilterForField(const aFieldName: string);
+    procedure RemoveFilterForFields(const aFieldNames: TStrings);
+    procedure RemoveFilter;
   end;
 
   ISummaryDatasetManager = interface

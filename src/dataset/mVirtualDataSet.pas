@@ -433,10 +433,12 @@ type
     FVirtualDataset : TmCustomVirtualDataset;
   public
     procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
-    function Filter : boolean;
+    function DoFilter : boolean;
     function GetFiltered : boolean;
     function GetFilters : TmFilters;
-    procedure ClearFilter;
+    procedure RemoveFilter;
+    procedure RemoveFilterForField (const aFieldName: string);
+    procedure RemoveFilterForFields(const aFieldNames: TStrings);
   end;
 
   { TmVirtualDatasetSummaryManager }
@@ -579,7 +581,7 @@ begin
   FVirtualDataset.DatasetDataProvider.GetUniqueStringValuesForField(aFieldName, aList);
 end;
 
-function TmVirtualDatasetFilterManager.Filter: boolean;
+function TmVirtualDatasetFilterManager.DoFilter: boolean;
 begin
   Result := FVirtualDataset.DoFilter;
 end;
@@ -594,9 +596,24 @@ begin
   Result := FVirtualDataset.DatasetDataProvider.FilterConditions;
 end;
 
-procedure TmVirtualDatasetFilterManager.ClearFilter;
+procedure TmVirtualDatasetFilterManager.RemoveFilter;
 begin
   FVirtualDataset.ClearFilter;
+end;
+
+procedure TmVirtualDatasetFilterManager.RemoveFilterForField(const aFieldName: string);
+begin
+  FVirtualDataset.DatasetDataProvider.FilterConditions.ClearForField(aFieldName);
+  FVirtualDataset.DoFilter;
+end;
+
+procedure TmVirtualDatasetFilterManager.RemoveFilterForFields(const aFieldNames: TStrings);
+var
+  i: integer;
+begin
+  for i := 0 to aFieldNames.Count - 1 do
+    FVirtualDataset.DatasetDataProvider.FilterConditions.ClearForField(aFieldNames[i]);
+  FVirtualDataset.DoFilter;
 end;
 
 { TmVirtualDatasetSortableManager }
