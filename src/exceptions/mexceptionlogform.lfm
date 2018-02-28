@@ -1,0 +1,64 @@
+object ExceptionLogForm: TExceptionLogForm
+  Left = 554
+  Height = 434
+  Top = 295
+  Width = 496
+  BorderIcons = []
+  BorderStyle = bsDialog
+  ClientHeight = 434
+  ClientWidth = 496
+  OnHide = FormHide
+  OnShow = FormShow
+  Position = poMainFormCenter
+  LCLVersion = '1.8.0.6'
+  object PanelBottom: TPanel
+    Left = 0
+    Height = 82
+    Top = 352
+    Width = 496
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 82
+    ClientWidth = 496
+    TabOrder = 0
+    object BtnCancel: TButton
+      Left = 112
+      Height = 25
+      Top = 48
+      Width = 174
+      Anchors = [akTop, akRight]
+      Caption = 'Return to application'
+      OnClick = BtnCancelClick
+      TabOrder = 0
+    end
+    object CBSendByMail: TCheckBox
+      Left = 10
+      Height = 19
+      Top = 10
+      Width = 137
+      Caption = 'Send trace log by mail'
+      Enabled = False
+      TabOrder = 1
+    end
+    object BtnHalt: TButton
+      Left = 312
+      Height = 25
+      Top = 48
+      Width = 174
+      Anchors = [akTop, akRight]
+      Caption = 'Close application'
+      OnClick = BtnHaltClick
+      TabOrder = 2
+    end
+  end
+  object MemoReport: TMemo
+    Left = 0
+    Height = 352
+    Top = 0
+    Width = 496
+    Align = alClient
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 1
+  end
+end
