@@ -84,6 +84,9 @@ procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
 // http://forum.codecall.net/topic/69184-solved-file-association-and-the-registry/
 function RegisterDefaultApplication(const aFullPathExe : string; const aFileExtension : string; var aError : string): boolean;
 
+// http://stackoverflow.com/questions/1285979/delphi-function-to-display-number-of-bytes-as-windows-does
+// http://forum.lazarus.freepascal.org/index.php?topic=13705.0
+function BytesToHumanReadableString(const bytes: UInt64): string;
 
 implementation
 
@@ -1094,6 +1097,39 @@ begin
     if Result[lg] = '}' then
       Result := Copy(Result, 1, lg -1);
   end;
+end;
+
+// This function converts the integer value of file size into human readable form
+// Taken from:
+// http://stackoverflow.com/questions/1285979/delphi-function-to-display-number-of-bytes-as-windows-does
+// http://forum.lazarus.freepascal.org/index.php?topic=13705.0
+function BytesToHumanReadableString(const bytes: UInt64): string;
+var
+  B: byte;
+  KB: word;
+  MB: QWord;
+  GB: QWord;
+  TB: UInt64;
+begin
+  B  := 1; //byte
+  KB := 1024 * B; //kilobyte
+  MB := 1024 * KB; //megabyte
+  GB := 1024 * MB; //gigabyte
+  TB := 1024 * GB; //terabyte
+
+  if bytes > TB then
+    result := FormatFloat('#.## TB', bytes / TB)
+  else
+    if bytes > GB then
+      result := FormatFloat('#.## GB', bytes / GB)
+    else
+      if bytes > MB then
+        result := FormatFloat('#.## MB', bytes / MB)
+      else
+        if bytes > KB then
+          result := FormatFloat('#.## KB', bytes / KB)
+        else
+          result := FormatFloat('#.## bytes', bytes) ;
 end;
 
 
