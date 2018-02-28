@@ -118,7 +118,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure ComputeDatumInSummaries (const aDatum : IVDDatum);
+    procedure ComputeValueInSummaries (const aValue: Variant);
 
     property Definition : TmSummaryDefinition read FDefinition;
     property ValueAsString: string read GetValueAsString;
@@ -343,28 +343,26 @@ begin
   inherited Destroy;
 end;
 
-procedure TmSummaryValue.ComputeDatumInSummaries(const aDatum: IVDDatum);
+procedure TmSummaryValue.ComputeValueInSummaries(const aValue: Variant);
 var
-  tmpValue : Variant;
   tmpInt : integer;
   tmpString : string;
   tmpDouble : double;
 begin
-  tmpValue := aDatum.GetPropertyByFieldName(FDefinition.FieldName);
   case FDefinition.SummaryOperator of
     soCount:
       begin
-        if not VarIsNull (tmpValue) then
+        if not VarIsNull (aValue) then
           FIntegerValue.Value := FIntegerValue.Value + 1;
       end;
     soSum:
       begin
-        if not VarIsNull(tmpValue) then
+        if not VarIsNull(aValue) then
         begin
           case FDefinition.FieldType of
             ftInteger, ftLargeint:
               begin
-                tmpInt:= tmpValue;
+                tmpInt:= aValue;
                 if FIntegerValue.IsNull then
                   FIntegerValue.Value := tmpInt
                 else
@@ -372,7 +370,7 @@ begin
               end;
             ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
               begin
-                tmpDouble:= RoundDoubleToStandardPrecision(tmpValue);
+                tmpDouble:= RoundDoubleToStandardPrecision(aValue);
                 if FDoubleValue.IsNull then
                   FDoubleValue.Value := tmpDouble
                 else
@@ -383,12 +381,12 @@ begin
       end;
     soMax:
       begin
-        if not VarIsNull(tmpValue) then
+        if not VarIsNull(aValue) then
         begin
           case FDefinition.FieldType of
             ftInteger, ftLargeint:
               begin
-                tmpInt:= tmpValue;
+                tmpInt:= aValue;
                 if FIntegerValue.IsNull then
                   FIntegerValue.Value := tmpInt
                 else
@@ -397,7 +395,7 @@ begin
               end;
             ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
               begin
-                tmpDouble:= RoundDoubleToStandardPrecision(tmpValue);
+                tmpDouble:= RoundDoubleToStandardPrecision(aValue);
                 if FDoubleValue.IsNull then
                   FDoubleValue.Value := tmpDouble
                 else
@@ -406,7 +404,7 @@ begin
               end;
             ftString, ftGuid:
               begin
-                tmpString := VarToStr(tmpValue);
+                tmpString := VarToStr(aValue);
                 if FStringValue.IsNull then
                   FStringValue.Value := tmpString
                 else
@@ -418,12 +416,12 @@ begin
       end;
     soMin:
       begin
-        if not VarIsNull(tmpValue) then
+        if not VarIsNull(aValue) then
         begin
           case FDefinition.FieldType of
             ftInteger, ftLargeint:
               begin
-                tmpInt:= tmpValue;
+                tmpInt:= aValue;
                 if FIntegerValue.IsNull then
                   FIntegerValue.Value := tmpInt
                 else
@@ -432,7 +430,7 @@ begin
               end;
             ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
               begin
-                tmpDouble:= RoundDoubleToStandardPrecision(tmpValue);
+                tmpDouble:= RoundDoubleToStandardPrecision(aValue);
                 if FDoubleValue.IsNull then
                   FDoubleValue.Value := tmpDouble
                 else
@@ -441,7 +439,7 @@ begin
               end;
             ftString, ftGuid:
               begin
-                tmpString := VarToStr(tmpValue);
+                tmpString := VarToStr(aValue);
                 if FStringValue.IsNull then
                   FStringValue.Value := tmpString
                 else

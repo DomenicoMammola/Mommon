@@ -374,10 +374,12 @@ procedure TReadOnlyVirtualDatasetProvider.CalculateSummaries;
   procedure AddDatumToSummaries (const aDatum : IVDDatum);
   var
     i : integer;
+    tmpValue: Variant;
   begin
     for i := 0 to SummaryValues.Count -1 do
     begin
-      SummaryValues.Get(i).ComputeDatumInSummaries(aDatum);
+      GetFieldValueFromDatum(aDatum, SummaryValues.Get(i).Definition.FieldName, tmpValue);
+      SummaryValues.Get(i).ComputeValueInSummaries(tmpValue);
     end;
   end;
 var
