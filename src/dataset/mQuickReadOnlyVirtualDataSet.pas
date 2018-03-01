@@ -371,37 +371,21 @@ begin
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.CalculateSummaries;
-  procedure AddDatumToSummaries (const aDatum : IVDDatum);
-  var
-    i : integer;
-    tmpValue: Variant;
-  begin
-    for i := 0 to SummaryValues.Count -1 do
-    begin
-      GetFieldValueFromDatum(aDatum, SummaryValues.Get(i).Definition.FieldName, tmpValue);
-      SummaryValues.Get(i).ComputeValueInSummaries(tmpValue);
-    end;
-  end;
 var
-  i : integer;
+  i, k : integer;
+  tmpValue: Variant;
 begin
   SummaryValues.Clear;
 
   for i := 0 to SummaryDefinitions.Count -1 do
     SummaryValues.AddValue(SummaryDefinitions.Get(i));
 
-  if FFiltered then
+  for i := 0 to Self.GetRecordCount - 1 do
   begin
-    for i:= 0 to FFilteredIndex.Count - 1 do
+    for k := 0 to SummaryValues.Count -1 do
     begin
-      AddDatumToSummaries(FIDataProvider.GetDatum(FFilteredIndex.Items[i]));
-    end;
-  end
-  else
-  begin
-    for i := 0 to FIDataProvider.Count - 1 do
-    begin
-      AddDatumToSummaries(FIDataProvider.GetDatum(i));
+      Self.InternalGetFieldValue(SummaryValues.Get(k).Definition.FieldName, i, tmpValue);
+      SummaryValues.Get(k).ComputeValueInSummaries(tmpValue);
     end;
   end;
 end;
