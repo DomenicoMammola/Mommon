@@ -127,12 +127,14 @@ end;
 
 procedure TmThreadWithProgress.RefreshProgress;
 begin
-  FProgress.OnRefresh(FProgress);
+  if Assigned(FProgress.OnRefresh) then
+    FProgress.OnRefresh(FProgress);
 end;
 
 procedure TmThreadWithProgress.RemoveProgress;
 begin
-  FProgress.OnRemove(FProgress);
+  if Assigned(FProgress.OnRemove) then
+    FProgress.OnRemove(FProgress);
 end;
 
 { TFakeProgressGUI }
@@ -186,7 +188,8 @@ procedure TmAbstractProgress.Notify(const aMessage: string);
 begin
   if FCaption=aMessage then Exit;
   FCaption:=aMessage;
-  FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RefreshProgress);
+  if Assigned(FOwnerThread) then
+    FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RefreshProgress);
 end;
 
 constructor TmAbstractProgress.Create;
@@ -198,7 +201,8 @@ end;
 
 destructor TmAbstractProgress.Destroy;
 begin
-  FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RemoveProgress);
+  if Assigned(FOwnerThread) then
+    FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RemoveProgress);
   inherited Destroy;
 end;
 

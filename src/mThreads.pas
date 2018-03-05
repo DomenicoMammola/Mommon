@@ -380,10 +380,15 @@ begin
   if GetControlThread(Self).Jobs.Count = 0 then
     exit;
 
+  GetControlThread(Self).ParentForm := nil;
+
   {$ifdef lcl}
-  GetControlThread(Self).ParentForm := aParentForm;
-  aParentForm.Cursor := crHourGlass;
-  aParentForm.Enabled:= false;
+  if Assigned(aParentForm) then
+  begin
+    GetControlThread(Self).ParentForm := aParentForm;
+    aParentForm.Cursor := crHourGlass;
+    aParentForm.Enabled:= false;
+  end;
   {$endif}
   GetControlThread(Self).CallBack:= aCallBack;
   FRunning := true;
