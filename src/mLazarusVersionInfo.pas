@@ -4,6 +4,7 @@ Unit mLazarusVersionInfo;
 // Code by Mike Thompson - mike.cornflake@gmail.com
 // http://forum.lazarus.freepascal.org/index.php/topic,13957.msg73542.html#msg73542
 //
+// Modificated by Domenico Mammola
 
 {$mode objfpc}
 
@@ -38,7 +39,7 @@ Interface
 *)
 
 Uses
-  Classes, SysUtils;
+  Classes, SysUtils, versiontypes;
 
 // Surfacing general defines and lookups
 Function GetCompiledDate: String;
@@ -51,8 +52,12 @@ Function GetWidgetSet: String;
 
 // Exposing resource and version info compiled into exe
 Function GetResourceStrings(oStringList : TStringList) : Boolean;
-Function GetFileVersion: String;
+function GetFileVersionAsString: String;
+function GetFileVersion: TFileProductVersion;
 Function GetProductVersion: String;
+
+
+function CompareFileVersion (const aVer1, aVer2: TFileProductVersion): integer;
 
 Const
   WIDGETSET_GTK        = 'GTK widget set';
@@ -67,9 +72,9 @@ Const
 Implementation
 
 Uses
-  resource, versiontypes, versionresource, LCLVersion, InterfaceBase, LCLPlatformDef;
+  resource, versionresource, LCLVersion, InterfaceBase, LCLPlatformDef;
 
-Function GetWidgetSet: String;
+function GetWidgetSet: String;
 Begin
   Case WidgetSet.LCLPlatform Of
     lpGtk:   Result := WIDGETSET_GTK;
@@ -84,17 +89,17 @@ Begin
   End;
 End;
 
-Function GetCompilerInfo: String;
+function GetCompilerInfo: String;
 begin
   Result := 'FPC '+{$I %FPCVERSION%};
 end;
 
-Function GetTargetInfo: String;
+function GetTargetInfo: String;
 Begin
   Result := {$I %FPCTARGETCPU%}+' - '+{$I %FPCTARGETOS%};
 End;
 
-Function GetOS: String;
+function GetOS: String;
 Begin
   Result := {$I %FPCTARGETOS%};
 End;
@@ -104,12 +109,12 @@ begin
   Result := {$I %FPCTARGETCPU%};
 end;
 
-Function GetLCLVersion: String;
+function GetLCLVersion: String;
 Begin
   Result := 'LCL '+lcl_version;
 End;
 
-Function GetCompiledDate: String;
+function GetCompiledDate: String;
 Var
   sDate, sTime: String;
 Begin
@@ -154,7 +159,7 @@ Begin
   End;
 End;
 
-Function GetResourceStrings(oStringList: TStringList): Boolean;
+function GetResourceStrings(oStringList: TStringList): Boolean;
 Var
   i, j : Integer;
   oTable : TVersionStringTable;
@@ -183,7 +188,24 @@ Begin
   Result := Format('%d.%d.%d.%d', [PV[0], PV[1], PV[2], PV[3]]);
 End;
 
-Function GetProductVersion: String;
+function GetFileVersionAsString: String;
+begin
+  CreateInfo;
+
+  If FInfo.BuildInfoAvailable Then
+    Result := ProductVersionToString(FInfo.FixedInfo.FileVersion)
+  Else
+    Result := 'No build information available';
+end;
+
+function GetFileVersion: TFileProductVersion;
+begin
+  CreateInfo;
+
+  Result := FInfo.FixedInfo.FileVersion;
+end;
+
+function GetProductVersion: String;
 Begin
   CreateInfo;
 
@@ -193,15 +215,26 @@ Begin
     Result := 'No build information available';
 End;
 
-Function GetFileVersion: String;
-Begin
-  CreateInfo;
+function CompareFileVersion(const aVer1, aVer2: TFileProductVersion): integer;
+  function CompareWord (const aW1, aW2: Word): integer;
+  begin
+    if aW1 < aW2 then
+      Result := -1
+    else if aW1 > aW2 then
+      Result := +1
+    else
+      Result := 0;
+  end;
+begin
+  Result := CompareWord(aVer1[0], aVer2[0]);
+  if Result = 0 then
+    Result := CompareWord(aVer1[1], aVer2[1]);
+  if Result = 0 then
+    Result := CompareWord(aVer1[2], aVer2[2]);
+  if Result = 0 then
+    Result := CompareWord(aVer1[3], aVer2[3]);
+end;
 
-  If FInfo.BuildInfoAvailable Then
-    Result := ProductVersionToString(FInfo.FixedInfo.FileVersion)
-  Else
-    Result := 'No build information available';
-End;
 
 { TVersionInfo }
 

@@ -97,7 +97,7 @@ begin
   Result := 'Application name: ' + ApplicationName;
   Result := Result + sLineBreak + 'Vendor name: ' + VendorName;
   Result := Result + sLineBreak + 'Product version: ' + GetProductVersion;
-  Result := Result + sLineBreak + 'File version: ' + GetFileVersion;
+  Result := Result + sLineBreak + 'File version: ' + GetFileVersionAsString;
   Result := Result + sLineBreak + 'Target OS: ' +  GetOS;
   Result := Result + sLineBreak + 'Target CPU: ' + GetCPU;
   Result := Result + sLineBreak + 'Date of compilation: ' + GetCompiledDate;
