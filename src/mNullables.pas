@@ -714,7 +714,18 @@ begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
-    Self.Value:= aSourceField.AsBoolean;
+  begin
+    if aSourceField.DataType = ftBoolean then
+      Self.Value:= aSourceField.AsBoolean
+    else if aSourceField.DataType = ftString then
+      Self.Value:= (aSourceField.AsString = 'T') or (aSourceField.AsString = '1') or (aSourceField.AsString = 'Y') or (aSourceField.AsString = 'S')
+    else if aSourceField.DataType = ftInteger then
+      Self.Value:= (aSourceField.AsInteger = 1)
+    else if aSourceField.DataType = ftFixedChar then
+      Self.Value := (aSourceField.AsString = 'T') or (aSourceField.AsString = '1') or (aSourceField.AsString = 'Y') or (aSourceField.AsString = 'S')
+    else
+      raise Exception.Create('TNullableBoolean: cannot assign value from field of type ' + Fieldtypenames[aSourceField.DataType]);
+  end;
   FTagChanged:= false;
 end;
 
