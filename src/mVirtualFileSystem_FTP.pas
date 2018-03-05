@@ -55,9 +55,9 @@ type
     property FileMask : string read FFileMask write FFileMask;
   end;
 
-  { TFTPFlatListFileSystem }
+  { TFTPFoldersListFileSystem }
 
-  TFTPFlatListFileSystem = class (TFTPFileSystemManager)
+  TFTPFoldersListFileSystem = class (TFTPFileSystemManager)
   strict private
     FFTPFolders: TStringList;
   public
@@ -78,21 +78,21 @@ begin
 
 end;
 
-{ TFTPFlatListFileSystem }
+{ TFTPFoldersListFileSystem }
 
-constructor TFTPFlatListFileSystem.Create;
+constructor TFTPFoldersListFileSystem.Create;
 begin
   inherited Create;
   FFTPFolders := TStringList.Create;
 end;
 
-destructor TFTPFlatListFileSystem.Destroy;
+destructor TFTPFoldersListFileSystem.Destroy;
 begin
   FFTPFolders.Free;
   inherited Destroy;
 end;
 
-procedure TFTPFlatListFileSystem.Refresh(const aIsGUIApplication : boolean);
+procedure TFTPFoldersListFileSystem.Refresh(const aIsGUIApplication : boolean);
 var
   FTPClient : TIdFTP;
   i, k : integer;
