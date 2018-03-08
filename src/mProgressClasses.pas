@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, contnrs, math, sysutils,
-  mProgress, mUtility;
+  mProgress, mUtility, mThreadsBaseClasses;
 
 type
 
@@ -25,7 +25,7 @@ type
 
   { TmThreadWithProgress }
 
-  TmThreadWithProgress = class (TThread)
+  TmThreadWithProgress = class (TmThread)
   protected
     FProgress : TmAbstractProgress;
   public
