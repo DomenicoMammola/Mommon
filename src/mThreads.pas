@@ -16,7 +16,7 @@ interface
 uses
   Classes, contnrs, syncobjs, SysUtils,
   {$ifdef lcl}Forms, Controls,{$endif}
-  mUtility, mProgress;
+  mUtility, mProgress, mThreadsBaseClasses;
 
 type
 
@@ -28,6 +28,9 @@ type
     FReturnMessage : String;
     FReturnData : TObject;
     FOwnsData : boolean;
+  private
+    FGotException: boolean;
+    FExceptionMessage : string;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -36,6 +39,8 @@ type
     property ReturnMessage : String read FReturnMessage write FReturnMessage;
     property ReturnData : TObject read FReturnData write FReturnData;
     property OwnsData : boolean read FOwnsData write FOwnsData;
+    property GotException : boolean read FGotException;
+    property ExceptionMessage : string read FExceptionMessage;
   end;
 
   { TJobResults }
@@ -58,11 +63,15 @@ type
   TmJob = class
   strict private
     FDoJobProcedure : TDoJobProcedure;
+    FDescription : String;
+    FTrapExceptions : boolean;
   private
     FJobId : integer;
   public
     property DoJobProcedure : TDoJobProcedure read FDoJobProcedure write FDoJobProcedure;
     property JobId : integer read FJobId;
+    property Description : String read FDescription write FDescription;
+    property TrapExceptions : boolean read FTrapExceptions write FTrapExceptions;
   end;
 
   { TmBatchExecutor }
@@ -96,10 +105,13 @@ type
     FCanDieEvent : TSimpleEvent;
     FJob : TmJob;
     FJobResult : TJobResult;
+    FLastException : Exception;
+    procedure RaiseApplicationOnException;
   public
     constructor Create (aJob : TmJob; aJobResult : TJobResult); reintroduce;
     destructor Destroy; override;
     procedure Execute; override;
+    function GetDebugInfo: string; override;
 
     property CanDieEvent : TSimpleEvent read FCanDieEvent write FCanDieEvent;
     property CanStartEvent : TSimpleEvent read FCanStartEvent;
@@ -108,7 +120,7 @@ type
 
   { TControlThread }
 
-  TControlThread = class (TThread)
+  TControlThread = class (TmThread)
   strict private
     FCanStartEvent : TSimpleEvent;
     FCanDieEvent : TSimpleEvent;
@@ -128,6 +140,8 @@ type
     constructor Create; reintroduce;
     destructor Destroy; override;
     procedure Execute; override;
+    function GetDebugInfo: string; override;
+
     property CanStartEvent : TSimpleEvent read FCanStartEvent;
     property CanDieEvent : TSimpleEvent read FCanDieEvent write FCanDieEvent;
     property Jobs : TObjectList read FJobs;
@@ -190,6 +204,8 @@ begin
   FReturnMessage:= '';
   FReturnData := nil;
   FOwnsData:= false;
+  FGotException:= false;
+  FExceptionMessage:= '';
 end;
 
 destructor TJobResult.Destroy;
@@ -301,7 +317,21 @@ begin
   FCanDieEvent.SetEvent;
 end;
 
+function TControlThread.GetDebugInfo: string;
+begin
+  Result:= 'Control thread';
+end;
+
+
 { TJobThread }
+
+procedure TJobThread.RaiseApplicationOnException;
+begin
+  if Assigned(Application.OnException) then
+    Application.OnException(Self, FLastException)
+  else
+    Application.ShowException(FLastException);
+end;
 
 constructor TJobThread.Create(aJob : TmJob; aJobResult : TJobResult);
 begin
@@ -313,6 +343,7 @@ begin
   FJobResult := aJobResult;
   Self.Priority:= tpNormal;
 end;
+
 
 destructor TJobThread.Destroy;
 begin
@@ -331,12 +362,28 @@ begin
     except
       on e:Exception do
       begin
-        FJobResult.ReturnMessage:= e.Message;
-        Application.ShowException(e);
+        FJobResult.FExceptionMessage:= e.Message;
+        FJobResult.FGotException:= true;
+
+        if not FJob.TrapExceptions then
+        begin
+          if Assigned(Application.OnException) then
+          begin
+            FLastException := e;
+            Synchronize(@RaiseApplicationOnException);
+          end
+          else
+            Application.ShowException(e);
+        end;
       end;
     end;
   end;
   FCanDieEvent.SetEvent;
+end;
+
+function TJobThread.GetDebugInfo: string;
+begin
+  Result:= '[TJobThread] ' + FJob.Description;
 end;
 
 
