@@ -15,7 +15,10 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
-  StdCtrls, LCLIntf, ExtCtrls, windows, contnrs;
+  StdCtrls, LCLIntf, ExtCtrls;
+
+resourcestring
+  SWrongEmailMessage = 'Email is non valid.';
 
 type
 
@@ -24,14 +27,15 @@ type
     BtnCancel: TButton;
     BtnHalt: TButton;
     CBSendByMail: TCheckBox;
+    EditSendToMailAddresses: TEdit;
     MemoReport: TMemo;
     PanelBottom: TPanel;
     procedure BtnCancelClick(Sender: TObject);
     procedure BtnHaltClick(Sender: TObject);
+    procedure CBSendByMailChange(Sender: TObject);
     procedure FormHide(Sender: TObject);
     procedure FormShow(Sender: TObject);
   strict private
-    FSendTraceLogByMail: boolean;
     FUserWantsToShutDown : boolean;
     FReport : String;
     procedure SendReportByMail;
@@ -48,21 +52,24 @@ implementation
 {$R *.lfm}
 
 uses
-  mExceptionLog;
+  mExceptionLog, mUtility, mToast;
 
 { TExceptionLogForm }
 
 procedure TExceptionLogForm.FormShow(Sender: TObject);
 begin
   if ExceptionLogConfiguration.SendTraceLogByMail and (ExceptionLogConfiguration.TraceLogMailDestination <> '') then
-    CBSendByMail.Checked:= true
+  begin
+    CBSendByMail.Checked:= true;
+    EditSendToMailAddresses.Text:= ExceptionLogConfiguration.TraceLogMailDestination;
+  end
   else
     CBSendByMail.Checked:= false;
 end;
 
 procedure TExceptionLogForm.SendReportByMail;
 begin
-  OpenURL('mailto:' + ExceptionLogConfiguration.TraceLogMailDestination + '?subject=Application trace log&body=' + StringReplace(FReport, sLineBreak, '%0D%0A', [rfReplaceAll]));
+  OpenURL('mailto:' + EditSendToMailAddresses.Text + '?subject=Application trace log&body=' + StringReplace(FReport, sLineBreak, '%0D%0A', [rfReplaceAll]));
 end;
 
 procedure TExceptionLogForm.FormHide(Sender: TObject);
@@ -72,9 +79,16 @@ end;
 procedure TExceptionLogForm.BtnCancelClick(Sender: TObject);
 begin
   FUserWantsToShutDown:= false;
-  if ExceptionLogConfiguration.SendTraceLogByMail and (ExceptionLogConfiguration.TraceLogMailDestination <> '') then
-    SendReportByMail;
-  Self.ModalResult:= mrOk;
+  if CBSendByMail.Checked and  (EditSendToMailAddresses.Text <> '') then
+  begin
+    if ValidEmail(EditSendToMailAddresses.Text) then
+    begin
+      SendReportByMail;
+      Self.ModalResult:= mrOk;
+    end
+    else
+      TmToast.ShowText(SWrongEmailMessage);
+  end;
 end;
 
 procedure TExceptionLogForm.BtnHaltClick(Sender: TObject);
@@ -83,6 +97,11 @@ begin
   if ExceptionLogConfiguration.SendTraceLogByMail and (ExceptionLogConfiguration.TraceLogMailDestination <> '') then
     SendReportByMail;
   Self.ModalResult:= mrOk;
+end;
+
+procedure TExceptionLogForm.CBSendByMailChange(Sender: TObject);
+begin
+  EditSendToMailAddresses.Enabled:= (Sender as TCheckBox).Checked;
 end;
 
 constructor TExceptionLogForm.Create(AOwner: TComponent);

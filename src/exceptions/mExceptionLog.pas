@@ -13,7 +13,7 @@ unit mExceptionLog;
 interface
 
 uses
-  SysUtils;
+  Classes, SysUtils;
 
 type
 
@@ -33,7 +33,7 @@ type
 {$IFDEF FPC}
 // credits: procedure DumpExceptionCallStack(E: Exception) in http://wiki.freepascal.org/Logging_exceptions
 // GetSystemMem by ChrisF in http://forum.lazarus.freepascal.org/index.php?topic=30855.0
-procedure DumpExceptionCallStack(E: Exception; var aWantsToShutDown : boolean);
+procedure DumpExceptionCallStack(Sender: TObject; E: Exception; var aWantsToShutDown : boolean);
 {$ENDIF}
 
 
@@ -44,7 +44,7 @@ implementation
 uses
   {$IFDEF WINDOWS}windows,{$ENDIF} Dos,
   mExceptionLogForm,
-  mUtility, mLazarusVersionInfo;
+  mUtility, mLazarusVersionInfo, mThreadsBaseClasses;
 
 {$IFDEF WINDOWS}
 type
@@ -110,6 +110,18 @@ begin
   Result := Result + sLineBreak + 'Current user: ' + GetOSUser;
 end;
 
+function GetSenderInfo(const aSender: TObject): String;
+begin
+  if not Assigned (aSender) then
+    Result := 'Sender object: not assigned'
+  else
+    Result := 'Sender class name: ' + aSender.ClassName;
+  if aSender is TThread then
+    Result := Result + sLineBreak + 'Thread id: ' + IntToStr((aSender as TThread).Handle);
+  if aSender is TmThread then
+    Result := Result + sLineBreak + 'Thread debug name: ' + ((aSender as TThread) as TmThread).GetDebugInfo;
+end;
+
 function GetStackTrace: String;
 var
   I: Integer;
@@ -137,7 +149,7 @@ begin
   Result := s + sLineBreak + aTitle + sLineBreak + s;
 end;
 
-procedure DumpExceptionCallStack(E: Exception; var aWantsToShutDown : boolean);
+procedure DumpExceptionCallStack(Sender: TObject; E: Exception; var aWantsToShutDown : boolean);
 var
   Report: string;
   Dlg : TExceptionLogForm;
@@ -163,6 +175,10 @@ begin
   Report := Report + sLineBreak + GetHardwareInfo();
 
   Report := Report + sLineBreak;
+  Report := Report + sLineBreak + BuildTitle('SENDER INFO');
+  Report := Report + sLineBreak + GetSenderInfo(Sender);
+
+  Report := Report + sLineBreak;
   Report := Report + sLineBreak + BuildTitle('STACK TRACE LOG');
   Report := Report + sLineBreak + GetStackTrace;
 
@@ -170,6 +186,7 @@ begin
   try
     Dlg.Init(Report);
     Dlg.ShowModal;
+    aWantsToShutDown:= Dlg.UserWantsToShutDown;
   finally
     Dlg.Free;
   end;
