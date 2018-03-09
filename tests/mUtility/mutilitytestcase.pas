@@ -46,6 +46,7 @@ procedure TTestCaseUtility.TestISO6346Containers;
 var
   error : string;
 begin
+  CheckTrue(IsContainerCodeValid('APRU5795945', error));
   CheckTrue(IsContainerCodeValid('SUDU3994180', error));
   CheckTrue(IsContainerCodeValid('SUDU6914949', error));
   CheckTrue(IsContainerCodeValid('CAXU4398690', error));
