@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, contnrs, db,
-  mVirtualDataSetInterfaces, mFloatsManagement, mNullables;
+  mVirtualDataSetInterfaces, mFloatsManagement, mNullables, mMaps;
 
 type
 
@@ -60,7 +60,7 @@ type
     procedure SetSummaryValues (aScreenValues: TmSummaryScreenValues);
   end;
 
-  TmSummaryOperator = (soCount, soSum, soMax, soMin);
+  TmSummaryOperator = (soCount, soCountDistinct, soSum, soMax, soMin);
 
   { TmSummaryDefinition }
 
@@ -107,6 +107,7 @@ type
     FDoubleValue : TNullableDouble;
     FStringValue: TNullableString;
     FIntegerValue: TNullableInteger;
+    FUniqueValues: TmStringDictionary;
 
     FDefinition : TmSummaryDefinition;
 
@@ -152,6 +153,7 @@ begin
   Result := 'Unknown';
   case aOperator of
     soCount : Result := 'Count';
+    soCountDistinct: REsult := 'Count distinct';
     soSum : Result := 'Sum';
     soMax : Result := 'Max';
     soMin : Result := 'Min';
@@ -265,14 +267,14 @@ end;
 
 procedure TmSummaryValue.Init;
 begin
-  if FDefinition.SummaryOperator = soCount then
+  if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) then
     FIntegerValue.Value:= 0;
 end;
 
 function TmSummaryValue.GetValueAsString: string;
 begin
   Result := '-';
-  if FDefinition.SummaryOperator = soCount then
+  if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) then
     Result := FIntegerValue.AsString
   else
   case FDefinition.FieldType of
@@ -332,6 +334,7 @@ begin
   FDoubleValue:= TNullableDouble.Create();
   FStringValue:= TNullableString.Create();
   FIntegerValue:= TNullableInteger.Create();
+  FUniqueValues:= TmStringDictionary.Create();
 end;
 
 destructor TmSummaryValue.Destroy;
@@ -340,6 +343,7 @@ begin
   FDoubleValue.Free;
   FStringValue.Free;
   FIntegerValue.Free;
+  FUniqueValues.Free;
   inherited Destroy;
 end;
 
@@ -354,6 +358,33 @@ begin
       begin
         if not VarIsNull (aValue) then
           FIntegerValue.Value := FIntegerValue.Value + 1;
+      end;
+    soCountDistinct:
+      begin
+        if not VarIsNull(aValue) then
+        begin
+          case FDefinition.FieldType of
+            ftInteger, ftLargeint:
+              begin
+                tmpInt:= aValue;
+                tmpString := IntToStr(tmpInt);
+              end;
+            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+              begin
+                tmpDouble:= RoundDoubleToStandardPrecision(aValue);
+                tmpString := FloatToStr(tmpDouble);
+              end;
+            ftString, ftGuid:
+              begin
+                tmpString := VarToStr(aValue);
+              end;
+          end;
+          if not FUniqueValues.Contains(tmpString) then
+          begin
+            FIntegerValue.Value := FIntegerValue.Value + 1;
+            FUniqueValues.Add(tmpString, FUniqueValues);
+          end;
+        end;
       end;
     soSum:
       begin
