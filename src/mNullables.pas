@@ -33,7 +33,7 @@ type
   public
     constructor Create(); virtual;
     function AsVariant: Variant; virtual; abstract;
-    procedure Assign(aSourceField : TField); overload; virtual; abstract;
+    procedure Assign(const aSourceField : TField); overload; virtual; abstract;
     procedure Assign (const aValue : String); overload; virtual; abstract;
     procedure Assign(const aValue: variant); overload; virtual; abstract;
 
@@ -55,8 +55,8 @@ type
     constructor Create(); override; overload;
     constructor Create(aValue: String); overload;
 
-    procedure Assign(aSource : TNullableString); overload;
-    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign(const aSource : TNullableString); overload;
+    procedure Assign(const aSourceField : TField); override; overload;
     procedure Assign(const aValue : String); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
     procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
@@ -123,8 +123,8 @@ type
       constructor Create(); override; overload;
       constructor Create(aValue: TDateTime); overload;
 
-      procedure Assign(aSource : TNullableDateTime); overload;
-      procedure Assign(aSourceField : TField); override; overload;
+      procedure Assign(const aSource : TNullableDateTime); overload;
+      procedure Assign(const aSourceField : TField); override; overload;
       procedure Assign (const aValue: Variant); override; overload;
       procedure Assign (const aValue: String); override; overload;
       function AsVariant: Variant; override;
@@ -151,8 +151,8 @@ type
     constructor Create(); override; overload;
     constructor Create(aValue: Double); overload;
 
-    procedure Assign(aSource : TNullableDouble); overload;
-    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign(const aSource : TNullableDouble); overload;
+    procedure Assign(const aSourceField : TField); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
     procedure Assign(const aValue: String); override; overload;
     function AsVariant: Variant; override;
@@ -181,8 +181,9 @@ type
     constructor Create(); override; overload;
     constructor Create(aValue: Boolean); overload;
 
-    procedure Assign(aSource : TNullableBoolean); overload;
-    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign(const aSource : TNullableBoolean); overload;
+    procedure Assign(const aSourceField : TField); override; overload;
+    procedure Assign(const aSourceField: TField; const aAllowNull: boolean); overload;
     procedure Assign (const aValue : Variant); override; overload;
     procedure Assign (const aValue : string); override; overload;
 
@@ -206,8 +207,8 @@ type
     constructor Create(); override; overload;
     constructor Create(aValue: Integer); overload;
 
-    procedure Assign(aSource : TNullableInteger); overload;
-    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign(const aSource : TNullableInteger); overload;
+    procedure Assign(const aSourceField : TField); override; overload;
     procedure Assign(const aValue : String); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
 
@@ -233,8 +234,8 @@ type
     constructor Create(); override; overload;
     constructor Create(aValue : TColor); overload;
 
-    procedure Assign(aSource : TNullableColor); overload;
-    procedure Assign(aSourceField: TField); override; overload;
+    procedure Assign(const aSource : TNullableColor); overload;
+    procedure Assign(const aSourceField: TField); override; overload;
     procedure Assign(const aValue : Variant); override; overload;
     procedure Assign(const aValue : String); override; overload;
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
@@ -254,8 +255,8 @@ type
     procedure CreateAsNull;
     procedure CreateWithValue (const aValue : String);
 
-    procedure Assign(aSource : TNullableStringRecord); overload;
-    procedure Assign(aSourceField : TField); overload;
+    procedure Assign(const aSource : TNullableStringRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aValue : String); overload;
     procedure Assign(const aValue : Variant);overload;
     procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
@@ -276,8 +277,8 @@ type
     procedure CreateAsNull;
     procedure CreateWithValue (const aValue: Double);
 
-    procedure Assign(aSource : TNullableDoubleRecord); overload;
-    procedure Assign(aSourceField : TField); overload;
+    procedure Assign(const aSource : TNullableDoubleRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aValue : String); overload;
     procedure Assign(const aValue : Variant);overload;
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
@@ -307,13 +308,13 @@ begin
   Value:= aValue;
 end;
 
-procedure TNullableDoubleRecord.Assign(aSource: TNullableDoubleRecord);
+procedure TNullableDoubleRecord.Assign(const aSource: TNullableDoubleRecord);
 begin
   IsNull:= aSource.IsNull;
   Value:= aSource.Value;
 end;
 
-procedure TNullableDoubleRecord.Assign(aSourceField: TField);
+procedure TNullableDoubleRecord.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
     CreateAsNull
@@ -389,13 +390,13 @@ begin
   Value:= aValue;
 end;
 
-procedure TNullableStringRecord.Assign(aSource: TNullableStringRecord);
+procedure TNullableStringRecord.Assign(const aSource: TNullableStringRecord);
 begin
   IsNull := aSource.IsNull;
   Value := aSource.Value;
 end;
 
-procedure TNullableStringRecord.Assign(aSourceField: TField);
+procedure TNullableStringRecord.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
     CreateAsNull
@@ -490,7 +491,7 @@ begin
   FValue := aValue;
 end;
 
-procedure TNullableColor.Assign(aSource: TNullableColor);
+procedure TNullableColor.Assign(const aSource: TNullableColor);
 begin
   if not aSource.IsNull then
     Self.Value := aSource.Value
@@ -499,7 +500,7 @@ begin
   FTagChanged:= false;
 end;
 
-procedure TNullableColor.Assign(aSourceField: TField);
+procedure TNullableColor.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -588,7 +589,7 @@ begin
   FValue := aValue;
 end;
 
-procedure TNullableInteger.Assign(aSource: TNullableInteger);
+procedure TNullableInteger.Assign(const aSource: TNullableInteger);
 begin
   if not aSource.IsNull then
     Self.Value := aSource.Value
@@ -597,7 +598,7 @@ begin
   FTagChanged:= false;
 end;
 
-procedure TNullableInteger.Assign(aSourceField: TField);
+procedure TNullableInteger.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -700,7 +701,7 @@ begin
   FValue := aValue;
 end;
 
-procedure TNullableBoolean.Assign(aSource: TNullableBoolean);
+procedure TNullableBoolean.Assign(const aSource: TNullableBoolean);
 begin
   if not aSource.IsNull then
     Self.Value := aSource.Value
@@ -709,10 +710,20 @@ begin
   FTagChanged:= false;
 end;
 
-procedure TNullableBoolean.Assign(aSourceField: TField);
+procedure TNullableBoolean.Assign(const aSourceField: TField);
+begin
+  Self.Assign(aSourceField, true);
+end;
+
+procedure TNullableBoolean.Assign(const aSourceField: TField; const aAllowNull: boolean);
 begin
   if aSourceField.IsNull then
-    Self.IsNull:= true
+  begin
+    if aAllowNull then
+      Self.IsNull:= true
+    else
+      Self.Value := false;
+  end
   else
   begin
     if aSourceField.DataType = ftBoolean then
@@ -816,7 +827,7 @@ begin
   Self.Value:= aValue;
 end;
 
-procedure TNullableString.Assign(aSource: TNullableString);
+procedure TNullableString.Assign(const aSource: TNullableString);
 begin
   if not aSource.IsNull then
     Self.Value:= aSource.Value
@@ -825,7 +836,7 @@ begin
   FTagChanged:= false;
 end;
 
-procedure TNullableString.Assign(aSourceField: TField);
+procedure TNullableString.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -950,7 +961,7 @@ begin
 end;
 
 
-procedure TNullableDouble.Assign(aSource: TNullableDouble);
+procedure TNullableDouble.Assign(const aSource: TNullableDouble);
 begin
   Self.FDigits:= aSource.Digits;
   if not aSource.IsNull then
@@ -960,7 +971,7 @@ begin
   FTagChanged:= false;
 end;
 
-procedure TNullableDouble.Assign(aSourceField: TField);
+procedure TNullableDouble.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -1143,7 +1154,7 @@ begin
   FValue := aValue;
 end;
 
-procedure TNullableDateTime.Assign(aSource: TNullableDateTime);
+procedure TNullableDateTime.Assign(const aSource: TNullableDateTime);
 begin
   if not aSource.IsNull then
     Self.Value := aSource.Value
@@ -1152,7 +1163,7 @@ begin
   FTagChanged:= false;
 end;
 
-procedure TNullableDateTime.Assign(aSourceField: TField);
+procedure TNullableDateTime.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
