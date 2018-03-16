@@ -46,6 +46,7 @@ type
     FValue : double;
     FAttribute1 : TNullableString;
     FAttribute2 : TNullableString;
+    FAttribute3 : TNullableString;
     FEventType : TmUprightEventType;
 
     FDatumKey : String;
@@ -58,6 +59,7 @@ type
     property Value: double read FValue write FValue;
     property Attribute1 : TNullableString read FAttribute1;
     property Attribute2 : TNullableString read FAttribute2;
+    property Attribute3 : TNullableString read FAttribute3;
     property DatumKey: string read FDatumKey write FDatumKey;
     property EventType : TmUprightEventType read FEventType write FEventType;
   end;
@@ -83,6 +85,7 @@ type
     const FLD_REMAINING = 'REMAINING';
     const FLD_ATTRIBUTE1 = 'ATTRIBUTE_1';
     const FLD_ATTRIBUTE2 = 'ATTRIBUTE_2';
+    const FLD_ATTRIBUTE3 = 'ATTRIBUTE_3';
   public
     constructor Create;
     destructor Destroy; override;
@@ -185,12 +188,14 @@ begin
 
   FAttribute1 := TNullableString.Create;
   FAttribute2 := TNullableString.Create();
+  FAttribute3 := TNullableString.Create();
 end;
 
 destructor TmUprightEvent.Destroy;
 begin
   FAttribute1.Free;
   FAttribute2.Free;
+  FAttribute3.Free;
   inherited Destroy;
 end;
 
@@ -219,6 +224,8 @@ begin
     Result := FEvent.Attribute1.AsVariant
   else if aFieldName = FLD_ATTRIBUTE2 then
     Result := FEvent.Attribute2.AsVariant
+  else if aFieldName = FLD_ATTRIBUTE3 then
+    Result := FEvent.Attribute3.AsVariant
   else if aFieldName = FLD_UPRIGHT then
     Result := FUpright
   else if aFieldName = FLD_HIGHLIGHT then
@@ -285,6 +292,12 @@ begin
   with aFieldDefs.AddFieldDef do
   begin
     Name := aPrefix + FLD_ATTRIBUTE2;
+    DataType:= vftString;
+    Size := 255;
+  end;
+  with aFieldDefs.AddFieldDef do
+  begin
+    Name := aPrefix + FLD_ATTRIBUTE3;
     DataType:= vftString;
     Size := 255;
   end;
