@@ -98,10 +98,33 @@ type
     function Execute : integer;
   end;
 
+function GetLastSQLScript (var aTitle: string) : string;
+
 implementation
 
 uses
-  SysUtils, mDatabaseConnectionImplRegister;
+  SysUtils, syncobjs,
+  mDatabaseConnectionImplRegister, mExceptionLog;
+
+var
+  _LastSQLScript: string;
+  _LastSQLScriptCriticalSection: TCriticalSection;
+
+procedure TraceSQL (const aSQLScript: string);
+begin
+  _LastSQLScriptCriticalSection.Acquire;
+  try
+    _LastSQLScript:= aSQLScript;
+  finally
+    _LastSQLScriptCriticalSection.Leave;
+  end;
+end;
+
+function GetLastSQLScript(var aTitle: string): string;
+begin
+  aTitle := 'LAST SQL SCRIPT';
+  Result := _LastSQLScript;
+end;
 
   { TmAbstractDatabaseCommand }
 
@@ -212,6 +235,7 @@ uses
   var
     i : integer;
   begin
+    TraceSQL(SQL.Text);
     CreateImplementation;
     PrepareIfNecessary;
     for i := 0 to FParameters.Count -1 do
@@ -250,6 +274,7 @@ uses
   var
     i : integer;
   begin
+    TraceSQL(SQL.Text);
     CreateImplementation;
     PrepareIfNecessary;
     for i := 0 to FParameters.Count -1 do
@@ -353,5 +378,13 @@ uses
     CreateImplementation;
     FImplementation.Rollback;
   end;
+
+initialization
+  _LastSQLScript := '';
+  _LastSQLScriptCriticalSection := TCriticalSection.Create;
+  RegisterExceptionLogTracer(GetLastSQLScript);
+
+finalization
+  _LastSQLScriptCriticalSection.Free;
 
 end.
