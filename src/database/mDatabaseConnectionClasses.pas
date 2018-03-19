@@ -27,6 +27,8 @@ type
 
   TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptInteger, ptFloat, ptString, ptWideString);
 
+  TmBooleanParameterConvention = (bpcUseIntegers);
+
 { TmQueryParameter }
 
   TmQueryParameter = class
@@ -61,6 +63,7 @@ type
     procedure Assign(aValue : TNullableInteger); overload;
     procedure Assign(aValue : TNullableDateTime); overload;
     procedure Assign(aValue : TNullableDouble); overload;
+    procedure Assign(aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention); overload;
     procedure Assign(const aFilter : TmFilter); overload;
 
     procedure AsStringList (aList : TStringList);
@@ -507,6 +510,20 @@ begin
     Self.SetNull
   else
     Self.AsFloat:= aValue.Value;
+end;
+
+procedure TmQueryParameter.Assign(aValue: TNullableBoolean; const aConvention: TmBooleanParameterConvention);
+begin
+  if aValue.IsNull then
+    Self.SetNull
+  else
+    if aConvention = bpcUseIntegers then
+    begin
+      if aValue.Value then
+        Self.AsInteger:= 1
+      else
+        Self.AsInteger:= 0;
+    end;
 end;
 
 procedure TmQueryParameter.Assign(const aFilter : TmFilter);
