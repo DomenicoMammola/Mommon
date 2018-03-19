@@ -30,24 +30,32 @@ type
     property TraceLogMailDestination : string read FTraceLogMailDestination write FTraceLogMailDestination;
   end;
 
+  TExceptionLogGetTraceFunction = function(var aTitle: string):string;
+
 {$IFDEF FPC}
 // credits: procedure DumpExceptionCallStack(E: Exception) in http://wiki.freepascal.org/Logging_exceptions
 // GetSystemMem by ChrisF in http://forum.lazarus.freepascal.org/index.php?topic=30855.0
 procedure DumpExceptionCallStack(Sender: TObject; E: Exception; var aWantsToShutDown : boolean);
 {$ENDIF}
 
-
 function ExceptionLogConfiguration : TExceptionLogConfiguration;
+
+procedure RegisterExceptionLogTracer (const aGetTrace: TExceptionLogGetTraceFunction);
 
 implementation
 
 uses
-  {$IFDEF WINDOWS}windows,{$ENDIF} Dos,
+  {$IFDEF WINDOWS}windows,{$ENDIF} Dos, contnrs,
   mExceptionLogForm,
   mUtility, mLazarusVersionInfo, mThreadsBaseClasses;
 
-{$IFDEF WINDOWS}
 type
+  TRegisteredTracer = class
+  public
+    TraceFunction: TExceptionLogGetTraceFunction;
+  end;
+
+{$IFDEF WINDOWS}
   MEMORYSTATUSEX = record
      dwLength : DWORD;
      dwMemoryLoad : DWORD;
@@ -59,10 +67,15 @@ type
      ullAvailVirtual : uint64;
      ullAvailExtendedVirtual : uint64;
   end;
+{$ENDIF}
+
 
 var
   _ExceptionLogConfiguration : TExceptionLogConfiguration;
+  _Tracers: TObjectList;
 
+
+{$IFDEF WINDOWS}
 function GlobalMemoryStatusEx(var Buffer: MEMORYSTATUSEX): BOOL; stdcall; external 'kernel32' name 'GlobalMemoryStatusEx';
 
 function GetSystemMem: string;  { Returns installed RAM (as viewed by your OS) in Gb\Tb}
@@ -153,6 +166,8 @@ procedure DumpExceptionCallStack(Sender: TObject; E: Exception; var aWantsToShut
 var
   Report: string;
   Dlg : TExceptionLogForm;
+  i : integer;
+  tmpTitle, tmpTrace: string;
 begin
   aWantsToShutDown:= false;
 
@@ -182,6 +197,17 @@ begin
   Report := Report + sLineBreak + BuildTitle('STACK TRACE LOG');
   Report := Report + sLineBreak + GetStackTrace;
 
+  if Assigned(_Tracers) then
+  begin
+    for i := 0 to _Tracers.Count - 1 do
+    begin
+      tmpTrace := (_Tracers.Items[i] as TRegisteredTracer).TraceFunction(tmpTitle);
+      Report := Report + sLineBreak;
+      Report := Report + sLineBreak + BuildTitle(Uppercase(tmpTitle));
+      Report := Report + sLineBreak + tmpTrace;
+    end;
+  end;
+
   Dlg := TExceptionLogForm.Create(nil);
   try
     Dlg.Init(Report);
@@ -199,6 +225,17 @@ begin
   Result := _ExceptionLogConfiguration;
 end;
 
+procedure RegisterExceptionLogTracer(const aGetTrace: TExceptionLogGetTraceFunction);
+var
+  t: TRegisteredTracer;
+begin
+  if not Assigned(_Tracers) then
+    _Tracers := TObjectList.Create(true);
+  t := TRegisteredTracer.Create;
+  t.TraceFunction:= aGetTrace;
+  _Tracers.Add(t);
+end;
+
 { TExceptionLogConfiguration }
 
 constructor TExceptionLogConfiguration.Create;
@@ -209,5 +246,6 @@ end;
 
 finalization
   FreeAndNil(_ExceptionLogConfiguration);
+  FreeAndNil(_Tracers);
 
 end.
