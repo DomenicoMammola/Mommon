@@ -189,6 +189,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
+    function AsString : String;
 
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -760,6 +761,14 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+function TNullableBoolean.AsString: String;
+begin
+  if Self.NotNull then
+    Result := BoolToStr(FValue, true)
+  else
+    Result := '';
 end;
 
 function TNullableBoolean.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
