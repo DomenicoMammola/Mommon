@@ -47,6 +47,7 @@ type
     FAttribute1 : TNullableString;
     FAttribute2 : TNullableString;
     FAttribute3 : TNullableString;
+    FAttribute4 : TNullableString;
     FEventType : TmUprightEventType;
 
     FDatumKey : String;
@@ -60,6 +61,7 @@ type
     property Attribute1 : TNullableString read FAttribute1;
     property Attribute2 : TNullableString read FAttribute2;
     property Attribute3 : TNullableString read FAttribute3;
+    property Attribute4 : TNullableString read FAttribute4;
     property DatumKey: string read FDatumKey write FDatumKey;
     property EventType : TmUprightEventType read FEventType write FEventType;
   end;
@@ -86,12 +88,14 @@ type
     const FLD_ATTRIBUTE1 = 'ATTRIBUTE_1';
     const FLD_ATTRIBUTE2 = 'ATTRIBUTE_2';
     const FLD_ATTRIBUTE3 = 'ATTRIBUTE_3';
+    const FLD_ATTRIBUTE4 = 'ATTRIBUTE_4';
   public
     constructor Create;
     destructor Destroy; override;
 
     function GetDatumKey : IVDDatumKey;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
+    procedure SetPropertyByFieldName(const aFieldName: String; const aValue : Variant);
     function AsObject: TObject;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String);
@@ -189,6 +193,7 @@ begin
   FAttribute1 := TNullableString.Create;
   FAttribute2 := TNullableString.Create();
   FAttribute3 := TNullableString.Create();
+  FAttribute4 := TNullableString.Create();
 end;
 
 destructor TmUprightEvent.Destroy;
@@ -196,6 +201,7 @@ begin
   FAttribute1.Free;
   FAttribute2.Free;
   FAttribute3.Free;
+  FAttribute4.Free;
   inherited Destroy;
 end;
 
@@ -226,6 +232,8 @@ begin
     Result := FEvent.Attribute2.AsVariant
   else if aFieldName = FLD_ATTRIBUTE3 then
     Result := FEvent.Attribute3.AsVariant
+  else if aFieldName = FLD_ATTRIBUTE4 then
+    Result := FEvent.Attribute4.AsVariant
   else if aFieldName = FLD_UPRIGHT then
     Result := FUpright
   else if aFieldName = FLD_HIGHLIGHT then
@@ -238,6 +246,11 @@ begin
     Result := FEvent.EventDate
   else
     Result := Null;
+end;
+
+procedure TmUprightDatum.SetPropertyByFieldName(const aFieldName: String; const aValue: Variant);
+begin
+  // none
 end;
 
 function TmUprightDatum.AsObject: TObject;
@@ -298,6 +311,12 @@ begin
   with aFieldDefs.AddFieldDef do
   begin
     Name := aPrefix + FLD_ATTRIBUTE3;
+    DataType:= vftString;
+    Size := 255;
+  end;
+  with aFieldDefs.AddFieldDef do
+  begin
+    Name := aPrefix + FLD_ATTRIBUTE4;
     DataType:= vftString;
     Size := 255;
   end;
