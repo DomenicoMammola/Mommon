@@ -26,7 +26,7 @@ type
     FValue : Integer;
   public
     constructor Create(); overload;
-    constructor Create(aValue : integer); overload;
+    constructor Create(const aValue : integer); overload;
 
     property Value : Integer read FValue write FValue;
   end;
@@ -38,7 +38,7 @@ type
     FValue : AnsiString;
   public
     constructor Create(); overload;
-    constructor Create(aValue : AnsiString); overload;
+    constructor Create(const aValue : AnsiString); overload;
 
     property Value : AnsiString read FValue write FValue;
   end;
@@ -50,7 +50,7 @@ type
     FValue : UnicodeString;
   public
     constructor Create(); overload;
-    constructor Create(aValue : UnicodeString); overload;
+    constructor Create(const aValue : UnicodeString); overload;
 
     property Value : UnicodeString read FValue write FValue;
   end;
@@ -62,7 +62,7 @@ type
     FValue : String;
   public
     constructor Create(); overload;
-    constructor Create(aValue : String); overload;
+    constructor Create(const aValue : String); overload;
 
     property Value : String read FValue write FValue;
   end;
@@ -74,7 +74,7 @@ type
     FValue : Variant;
   public
     constructor Create(); overload;
-    constructor Create(aValue : Variant); overload;
+    constructor Create(const aValue : Variant); overload;
 
     property Value : Variant read FValue write FValue;
   end;
@@ -87,13 +87,37 @@ type
     FValue : Double;
   public
     constructor Create(); overload;
-    constructor Create(aValue : Double); overload;
+    constructor Create(const aValue : Double); overload;
 
     property Value : Double read FValue write FValue;
   end;
 
+  { TBooleanObject }
+
+  TBooleanObject = class
+  strict private
+    FValue: Boolean;
+  public
+    constructor Create(); overload;
+    constructor Create(const aValue: Boolean); overload;
+
+    property Value: Boolean read FValue write FValue;
+  end;
+
 
 implementation
+
+{ TBooleanObject }
+
+constructor TBooleanObject.Create();
+begin
+  FValue:= false;
+end;
+
+constructor TBooleanObject.Create(const aValue: boolean);
+begin
+  FValue:= aValue;
+end;
 
 { TDoubleObject }
 
@@ -102,7 +126,7 @@ begin
   FValue:= 0;
 end;
 
-constructor TDoubleObject.Create(aValue: Double);
+constructor TDoubleObject.Create(const aValue: Double);
 begin
   FValue := aValue;
 end;
@@ -114,7 +138,7 @@ begin
   FValue := Null;
 end;
 
-constructor TVariantObject.Create(aValue: Variant);
+constructor TVariantObject.Create(const aValue: Variant);
 begin
   FValue := aValue;
 end;
@@ -126,7 +150,7 @@ begin
   FValue := '';
 end;
 
-constructor TStringObject.Create(aValue: String);
+constructor TStringObject.Create(const aValue: String);
 begin
   FValue := aValue;
 end;
@@ -138,7 +162,7 @@ begin
   FValue := '';
 end;
 
-constructor TUnicodeStringObject.Create(aValue: UnicodeString);
+constructor TUnicodeStringObject.Create(const aValue: UnicodeString);
 begin
   FValue := aValue;
 end;
@@ -150,7 +174,7 @@ begin
   FValue := '';
 end;
 
-constructor TAnsiStringObject.Create(aValue: AnsiString);
+constructor TAnsiStringObject.Create(const aValue: AnsiString);
 begin
   FValue := aValue;
 end;
@@ -162,7 +186,7 @@ begin
   FValue := 0;
 end;
 
-constructor TIntegerObject.Create(aValue: integer); overload;
+constructor TIntegerObject.Create(const aValue: integer); overload;
 begin
   FValue := aValue;
 end;
