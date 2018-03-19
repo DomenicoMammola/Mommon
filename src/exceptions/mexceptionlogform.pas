@@ -15,10 +15,12 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
-  StdCtrls, LCLIntf, ExtCtrls;
+  StdCtrls, LCLIntf, ExtCtrls, Clipbrd;
 
 resourcestring
   SWrongEmailMessage = 'Email is non valid.';
+  SDoCtrlVTitle = 'Send mail';
+  SDoCtrlVMessage = 'Now a new mail message will be created.' + sLineBreak + sLineBreak +'PLEASE CLICK CTRL-V to copy the trace log in the message body before sending it.';
 
 type
 
@@ -69,7 +71,10 @@ end;
 
 procedure TExceptionLogForm.SendReportByMail;
 begin
-  OpenURL('mailto:' + EditSendToMailAddresses.Text + '?subject=Application trace log&body=' + StringReplace(FReport, sLineBreak, '%0D%0A', [rfReplaceAll]));
+  Clipboard.AsText:= FReport;
+  MessageDlg(SDoCtrlVTitle, SDoCtrlVMessage, mtWarning, [mbOk], 0);
+  OpenURL('mailto:' + EditSendToMailAddresses.Text + '?subject=Application trace log&body=Click CTRL-V');
+  //OpenURL('mailto:' + EditSendToMailAddresses.Text + '?subject=Application trace log&body=' + StringReplace(FReport, sLineBreak, '%0D%0A', [rfReplaceAll]));
 end;
 
 procedure TExceptionLogForm.FormHide(Sender: TObject);
