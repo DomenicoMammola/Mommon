@@ -1743,7 +1743,7 @@ end;
 procedure TmCustomVirtualDataset.DoAfterOpen;
 begin
   if FAutomaticInitFieldsFormat then
-    ApplyStandardSettingsToFields(Self, '0.00');
+    ApplyStandardSettingsToFields(Self, '#,##0.00');
   UpdateDisplayFormats;
   inherited DoAfterOpen;
 end;
