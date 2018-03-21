@@ -38,6 +38,7 @@ type
     procedure Assign(const aValue: variant); overload; virtual; abstract;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; virtual; abstract;
+    function AsString: String; virtual; abstract;
 
     property IsNull: Boolean read FIsNull write FIsNull;
     property NotNull: Boolean read GetNotNull;
@@ -68,49 +69,10 @@ type
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant): String;
 
-    function AsString : String;
+    function AsString : String; override;
 
     property Value : String read GetValue write SetValue;
   end;
-
-  { TNullableUnicodeString }
-{
-  TNullableUnicodeString = class (TAbstractNullable)
-    private
-      FValue : UnicodeString;
-      function GetValue: UnicodeString;
-      procedure SetValue(AValue: UnicodeString);
-    public
-      constructor Create(); override; overload;
-      constructor Create(aValue: UnicodeString); overload;
-
-      procedure Assign(aSource : TNullableUnicodeString); overload;
-      procedure Assign(aSourceField : TField); override; overload;
-      procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
-      function AsVariant: Variant; override;
-
-      property Value : UnicodeString read GetValue write SetValue;
-  end;}
-
-  { TNullableAnsiString }
-
-{  TNullableAnsiString = class (TAbstractNullable)
-    private
-      FValue : AnsiString;
-      function GetValue: AnsiString;
-      procedure SetValue(AValue: AnsiString);
-    public
-      constructor Create(); override; overload;
-      constructor Create(aValue: AnsiString); overload;
-
-      procedure Assign(aSource : TNullableAnsiString); overload;
-      procedure Assign(aSourceField : TField); override; overload;
-      procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
-      function AsVariant: Variant; override;
-
-      property Value : AnsiString read GetValue write SetValue;
-  end;
- }
 
   { TNullableDateTime }
 
@@ -133,7 +95,8 @@ type
       class function StringToVariant(const aValue : String): Variant;
       class function VariantToString(const aValue: Variant; const aShowTime: boolean): String;
 
-      function AsString (const aShowTime : boolean) : String;
+      function AsString (const aShowTime : boolean) : String; overload;
+      function AsString : String; override; overload;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -162,7 +125,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
 
-    function AsString : String;
+    function AsString : String; override;
     function AsFloat : Double;
     function AsFormattedString (aFormat: String): String;
 
@@ -189,7 +152,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
-    function AsString : String;
+    function AsString : String; override;
 
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -215,7 +178,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
-    function AsString: String;
+    function AsString: String; override;
     function AsFormattedString (aFormat: String): String;
 
     class function StringToVariant(const aValue : String) : Variant;
@@ -241,7 +204,7 @@ type
     procedure Assign(const aValue : String); override; overload;
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant : Variant; override;
-    function AsString : String;
+    function AsString : String; override;
 
     property Value : TColor read GetValue write SetValue;
   end;
@@ -1253,6 +1216,11 @@ end;
 function TNullableDateTime.AsString(const aShowTime: boolean): String;
 begin
   Result := TNullableDateTime.VariantToString(Self.AsVariant, aShowTime);
+end;
+
+function TNullableDateTime.AsString: String;
+begin
+  Result := AsString(true);
 end;
 
 { TAbstractNullable }
