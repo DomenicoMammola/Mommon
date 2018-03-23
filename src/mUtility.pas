@@ -1156,7 +1156,7 @@ const
   // Valid characters in a subdomain
   letters = ['A'..'Z', 'a'..'z'];
   letters_digits = ['0'..'9', 'A'..'Z', 'a'..'z'];
-  subdomain_chars = ['-', '0'..'9', 'A'..'Z', 'a'..'z'];
+  //subdomain_chars = ['-', '0'..'9', 'A'..'Z', 'a'..'z'];
 type
   States = (STATE_BEGIN, STATE_ATOM, STATE_QTEXT, STATE_QCHAR,
     STATE_QUOTE, STATE_LOCAL_PERIOD, STATE_EXPECTING_SUBDOMAIN,

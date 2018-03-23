@@ -249,7 +249,7 @@ end;
 
 function StrHash(const S: string): Cardinal;
 const
-  cLongBits = 32;
+//  cLongBits = 32;
   cOneEight = 4;
   cThreeFourths = 24;
   cHighBits = $F0000000;
@@ -275,7 +275,7 @@ end;
 
 function TextHash(const S: string): Cardinal;
 const
-  cLongBits = 32;
+//  cLongBits = 32;
   cOneEight = 4;
   cThreeFourths = 24;
   cHighBits = $F0000000;
@@ -301,7 +301,7 @@ end;
 
 function DataHash(var AValue; ASize: Cardinal): THashValue;
 const
-  cLongBits = 32;
+//  cLongBits = 32;
   cOneEight = 4;
   cThreeFourths = 24;
   cHighBits = $F0000000;

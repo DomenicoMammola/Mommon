@@ -18,7 +18,7 @@ interface
 
 uses
   Contnrs, Dialogs,
-  mInterfaces, StrHashMap, mVirtualDataSetInterfaces;
+  StrHashMap, mVirtualDataSetInterfaces;
 
 type
 

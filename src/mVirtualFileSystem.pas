@@ -17,7 +17,7 @@ unit mVirtualFileSystem;
 interface
 
 uses
-  Contnrs, Classes, SysUtils;
+  Classes, SysUtils;
 
 type
 

@@ -41,7 +41,7 @@ type
     FUsername : string;
     FPassword : string;
     FFileMask : string;
-    function ExtractTypeAndName (const aSourceString : string; var aFileType : TFTPFileType; var aFileName : string) : boolean;
+    function ExtractTypeAndName (const aSourceString : string; out aFileType : TFTPFileType; out aFileName : string) : boolean;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -161,7 +161,7 @@ end;
 
 { TFTPFileSystemManager }
 
-function TFTPFileSystemManager.ExtractTypeAndName(const aSourceString: string; var aFileType: TFTPFileType; var aFileName: string) : boolean;
+function TFTPFileSystemManager.ExtractTypeAndName(const aSourceString: string; out aFileType: TFTPFileType; out aFileName: string) : boolean;
 var
   tmp : TStringList;
 begin
