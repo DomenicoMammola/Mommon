@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, variants, sysutils,
-  mArrays, mNullables;
+  mArrays;
 
 const
   sInvalidString = 1;
@@ -178,7 +178,7 @@ type
     // Lexical Analyzer Function http://www.gnu.org/software/bison/manual/html_node/Lexical.html
     procedure yylex (var lexState: TLexState; var lexResult : TLexResult);
     // double
-    procedure StartCalculate(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure StartCalculate(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
     procedure Calc6(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
     procedure Calc5(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
     procedure Calc4(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
@@ -685,7 +685,9 @@ var
 begin
   TempSucc := false;
   if Assigned(FOnCalcUserFunction) then
-    FOnCalcUserFunction(Self, funct, ParametersList, Result, TempSucc);
+    FOnCalcUserFunction(Self, funct, ParametersList, Result, TempSucc)
+  else
+    Result := 0;
 
   if not TempSucc then
     RaiseError(sFunctionError, funct);
@@ -1396,8 +1398,9 @@ begin
   raise TParserException.Create(ComposeErrorString(aErrorCode));
 end;
 
-procedure TKAParser.StartCalculate(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+procedure TKAParser.StartCalculate(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
 begin
+  resValue := 0;
   Calc6(resValue, lexState, lexResult);
   while (lexResult.Token = tkSEMICOLON) do
   begin
