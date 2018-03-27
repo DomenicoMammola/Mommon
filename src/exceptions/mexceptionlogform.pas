@@ -89,11 +89,11 @@ begin
     if ValidEmail(EditSendToMailAddresses.Text) then
     begin
       SendReportByMail;
-      Self.ModalResult:= mrOk;
     end
     else
       TmToast.ShowText(SWrongEmailMessage);
   end;
+  Self.ModalResult:= mrOk;
 end;
 
 procedure TExceptionLogForm.BtnHaltClick(Sender: TObject);
