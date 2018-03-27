@@ -35,7 +35,7 @@ type
 {$IFDEF FPC}
 // credits: procedure DumpExceptionCallStack(E: Exception) in http://wiki.freepascal.org/Logging_exceptions
 // GetSystemMem by ChrisF in http://forum.lazarus.freepascal.org/index.php?topic=30855.0
-procedure DumpExceptionCallStack(Sender: TObject; E: Exception; var aWantsToShutDown : boolean);
+procedure DumpExceptionCallStack(Sender: TObject; E: Exception; out aWantsToShutDown : boolean);
 {$ENDIF}
 
 function ExceptionLogConfiguration : TExceptionLogConfiguration;
@@ -162,7 +162,7 @@ begin
   Result := s + sLineBreak + aTitle + sLineBreak + s;
 end;
 
-procedure DumpExceptionCallStack(Sender: TObject; E: Exception; var aWantsToShutDown : boolean);
+procedure DumpExceptionCallStack(Sender: TObject; E: Exception; out aWantsToShutDown : boolean);
 var
   Report: string;
   Dlg : TExceptionLogForm;
