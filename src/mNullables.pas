@@ -18,7 +18,7 @@ unit mNullables;
 interface
 
 uses
-  db, Graphics, variants, math,
+  db, Graphics, variants, math, Classes,
   mUtility, mMathUtility, mFloatsManagement;
 
 type
@@ -43,6 +43,21 @@ type
     property IsNull: Boolean read FIsNull write FIsNull;
     property NotNull: Boolean read GetNotNull;
     property TagChanged: Boolean read FTagChanged;
+  end;
+
+  { TNullablesList }
+
+  TNullablesList = class
+  strict private
+    FList : TList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Count : integer;
+    function Get(const aIndex : integer): TAbstractNullable;
+    function AlmostOneChanged: boolean;
+    procedure Add(const aNullableItem: TAbstractNullable);
   end;
 
   { TNullableString }
@@ -257,6 +272,47 @@ implementation
 
 uses
   SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
+
+{ TNullablesList }
+
+constructor TNullablesList.Create;
+begin
+  FList:= TList.Create;
+end;
+
+destructor TNullablesList.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+function TNullablesList.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+function TNullablesList.Get(const aIndex: integer): TAbstractNullable;
+begin
+  Result := TAbstractNullable(FList.Items[aIndex]);
+end;
+
+function TNullablesList.AlmostOneChanged: boolean;
+var
+  i : integer;
+begin
+  Result := false;
+  for i := 0 to Self.Count -1 do
+  begin
+    Result := Self.Get(i).TagChanged;
+    if Result then
+      exit;
+  end;
+end;
+
+procedure TNullablesList.Add(const aNullableItem: TAbstractNullable);
+begin
+  FList.Add(aNullableItem);
+end;
 
 { TNullableDoubleRecord }
 
