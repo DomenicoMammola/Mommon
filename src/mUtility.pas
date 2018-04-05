@@ -98,12 +98,14 @@ function ValidEmail(const email: string): boolean;
 // Author: Marc Durdin
 function EncodeURIComponent(const ASrc: string): UTF8String;
 
+function IsRunningAsRoot : boolean;
+
 implementation
 
 uses
   DateUtils,
-  {$ifdef windows}shlobj, registry,{$else}LazUTF8,{$endif}
-  {$ifdef linux}initc, ctypes,{$endif}
+  {$ifdef windows}shlobj, registry, winutils,{$else}LazUTF8,{$endif}
+  {$ifdef linux}initc, ctypes, BaseUnix,{$endif}
   mMathUtility;
 
 {$ifdef linux}
@@ -1288,6 +1290,17 @@ begin
   end;
 
   SetLength(Result, J-1);
+end;
+
+function IsRunningAsRoot: boolean;
+begin
+{$IFDEF WINDOWS}
+  Result := winutils.IsWindowsAdmin;
+{$ENDIF}
+{$IFDEF LINUX}
+  // http://forum.lazarus.freepascal.org/index.php?topic=22454.0
+  Result := (fpgeteuid = 0);
+{$ENDIF}
 end;
 
 initialization

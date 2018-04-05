@@ -117,10 +117,11 @@ begin
   Result := Result + sLineBreak + 'Compiler info: ' + GetCompilerInfo;
 end;
 
-function GetSystemInfo: String;
+function GetSystemUserInfo: String;
 begin
   Result := 'Current date/time: '+ DateTimeToStr(Now);
   Result := Result + sLineBreak + 'Current user: ' + GetOSUser;
+  Result := Result + sLineBreak + 'Running as root: ' + BoolToStr(IsRunningAsRoot, true);
 end;
 
 function GetSenderInfo(const aSender: TObject): String;
@@ -182,8 +183,8 @@ begin
   Report := Report + sLineBreak + GetSoftwareInfo();
 
   Report := Report + sLineBreak;
-  Report := Report + sLineBreak + BuildTitle('SYSTEM INFO');
-  Report := Report + sLineBreak + GetSystemInfo();
+  Report := Report + sLineBreak + BuildTitle('SYSTEM/USER INFO');
+  Report := Report + sLineBreak + GetSystemUserInfo();
 
   Report := Report + sLineBreak;
   Report := Report + sLineBreak + BuildTitle('HARDWARE INFO');
