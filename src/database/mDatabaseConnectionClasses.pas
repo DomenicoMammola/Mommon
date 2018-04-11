@@ -27,7 +27,7 @@ type
 
   TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptInteger, ptFloat, ptString, ptWideString);
 
-  TmBooleanParameterConvention = (bpcUseIntegers);
+  TmBooleanParameterConvention = (bpcUseIntegers, bpcUseIntegersButStrings);
 
 { TmQueryParameter }
 
@@ -517,13 +517,22 @@ begin
   if aValue.IsNull then
     Self.SetNull
   else
+  begin
     if aConvention = bpcUseIntegers then
     begin
       if aValue.Value then
         Self.AsInteger:= 1
       else
         Self.AsInteger:= 0;
+    end
+    else if aConvention = bpcUseIntegersButStrings then
+    begin
+      if aValue.Value then
+        Self.AsString:= '1'
+      else
+        Self.AsString:= '0';
     end;
+  end;
 end;
 
 procedure TmQueryParameter.Assign(const aFilter : TmFilter);
