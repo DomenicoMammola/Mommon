@@ -31,7 +31,8 @@ type
       FImplementation : TmDatabaseConnectionImpl;
       procedure CreateImplementation;
     public
-      constructor Create;
+      constructor Create; overload;
+      constructor Create(const aConnectionInfo : TmDatabaseConnectionInfo); overload;
       destructor Destroy; override;
 
       procedure Connect;
@@ -340,6 +341,12 @@ end;
   constructor TmDatabaseConnection.Create;
   begin
     FImplementation := nil;
+  end;
+
+  constructor TmDatabaseConnection.Create(const aConnectionInfo: TmDatabaseConnectionInfo);
+  begin
+    Self.Create;
+    FConnectionInfo := aConnectionInfo;
   end;
 
   destructor TmDatabaseConnection.Destroy;
