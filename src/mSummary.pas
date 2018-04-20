@@ -114,6 +114,7 @@ type
     function GetDataType: TmSummaryValueType;
     function GetValueAsString: string;
     function GetValueAsVariant: variant;
+    function GetFormattedValue : string;
     procedure Init;
   public
     constructor Create;
@@ -125,6 +126,7 @@ type
     property ValueAsString: string read GetValueAsString;
     property ValueAsVariant: variant read GetValueAsVariant;
     property DataType: TmSummaryValueType read GetDataType;
+    property FormattedValue: string read GetFormattedValue;
   end;
 
   { TmSummaryValues }
@@ -481,6 +483,14 @@ begin
         end;
       end;
   end;
+end;
+
+function TmSummaryValue.GetFormattedValue: string;
+begin
+  Result := TmSummaryOperatorToString(Self.Definition.SummaryOperator);
+  Result := Result + '(';
+  Result := Result + Self.Definition.Caption + ')= ';
+  Result := Result + Self.ValueAsString;
 end;
 
 { TmSummaryDefinitions }
