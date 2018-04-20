@@ -31,6 +31,7 @@ type
 
   function DarkerColor(aColor: TColor; percent: Byte): TColor;
   function LighterColor(aColor: TColor; percent: Byte): TColor;
+  function IsDark (const aColor: TColor): boolean;
 
 implementation
 
@@ -107,6 +108,18 @@ const
       Round(cBlue * percent / 100) +
       Round(255 - percent / 100 * 255);
     Result := RGB(cRed, cGreen, cBlue);
+  end;
+
+  function IsDark(const aColor: TColor): boolean;
+  var
+    cRed,
+    cGreen,
+    cBlue: Byte;
+  begin
+    cRed := GetRValue(aColor);
+    cGreen := GetGValue(aColor);
+    cBlue := GetBValue(aColor);
+    Result := ((128 * 3) - (cRed + cGreen + cBlue)) > 0;
   end;
 
 procedure GetScreenShot (aBitmap : Graphics.TBitmap);
