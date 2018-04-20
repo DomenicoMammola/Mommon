@@ -30,6 +30,7 @@ type
     FFieldName : string;
     FFilterOperator : TmFilterOperator;
     FValue : Variant;
+    FDisplayValue : String;
     FDataType : TmFilterDataType;
     procedure SetValue(AValue: Variant);
   public
@@ -42,6 +43,7 @@ type
     property FilterOperator : TmFilterOperator read FFilterOperator write FFilterOperator;
     property Value : Variant read FValue write SetValue;
     property DataType : TmFilterDataType read FDataType write FDataType;
+    property DisplayValue : String read FDisplayValue write FDisplayValue;
   end;
 
   { TmFilterEvaluator }
@@ -76,8 +78,6 @@ type
     function Count : integer;
     function Get(aIndex : integer) : TmFilter;
     procedure CopyFrom (aSource : TmFilters);
-//    procedure StartEvaluation;
-//    procedure EndEvaluation;
   end;
 
 
@@ -354,23 +354,6 @@ begin
     Self.Add.CopyFrom(aSource.Get(i));
 end;
 
-(*
-procedure TmFilters.StartEvaluation;
-var
-  i : integer;
-begin
-  for i := 0 to Self.Count -1 do
-    Self.Get(i).StartEvaluation;
-end;
-
-procedure TmFilters.EndEvaluation;
-var
-  i : integer;
-begin
-  for i := 0 to Self.Count -1 do
-    Self.Get(i).EndEvaluation;
-end;*)
-
 { TmFilter }
 
 procedure TmFilter.SetValue(AValue: Variant);
@@ -394,6 +377,7 @@ begin
   Self.FFieldName := aSource.FieldName;
   Self.FFilterOperator := aSource.FFilterOperator;
   Self.FValue := aSource.FValue;
+  Self.FDisplayValue := aSource.FDisplayValue;
 end;
 
 end.
