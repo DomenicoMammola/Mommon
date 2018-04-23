@@ -367,10 +367,12 @@ begin
   begin
     FConnection := TMSSQLConnection.Create(nil);
     FTransaction.DataBase := FConnection;
+    {$IFDEF WINDOWS}
     if Pos('v2008', FConnectionInfo.ExtraSettings) > 0 then
       DBLibLibraryName := 'dblib_2008.dll'
     else
       DBLibLibraryName := DBLIBDLL;
+    {$ENDIF}
   end;
 end;
 
