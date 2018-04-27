@@ -162,6 +162,8 @@ var
   tmpFormulaField : TmFormulaField;
   tmpDouble : Double;
 begin
+  aValue := Null;
+
   tmpFormulaField := FFormulaFields.FindByName(aFieldName);
   if Assigned(tmpFormulaField) then
   begin
