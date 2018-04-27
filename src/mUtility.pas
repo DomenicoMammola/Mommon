@@ -760,10 +760,14 @@ end;
 
 function SafeVariantToInteger(aValue: variant; aDefaultValue : integer): integer;
 begin
-  if VarIsNull(aValue) or VarIsEmpty(aValue) or (not VarIsOrdinal(aValue)) then
+  if VarIsNull(aValue) or VarIsEmpty(aValue) then
     Result := aDefaultValue
+  else if VarIsOrdinal(aValue) then
+    Result := aValue
+  else if IsNumeric(VarToStr(aValue), false) then
+    Result := StrToInt(VarToStr(aValue))
   else
-    Result := aValue;
+    Result := aDefaultValue;
 end;
 
 // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
