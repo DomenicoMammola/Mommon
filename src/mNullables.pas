@@ -116,6 +116,32 @@ type
       property Value : TDateTime read GetValue write SetValue;
   end;
 
+  { TNullableTime }
+
+  TNullableTime = class (TAbstractNullable)
+  private
+    FValue : TDateTime;
+    function GetValue : TDateTime;
+    procedure SetValue (AValue : TDateTime);
+  public
+    constructor Create(); override; overload;
+    constructor Create(aValue: TDateTime); overload;
+
+    procedure Assign(const aSource : TNullableTime); overload;
+    procedure Assign(const aSourceField : TField); override; overload;
+    procedure Assign (const aValue: Variant); override; overload;
+    procedure Assign (const aValue: String); override; overload;
+    function AsVariant: Variant; override;
+    function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
+
+    class function StringToVariant(const aValue : String): Variant;
+    class function VariantToString(const aValue: Variant): String;
+
+    function AsString : String; override;
+
+    property Value : TDateTime read GetValue write SetValue;
+  end;
+
   { TNullableDouble }
 
   TNullableDouble = class (TAbstractNullable)
@@ -272,6 +298,118 @@ implementation
 
 uses
   SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
+
+{ TNullableTime }
+
+function TNullableTime.GetValue: TDateTime;
+begin
+  Result := FValue;
+end;
+
+procedure TNullableTime.SetValue(AValue: TDateTime);
+begin
+  FValue:= aValue;
+  FIsNull := false;
+end;
+
+constructor TNullableTime.Create();
+begin
+  inherited Create();
+end;
+
+constructor TNullableTime.Create(aValue: TDateTime);
+begin
+  inherited Create;
+  FValue := aValue;
+end;
+
+procedure TNullableTime.Assign(const aSource: TNullableTime);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
+  FTagChanged:= false;
+
+end;
+
+procedure TNullableTime.Assign(const aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsDateTime;
+  FTagChanged:= false;
+end;
+
+procedure TNullableTime.Assign(const aValue: Variant);
+begin
+  Self.CheckIfDifferentAndAssign(aValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableTime.Assign(const aValue: String);
+begin
+  Self.Assign(TNullableTime.StringToVariant(aValue));
+end;
+
+function TNullableTime.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
+end;
+
+function TNullableTime.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
+var
+  tmpTime : TDateTime;
+begin
+  if VarIsNull(aValue) then
+  begin
+    Result := Self.NotNull;
+    Self.IsNull:= true;
+  end
+  else
+  begin
+    tmpTime := aValue;
+    if Self.IsNull then
+      Result := true
+    else
+      Result := not DoublesAreEqual(Self.Value, tmpTime);
+    if Result then
+      Self.Value:= tmpTime;
+  end;
+  Self.FTagChanged:= Result;
+end;
+
+class function TNullableTime.StringToVariant(const aValue: String): Variant;
+var
+  tmptime : TDateTime;
+begin
+  if aValue = '' then
+    Result := Null
+  else
+    if TryToUnderstandTimeString(aValue, tmptime) then
+      Result := tmptime
+    else
+      raise Exception.Create('This string cannot be converted to time: ' + aValue);
+end;
+
+class function TNullableTime.VariantToString(const aValue: Variant): String;
+begin
+  if VarIsNull(aValue) then
+    Result := ''
+  else
+  begin
+    Result := TimeToStr(aValue);
+  end;
+end;
+
+function TNullableTime.AsString: String;
+begin
+  Result := TNullableTime.VariantToString(Self.AsVariant);
+end;
 
 { TNullablesList }
 
