@@ -38,9 +38,12 @@ function CountOccurancesOfChar(const aValue: Char; const aStr : String): integer
 function DateTimeToSeconds(const aDateTime : TDateTime; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted) : integer;
 function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted): TDateTime;
 
-// try to convert the input text from the user as a date value, if it fails it returns a blank string
+// try to convert the input text from the user as a date value, if it fails it returns false
 // user can edit date as ddmmyy or ddmmyyyy or dmyy or with separators like '/', '\', '-', ....
 function TryToUnderstandDateString(const aInputString : String; out aValue : TDateTime) : boolean;
+// try to convert the input text from the user as a time value, if it fails it returns false
+// user can edit time as hhmm or hhmmss or with separators like ':', '.', ....
+function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
 
 // http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11
 function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string): TDateTime;
@@ -273,7 +276,7 @@ begin
   Result := false;
   canTry := false;
 
-  tmp := aInputString;
+  tmp := Trim(aInputString);
   l := Length(tmp);
 
 
@@ -357,6 +360,147 @@ begin
           Result := true;
           exit;
         end;
+      end;
+    end;
+  end;
+end;
+
+function TryToUnderstandTimeString(const aInputString: String; out aValue: TDateTime): boolean;
+
+  function DecodeWithDelimiter (const aDelimiter : Char; const aText : String) : boolean;
+  var
+    list : TStringList;
+    hour, minutes, seconds : integer;
+  begin
+    Result := false;
+    list := TStringList.Create;
+    try
+      list.Delimiter:=aDelimiter;
+      list.DelimitedText:= aText;
+      if (list.Count = 0) or (list.Count > 3) then
+        exit;
+      hour := 0;
+      minutes := 0;
+      seconds := 0;
+      if list.Count >= 1 then
+      begin
+        if IsNumeric(list.Strings[0], false) then
+        begin
+          hour := StrToInt(list.Strings[0]);
+          if (hour < 0) or (hour > 23) then
+            exit;
+        end;
+      end;
+      if list.Count >= 2 then
+      begin
+        if IsNumeric(list.Strings[1], false) then
+        begin
+          minutes := StrToInt(list.Strings[1]);
+          if (minutes < 0) or (minutes > 59) then
+            exit;
+        end;
+      end;
+      if list.Count >= 3 then
+      begin
+        if IsNumeric(list.Strings[2], false) then
+        begin
+          seconds := StrToInt(list.Strings[2]);
+          if (seconds < 0) or (seconds > 59) then
+            exit;
+        end;
+      end;
+      aValue := EncodeTime(hour, minutes, seconds, 0);
+      Result := true;
+    finally
+      list.Free;
+    end;
+  end;
+
+var
+  tmp, hourStr, minutesStr, secondsStr : string;
+  hour, minutes, seconds : integer;
+  l : integer;
+begin
+  Result := false;
+  tmp := Uppercase(Trim(aInputString));
+
+  if Pos(':', tmp) >= 1 then
+  begin
+    // let's try with :
+    Result := DecodeWithDelimiter(':', tmp);
+  end
+  else
+  begin
+    if Pos('.',tmp) >= 1 then
+    begin
+      // let's try with .
+      Result := DecodeWithDelimiter('.', tmp);
+    end
+    else
+    begin
+      hourStr := '';
+      minutesStr := '';
+      secondsStr := '';
+
+      // no separator
+      l := Length(tmp);
+      if (l = 3) then
+      begin
+        hourStr := Copy(tmp, 1, 2);
+        minutesStr := Copy (tmp, 3, 1);
+        secondsStr := '0';
+        if IsNumeric(hourStr, false) then
+        begin
+          hour := StrToInt(hourStr);
+          if (hour >= 23) then
+          begin
+            hourStr := Copy(tmp, 1, 1);
+            minutesStr := Copy (tmp, 2, 2);
+          end;
+        end;
+      end
+      else
+      if (l = 4) then
+      begin
+        hourStr:= Copy(tmp, 1, 2);
+        minutesStr:= Copy(tmp, 3, 2);
+        secondsStr:= '0';
+      end
+      else
+      if (l=6) then
+      begin
+        hourStr := Copy(tmp, 1, 2);
+        minutesStr := Copy(tmp, 3, 2);
+        secondsStr := Copy(tmp,5, 2);
+      end;
+
+      if secondsStr <> '' then
+      begin
+        if IsNumeric(hourStr, false) and IsNumeric(minutesStr, false) and IsNumeric(secondsStr, false) then
+        begin
+          hour:= StrToInt(hourStr);
+          minutes:= StrToInt(minutesStr);
+          seconds:= StrToInt(secondsStr);
+
+          if (hour >= 0) and (hour <= 23) and (minutes >= 0) and (minutes <= 59) and (seconds >= 0) and (seconds <= 59) then
+          begin
+            aValue := EncodeTime(hour, minutes, seconds, 0);
+            Result := true;
+          end;
+        end;
+      end;
+    end;
+  end;
+  if not Result then
+  begin
+    try
+      aValue:= StrToTime(tmp);
+      Result := true;
+    except
+      on e: Exception do
+      begin
+        // ignored
+        Result := false;
       end;
     end;
   end;
