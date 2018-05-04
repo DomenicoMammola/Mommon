@@ -21,7 +21,7 @@ uses
   mUtility, mFilterOperators, StrHashMap;
 
 type
-  TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtInteger, fdtFloat);
+  TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtTime, fdtInteger, fdtFloat);
 
   { TmFilter }
 
@@ -196,7 +196,13 @@ begin
       FMinDoubleValue:= round(tmpDouble);
       tmpDouble := VarAsType(FCurrentFilter.Value[stop], vardate);
       FMaxDoubleValue:= round(tmpDouble);
-    end else if aFilter.DataType = fdtDateTime then
+    end else if aFilter.DataType = fdtTime then
+    begin
+      tmpDouble := VarAsType(FCurrentFilter.Value[start], vardate);
+      FMinDoubleValue:= tmpDouble - trunc(tmpDouble);
+      tmpDouble := VarAsType(FCurrentFilter.Value[stop], vardate);
+      FMaxDoubleValue:= tmpDouble - trunc (tmpDouble);
+    end else if (aFilter.DataType = fdtDateTime) then
     begin
       FMinDoubleValue:= VarAsType(FCurrentFilter.Value[start], vardate);
       FMaxDoubleValue:= VarAsType(FCurrentFilter.Value[stop], vardate);
@@ -274,7 +280,7 @@ begin
         if FCurrentFilter.DataType = fdtString then
         begin
           Result := (FMinStrValue <= aActualValue) and (aActualValue <= FMaxStrValue);
-        end else if (FCurrentFilter.DataType = fdtDate) or (FCurrentFilter.DataType = fdtDateTime) or (FCurrentFilter.DataType = fdtFloat)  then
+        end else if (FCurrentFilter.DataType = fdtDate) or (FCurrentFilter.DataType = fdtDateTime) or (FCurrentFilter.DataType = fdtFloat) or (FCurrentFilter.DataType =fdtTime)  then
         begin
           Result := (FMinDoubleValue <= aActualValue) and (aActualValue <= FMaxDoubleValue);
         end else if FCurrentFilter.DataType = fdtInteger then
