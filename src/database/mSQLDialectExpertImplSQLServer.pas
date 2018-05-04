@@ -96,6 +96,39 @@ begin
           else
             Result := DateToSQLString(aParam.AsDate);
         end;
+      ptTime:
+      begin
+        if (aParam.Operator = TmFilterOperator.foIn) then
+        begin
+          DoubleList := TDoubleList.Create;
+          try
+            aParam.AsDateTimeList(DoubleList);
+            Result := Result + '(';
+            for i := 0 to DoubleList.Count -1 do
+            begin
+              Result := Result + Separator + TimeToSQLString(DoubleList.Nums[i]);
+              Separator := ',';
+            end;
+            Result := Result + ')';
+          finally
+            DoubleList.Free;
+          end;
+        end else if (aParam.Operator = TmFilterOperator.foBetween) then
+        begin
+          DoubleList := TDoubleList.Create;
+          try
+            aParam.AsDateTimeList(DoubleList);
+            if DoubleList.Count = 2 then
+              Result := TimeToSQLString(DoubleList.Items[0]) + ' AND ' + TimeToSQLString(DoubleList.Items[1])
+            else
+              raise Exception.Create('Wrong number of values for BETWEEN operator');
+          finally
+            DoubleList.Free;
+          end;
+        end
+        else
+          Result := TimeToSQLString(aParam.AsTime);
+      end;
       ptDateTime:
         begin
           if (aParam.Operator = TmFilterOperator.foIn) then

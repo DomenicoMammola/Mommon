@@ -25,7 +25,7 @@ type
 
   TmDatabaseVendor = (dvUnknown, dvSQLServer);
 
-  TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptInteger, ptFloat, ptString, ptWideString);
+  TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptTime, ptInteger, ptFloat, ptString, ptWideString);
 
   TmBooleanParameterConvention = (bpcUseIntegers, bpcUseIntegersButStrings);
 
@@ -42,12 +42,14 @@ type
     function GetAsFloat: Double;
     function GetAsInteger: Integer;
     function GetAsString: String;
+    function GetAsTime: TDateTime;
     function GetAsWideString: WideString;
     procedure SetAsDate(AValue: TDate);
     procedure SetAsDateTime(AValue: TDateTime);
     procedure SetAsFloat(AValue: Double);
     procedure SetAsInteger(AValue: Integer);
     procedure SetAsString(AValue: String);
+    procedure SetAsTime(AValue: TDateTime);
     procedure SetAsWideString(AValue: WideString);
     procedure SetParameterDataType (value : TmParameterDataType);
     function GetParameterDataType : TmParameterDataType;
@@ -62,6 +64,7 @@ type
     procedure Assign(aValue : TNullableString); overload;
     procedure Assign(aValue : TNullableInteger); overload;
     procedure Assign(aValue : TNullableDateTime); overload;
+    procedure Assign(aValue : TNullableTime); overload;
     procedure Assign(aValue : TNullableDouble); overload;
     procedure Assign(aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention); overload;
     procedure Assign(const aFilter : TmFilter); overload;
@@ -80,6 +83,7 @@ type
     property AsFloat : Double read GetAsFloat write SetAsFloat;
     property AsDateTime : TDateTime read GetAsDateTime write SetAsDateTime;
     property AsDate : TDate read GetAsDate write SetAsDate;
+    property AsTime : TDateTime read GetAsTime write SetAsTime;
     property Operator : TmFilterOperator read FOperator write FOperator;
   end;
 
@@ -161,6 +165,8 @@ begin
       Result := ptDate;
     ftDateTime:
       Result := ptDateTime;
+    ftTime:
+      Result := ptTime;
     ftWideString:
       Result := ptWideString;
     else
@@ -181,6 +187,8 @@ begin
       Result := ftDate;
     ptDateTime:
       Result := ftDateTime;
+    ptTime:
+      Result := ftTime;
     ptWideString:
       Result := ftWideString;
     else
@@ -386,6 +394,18 @@ begin
   end;
 end;
 
+function TmQueryParameter.GetAsTime: TDateTime;
+begin
+  if (FDataType = ptTime) then
+  begin
+    Result := ValueAsDouble;
+  end
+  else
+  begin
+    raise TmDataConnectionException.Create('Datatype of parameter is not time');
+  end;
+end;
+
 function TmQueryParameter.GetAsWideString: WideString;
 begin
   if (FDataType = ptString) or (FDataType = ptWideString) then
@@ -429,6 +449,12 @@ procedure TmQueryParameter.SetAsString(AValue: String);
 begin
   FValue := AValue;
   FDataType := ptString;
+end;
+
+procedure TmQueryParameter.SetAsTime(AValue: TDateTime);
+begin
+  FValue := AValue;
+  FDataType:= ptTime;
 end;
 
 procedure TmQueryParameter.SetAsWideString(AValue: WideString);
@@ -504,6 +530,14 @@ begin
     Self.AsDateTime:= aValue.Value;
 end;
 
+procedure TmQueryParameter.Assign(aValue: TNullableTime);
+begin
+  if aValue.IsNull then
+    Self.SetNull
+  else
+    Self.AsTime:= aValue.Value;
+end;
+
 procedure TmQueryParameter.Assign(aValue: TNullableDouble);
 begin
   if aValue.IsNull then
@@ -541,6 +575,8 @@ begin
     Self.FDataType:= ptDate
   else if aFilter.DataType = fdtDateTime then
     Self.FDataType:= ptDateTime
+  else if aFilter.DataType = fdtTime then
+    Self.FDataType:= ptTime
   else if aFilter.DataType = fdtInteger then
     Self.FDataType:=ptInteger
   else if aFilter.DataType= fdtFloat then

@@ -190,6 +190,8 @@ begin
   case aParam.DataType of
     ptDate:
       TmpParam.AsDate := aParam.AsDate;
+    ptTime:
+      TmpParam.AsTime:= aParam.AsTime;
     ptDateTime:
       TmpParam.AsDateTime := aParam.AsDateTime;
     ptString:
@@ -324,6 +326,8 @@ begin
   case aParam.DataType of
     ptDate:
       TmpParam.AsDate:= aParam.AsDate;
+    ptTime:
+      TmpParam.AsTime:= aParam.AsTime;
     ptDateTime:
       TmpParam.AsDateTime := aParam.AsDateTime;
     ptString:

@@ -17,6 +17,7 @@ unit mSQLServerSQLDialect;
 interface
 
 function DateTimeToSQLString (aValue : TDateTime) : String;
+function TimeToSQLString (aValue : TDateTime): String;
 function DateToSQLString(aValue : TDate; const aAddQuotes : boolean = true) : String;
 function FloatToSQLString(aValue : Double): String;
 function StringToSQLString(aValue : String): String; overload;
@@ -38,6 +39,14 @@ var
 begin
   DecodeDateTime(aValue, TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli);
   Result := 'convert(datetime, ''' + AddZerosFront(TempYear, 4) + '-' + AddZerosFront(TempMonth, 2) + '-' + AddZerosFront(TempDay, 2) + ' ' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + ''', 120)';
+end;
+
+function TimeToSQLString(aValue: TDateTime): String;
+var
+  TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli : word;
+begin
+  DecodeDateTime(aValue, TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli);
+  Result := 'convert(datetime, ''' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + ''', 114)';
 end;
 
 function DateToSQLString (aValue : TDate; const aAddQuotes : boolean = true) : String;
