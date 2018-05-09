@@ -17,7 +17,7 @@ unit mGraphicsUtility;
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows,{$ELSE}LCLIntf, LCLType,{$ENDIF}  Graphics, Types;
+  {$IFDEF WINDOWS}Windows,{$ELSE}LCLIntf, LCLType,{$ENDIF}  Graphics, Types, Controls;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
@@ -33,10 +33,12 @@ type
   function LighterColor(aColor: TColor; percent: Byte): TColor;
   function IsDark (const aColor: TColor): boolean;
 
+  function ScaleForDPI (const aValue : integer) : integer;
+
 implementation
 
 uses
-  SysUtils, Math {$IFDEF FPC},graphutil{$ENDIF};
+  SysUtils, Math, Forms {$IFDEF FPC},graphutil{$ENDIF};
 
 {$IFDEF FPC}
 const
@@ -120,6 +122,16 @@ const
     cGreen := GetGValue(aColor);
     cBlue := GetBValue(aColor);
     Result := ((128 * 3) - (cRed + cGreen + cBlue)) > 0;
+  end;
+
+  function ScaleForDPI(const aValue: integer): integer;
+  begin
+    Result := aValue;
+
+    if Screen.PixelsPerInch=96 then exit;
+
+
+    Result := round(aValue * (Screen.PixelsPerInch / 96));
   end;
 
 procedure GetScreenShot (aBitmap : Graphics.TBitmap);
