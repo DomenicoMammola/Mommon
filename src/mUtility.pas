@@ -29,6 +29,7 @@ type
 function GenerateRandomIdString : string; overload;
 function GenerateRandomIdString(aLength : integer): string; overload;
 function CreateUniqueIdentifier : String; // actually a GUID without parentheses, to be used as unique indentifier in db tables
+function IsUniqueIdentifier (const aUI : String): boolean;
 
 function AddZerosFront (const aValue : integer; const aLength : integer) : String; overload;
 function AddZerosFront (const aValue : string; const aLength : integer) : String; overload;
@@ -1257,6 +1258,15 @@ begin
     if Result[lg] = '}' then
       Result := Copy(Result, 1, lg -1);
   end;
+end;
+
+function IsUniqueIdentifier(const aUI: String): boolean;
+var
+  s : String;
+  tmpGuid : TGuid;
+begin
+  s := '{' + aUI + '}';
+  Result := TryStringToGUID(s, tmpGuid);
 end;
 
 // This function converts the integer value of file size into human readable form
