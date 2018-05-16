@@ -18,7 +18,8 @@ unit mVirtualDataSetInterfaces;
 interface
 
 uses
-  Classes;
+  Classes,
+  mVirtualFieldDefs;
 
 type
 
@@ -33,7 +34,6 @@ type
     ['{DDB32FAA-C54E-47DF-A0D1-CFE37F092BAD}']
     function GetDatumKey : IVDDatumKey;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
-    //procedure SetPropertyByFieldName(const aFieldName: String; const aValue : Variant);
     function AsObject : TObject;
   end;
 

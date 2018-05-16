@@ -17,8 +17,8 @@ unit mVirtualDatasetDataProvider;
 interface
 
 uses
-  Contnrs, Dialogs,
-  StrHashMap, mVirtualDataSetInterfaces;
+  Contnrs, Dialogs, Classes,
+  mVirtualDataSetInterfaces, mVirtualFieldDefs, mMaps;
 
 type
 
@@ -31,7 +31,7 @@ type
 
     FMustRebuildIndex : boolean;
   protected
-    FMap : TStringHashMap;
+    FMap : TmStringDictionary;
     procedure InternalAdd(aDatum : TObject);
     function InternalFindByString (aStringKey : string) : TObject;
     function InternalGetDatum (aIndex : integer) : TObject;
@@ -44,6 +44,10 @@ type
     function FindDatumByKey (const aKey : IVDDatumKey) : IVDDatum;
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure RebuildIndex;
+
+    procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String); virtual; abstract;
+    function GetKeyFieldName : String; virtual; abstract;
+    procedure GetMinimumFields(aFieldsForLookup : TStringList); virtual;
   end;
 
 implementation
@@ -57,15 +61,10 @@ begin
 end;
 
 function TmDatasetDataProvider.InternalFindByString(aStringKey: string): TObject;
-var
-  tmp : pointer;
 begin
   if FMustRebuildIndex then
     RebuildIndex;
-  if FMap.Find(aStringKey, tmp) then
-    Result := TObject(tmp)
-  else
-    Result := nil;
+  Result := FMap.Find(aStringKey);
   FMustRebuildIndex:=false;
 end;
 
@@ -89,10 +88,15 @@ begin
   FMustRebuildIndex:= false;
 end;
 
+procedure TmDatasetDataProvider.GetMinimumFields(aFieldsForLookup: TStringList);
+begin
+  aFieldsForLookup.Clear;
+end;
+
 constructor TmDatasetDataProvider.Create;
 begin
   FList := TObjectList.Create(true);
-  FMap := TStringHashMap.Create;
+  FMap := TmStringDictionary.Create;
   FMustRebuildIndex:= true;
 end;
 

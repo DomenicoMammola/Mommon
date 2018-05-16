@@ -129,6 +129,7 @@ type
     function GetDatum(const aIndex : integer) : IVDDatum;
     function FindDatumByKey (const aKey : IVDDatumKey): IVDDatum;
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
+    procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
   end;
 
   function TmUprightHighlightTypeToVariant (const aValue : TmUprightHighlightType): Variant;
@@ -497,6 +498,11 @@ end;
 function TmUpright.FindDatumByStringKey(const aStringKey: string): IVDDatum;
 begin
   Result := TmUprightDatum(FDataList.Items[StrToInt(aStringKey)]);
+end;
+
+procedure TmUpright.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs;const aPrefix: String);
+begin
+  TmUprightDatum.FillVirtualFieldDefs(aFieldDefs, aPrefix);
 end;
 
 end.

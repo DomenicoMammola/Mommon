@@ -18,7 +18,7 @@ interface
 
 uses
   {$IFNDEF FPC}mInterfaces,{$ENDIF}
-  mVirtualFieldDefs, mVirtualDataSetInterfaces;
+  mVirtualFieldDefs, mVirtualDataSetInterfaces, mVirtualDatasetDataProvider;
 
 type
 
@@ -50,7 +50,7 @@ type
     function GetDatumKey : IVDDatumKey;
     function AsObject: TObject;
 
-    class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String);
+    class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
     class function GetKeyField : String;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
     procedure SetPropertyByFieldName(const aFieldName: String; const aValue : Variant);
@@ -60,7 +60,7 @@ type
 
   { TBooleanDataProvider }
 
-  TBooleanDataProvider = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IVDListDataProvider)
+  TBooleanDataProvider = class (TmDatasetDataProvider)
   strict private
     FTrueValue : TBooleanDatum;
     FFalseValue : TBooleanDatum;
@@ -72,6 +72,7 @@ type
     function FindDatumByKey (const aKey : IVDDatumKey) : IVDDatum;
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure Clear;
+    procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
   end;
 
 implementation
@@ -142,6 +143,11 @@ begin
   //
 end;
 
+procedure TBooleanDataProvider.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; const aPrefix: String);
+begin
+  TBooleanDatum.FillVirtualFieldDefs(aFieldDefs, aPrefix);
+end;
+
 { TBooleanDatum }
 
 constructor TBooleanDatum.Create(aValue: boolean);
@@ -164,7 +170,7 @@ begin
   Result := Self;
 end;
 
-class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String);
+class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; const aPrefix: String);
 begin
   with aFieldDefs.AddFieldDef do
   begin
