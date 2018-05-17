@@ -58,8 +58,6 @@ type
     property Key : TBooleanDatumKey read FKey;
   end;
 
-  { TBooleanDataProvider }
-
   TBooleanDataProvider = class (TmDatasetDataProvider)
   strict private
     FTrueValue : TBooleanDatum;
@@ -73,6 +71,19 @@ type
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure Clear;
     procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
+  end;
+
+  { TBooleanDatasetDataProvider }
+
+  TBooleanDatasetDataProvider = class (TmDatasetDataProvider)
+  strict private
+    FTrueValue : TBooleanDatum;
+    FFalseValue : TBooleanDatum;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String); override;
+    function GetKeyFieldName : String; override;
   end;
 
 implementation
@@ -95,6 +106,32 @@ end;
 function TBooleanDatumKey.AsString: string;
 begin
   Result := BoolToStr(FValue, true);
+end;
+
+{ TBooleanDatasetDataProvider }
+
+constructor TBooleanDatasetDataProvider.Create;
+begin
+  inherited;
+  FTrueValue := TBooleanDatum.Create(true);
+  FFalseValue := TBooleanDatum.Create(false);
+  Self.InternalAdd(FTrueValue);
+  Self.InternalAdd(FFalseValue);
+end;
+
+destructor TBooleanDatasetDataProvider.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TBooleanDatasetDataProvider.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; const aPrefix: String);
+begin
+  TBooleanDatum.FillVirtualFieldDefs(aFieldDefs, aPrefix);
+end;
+
+function TBooleanDatasetDataProvider.GetKeyFieldName: String;
+begin
+  Result := TBooleanDatum.GetKeyField;
 end;
 
 { TBooleanDataProvider }
@@ -147,6 +184,7 @@ procedure TBooleanDataProvider.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDe
 begin
   TBooleanDatum.FillVirtualFieldDefs(aFieldDefs, aPrefix);
 end;
+
 
 { TBooleanDatum }
 
