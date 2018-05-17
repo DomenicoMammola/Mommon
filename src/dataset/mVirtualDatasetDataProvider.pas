@@ -50,7 +50,26 @@ type
     procedure GetMinimumFields(aFieldsForLookup : TStringList); virtual;
   end;
 
+  function ConcatenateFieldValues (const aDatum : IVDDatum; const aFields: TStringList) : string;
+
 implementation
+
+uses
+  Variants;
+
+function ConcatenateFieldValues(const aDatum: IVDDatum; const aFields: TStringList): string;
+var
+  k : integer;
+  Separator : String;
+begin
+  Result:= '';
+  Separator:= '';
+  for k := 0 to aFields.Count - 1 do
+  begin
+    Result:= Result + Separator + VarToStr(aDatum.GetPropertyByFieldName(aFields.Strings[k]));
+    Separator := ',';
+  end;
+end;
 
 { TmDatasetDataProvider }
 
