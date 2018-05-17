@@ -1142,7 +1142,7 @@ begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
-    Self.Value:= RoundDoubleToStandardPrecision(aSourceField.AsFloat);
+    Self.Value:= aSourceField.AsFloat;
   FTagChanged:= false;
 end;
 
