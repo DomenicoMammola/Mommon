@@ -895,12 +895,22 @@ begin
     exit;
   end;
 
-  if aVal1 = aVal2 then
-    Result := 0
-  else if aVal1 < aVal2 then
-    Result := -1
+  if (valtype1 <> valtype2) then
+  begin
+    if valtype1 < valtype2 then
+      Result := -1
+    else
+      Result := 1;
+  end
   else
-    Result := 1;
+  begin
+    if aVal1 = aVal2 then
+      Result := 0
+    else if aVal1 < aVal2 then
+      Result := -1
+    else
+      Result := 1;
+   end;
 end;
 
 function SafeVariantToInteger(aValue: variant; aDefaultValue : integer): integer;
