@@ -40,9 +40,9 @@ type
 
   TBooleanDatum = class ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IVDDatum)
   strict private
-    const FLD_VALUE = 'VALUE';
-  strict private
     FKey : TBooleanDatumKey;
+  public
+    const FLD_VALUE = 'VALUE';
   public
     constructor Create(aValue : boolean);
     destructor Destroy; override;
