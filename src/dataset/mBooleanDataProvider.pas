@@ -58,7 +58,7 @@ type
     property Key : TBooleanDatumKey read FKey;
   end;
 
-  TBooleanDataProvider = class (TmDatasetDataProvider)
+  TBooleanDataProvider = class (IVDListDataProvider)
   strict private
     FTrueValue : TBooleanDatum;
     FFalseValue : TBooleanDatum;
