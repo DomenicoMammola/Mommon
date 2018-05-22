@@ -18,7 +18,7 @@ unit mNullables;
 interface
 
 uses
-  db, Graphics, variants, math, Classes,
+  db, Graphics, variants, Classes,
   mUtility, mMathUtility, mFloatsManagement;
 
 type
@@ -147,9 +147,12 @@ type
   TNullableDouble = class (TAbstractNullable)
   private
     FValue: Double;
-    FDigits: byte;
+    FDisplayFormat : string;
+    FFractionalPartDigits : byte;
+    FRoundingMethod : TRoundingMethod;
     function GetValue : Double;
-    procedure SetDigits(AValue: byte);
+    procedure SetDisplayFormat(AValue: String);
+    procedure SetFractionalPartDigits(AValue: byte);
     procedure SetValue (AValue : Double);
   public
     constructor Create(); override; overload;
@@ -162,16 +165,18 @@ type
     function AsVariant: Variant; override;
 
     class function StringToVariant(const aValue: String): Variant;
-    class function VariantToString(const aValue: Variant; const aDigits : byte): String;
+    class function VariantToString(const aValue: Variant; const aDisplayFormat : string): String;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
 
     function AsString : String; override;
     function AsFloat : Double;
-    function AsFormattedString (aFormat: String): String;
+    function AsFormattedString (const aFormat: String): String;
 
     property Value : Double read GetValue write SetValue;
-    property Digits : byte read FDigits write SetDigits;
+    property DisplayFormat : String read FDisplayFormat write SetDisplayFormat;
+    property FractionalPartDigits : byte read FFractionalPartDigits write SetFractionalPartDigits;
+    property RoundingMethod : TRoundingMethod read FRoundingMethod write FRoundingMethod;
   end;
 
   { TNullableBoolean }
@@ -1097,18 +1102,24 @@ begin
   Result := FValue;
 end;
 
-procedure TNullableDouble.SetDigits(AValue: byte);
+procedure TNullableDouble.SetDisplayFormat(AValue: String);
 begin
-  if FDigits=AValue then Exit;
-  FDigits:=AValue;
+  if FDisplayFormat=AValue then Exit;
+  FDisplayFormat:=AValue;
+end;
+
+procedure TNullableDouble.SetFractionalPartDigits(AValue: byte);
+begin
+  if FFractionalPartDigits=AValue then Exit;
+  FFractionalPartDigits:=AValue;
   if Self.NotNull then
-    FValue:= RoundTo(AValue, -1 * FDigits);
+    Self.SetValue(FValue);
 end;
 
 procedure TNullableDouble.SetValue(AValue: Double);
 begin
-  if FDigits > 0 then
-    FValue:= RoundTo(AValue, -1 * FDigits)
+  if FFractionalPartDigits > 0 then
+    FValue:= RoundToExt(AValue, FRoundingMethod, FFractionalPartDigits)
   else
     FValue:= aValue;
   FIsNull := false;
@@ -1117,21 +1128,24 @@ end;
 constructor TNullableDouble.Create();
 begin
   inherited Create;
-  FDigits := 0;
+  FDisplayFormat := '';
+  FFractionalPartDigits:= 0;
+  FRoundingMethod:= rmHalfRoundAwayFromZero;
 end;
 
 constructor TNullableDouble.Create(aValue: Double);
 begin
-  inherited Create;
-  Value := aValue;
+  Self.Create;
+  SetValue(aValue);
 end;
 
 
 procedure TNullableDouble.Assign(const aSource: TNullableDouble);
 begin
-  Self.FDigits:= aSource.Digits;
+  Self.FDisplayFormat:= aSource.DisplayFormat;
+  Self.FFractionalPartDigits:= aSource.FractionalPartDigits;
   if not aSource.IsNull then
-    Self.Value := aSource.Value
+    Self.SetValue(aSource.Value)
   else
     Self.IsNull := true;
   FTagChanged:= false;
@@ -1142,7 +1156,7 @@ begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
-    Self.Value:= aSourceField.AsFloat;
+    Self.SetValue(aSourceField.AsFloat);
   FTagChanged:= false;
 end;
 
@@ -1173,7 +1187,7 @@ begin
     Result:= StrToFloat(aValue);
 end;
 
-class function TNullableDouble.VariantToString(const aValue: Variant; const aDigits : byte): String;
+class function TNullableDouble.VariantToString(const aValue: Variant; const aDisplayFormat: string): String;
 var
   i : integer;
   str : String;
@@ -1182,13 +1196,8 @@ begin
     Result := ''
   else
   begin
-    if aDigits > 0 then
-    begin
-      str := '0.';
-      for i := 0 to aDigits -1 do
-        str := str + '0';
-      Result := FormatFloat(str, aValue);
-    end
+    if aDisplayFormat <> '' then
+      Result := FormatFloat(aDisplayFormat, aValue)
     else
       Result := FloatToStr(aValue);
   end;
@@ -1217,8 +1226,19 @@ begin
 end;
 
 function TNullableDouble.AsString: String;
+var
+  str : string;
+  i : integer;
 begin
-  Result := TNullableDouble.VariantToString(Self.AsVariant, FDigits);
+  if (FDisplayFormat = '') and (FFractionalPartDigits > 0) then
+  begin
+    str := '0.';
+    for i := 0 to FFractionalPartDigits -1 do
+      str := str + '#';
+    Result := TNullableDouble.VariantToString(Self.AsVariant, str);
+  end
+  else
+    Result := TNullableDouble.VariantToString(Self.AsVariant, FDisplayFormat);
 end;
 
 function TNullableDouble.AsFloat: Double;
@@ -1229,7 +1249,7 @@ begin
     Result := Self.Value;
 end;
 
-function TNullableDouble.AsFormattedString(aFormat: String): String;
+function TNullableDouble.AsFormattedString(const aFormat: String): String;
 begin
   if Self.IsNull then
     Result := ''
