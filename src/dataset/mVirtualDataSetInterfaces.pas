@@ -18,8 +18,7 @@ unit mVirtualDataSetInterfaces;
 interface
 
 uses
-  Classes,
-  mVirtualFieldDefs;
+  Classes;
 
 type
 
