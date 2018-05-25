@@ -67,6 +67,7 @@ type
     function AddFieldDef: TmVirtualFieldDef;
     procedure Assign (const aSource : TmVirtualFieldDefs); reintroduce;
     function FindByName (const aName : string) : TmVirtualFieldDef;
+    procedure ExtractFieldNames (aList: TStringList);
 
     property VirtualFieldDefs[I: Integer]: TmVirtualFieldDef read GetVirtualFieldDef; default;
   end;
@@ -167,6 +168,15 @@ begin
     Result := TmVirtualFieldDef(tmp)
   else
     Result := nil;
+end;
+
+procedure TmVirtualFieldDefs.ExtractFieldNames(aList: TStringList);
+var
+  i : integer;
+begin
+  aList.Clear;
+  for i := 0 to Self.Count -1 do
+    aList.Add(VirtualFieldDefs[i].Name);
 end;
 
 
