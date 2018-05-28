@@ -325,7 +325,7 @@ end;
 constructor TNullableTime.Create(aValue: TDateTime);
 begin
   inherited Create;
-  FValue := aValue;
+  SetValue(aValue);
 end;
 
 procedure TNullableTime.Assign(const aSource: TNullableTime);
@@ -651,7 +651,7 @@ end;
 constructor TNullableColor.Create(aValue: TColor);
 begin
   inherited Create;
-  FValue := aValue;
+  SetValue(aValue);
 end;
 
 procedure TNullableColor.Assign(const aSource: TNullableColor);
@@ -749,7 +749,7 @@ end;
 constructor TNullableInteger.Create(aValue: Integer);
 begin
   inherited Create;
-  FValue := aValue;
+  SetValue(aValue);
 end;
 
 procedure TNullableInteger.Assign(const aSource: TNullableInteger);
@@ -861,7 +861,7 @@ end;
 constructor TNullableBoolean.Create(aValue: Boolean);
 begin
   inherited Create;
-  FValue := aValue;
+  SetValue(aValue);
 end;
 
 procedure TNullableBoolean.Assign(const aSource: TNullableBoolean);
@@ -995,7 +995,7 @@ end;
 constructor TNullableString.Create(aValue: String);
 begin
   inherited Create;
-  Self.Value:= aValue;
+  SetValue(aValue);
 end;
 
 procedure TNullableString.Assign(const aSource: TNullableString);
@@ -1337,7 +1337,7 @@ end;
 constructor TNullableDateTime.Create(aValue: TDateTime);
 begin
   inherited Create;
-  FValue := aValue;
+  SetValue(aValue);
 end;
 
 procedure TNullableDateTime.Assign(const aSource: TNullableDateTime);
