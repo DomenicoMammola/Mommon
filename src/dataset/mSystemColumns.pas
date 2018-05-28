@@ -25,18 +25,19 @@ function IsSystemField (aField : TField) : boolean; overload;
 
 implementation
 
-const
-  SYSTEM_FIELD_NAME_PREFIX = '_';
-
+uses
+  mFieldNames;
 
 function GetSystemFieldName(aOriginalFieldName: String): String;
 begin
-  Result := SYSTEM_FIELD_NAME_PREFIX + aOriginalFieldName;
+  Result := PREFIX_SYSTEM_FIELDS + aOriginalFieldName;
 end;
 
 function IsSystemField (aField : TField) : boolean;
 begin
-  Result := (aField.FieldName[1] = SYSTEM_FIELD_NAME_PREFIX);
+  Result := (aField.FieldName[1] = PREFIX_SYSTEM_FIELDS);
+  Result := Result or (Pos(SEPARATOR_FIELDS_FROM_INTERNAL_REFERENCE + PREFIX_SYSTEM_FIELDS, aField.FieldName) > 0);
+  Result := Result or (Pos(SEPARATOR_FIELDS_FROM_JOIN + PREFIX_SYSTEM_FIELDS, aField.FieldName) > 0);
 end;
 
 

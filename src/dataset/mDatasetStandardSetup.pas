@@ -17,8 +17,8 @@ unit mDatasetStandardSetup;
 interface
 
 uses
-  DB,
-  mSystemColumns;
+  DB;
+
 
 function GenerateDisplayLabel(aSourceString : String) : String;
 procedure ApplyStandardSettingsToFields (aDataset : TDataset; aStandardFloatFormat : String);
@@ -26,13 +26,15 @@ procedure ApplyStandardSettingsToFields (aDataset : TDataset; aStandardFloatForm
 implementation
 
 uses
-  SysUtils, StrUtils;
+  SysUtils, StrUtils,
+  mSystemColumns, mFieldNames;
 
 function GenerateDisplayLabel(aSourceString: String): String;
 begin
   Result := SysUtils.StringReplace(aSourceString, '_', ' ', [rfReplaceAll]);
-  Result := SysUtils.StringReplace(Result, '$', ' ', [rfReplaceAll]);
-  Result := StrUtils.AnsiPropercase(Result,[' ', #9, '\',#13,#10]);;
+  Result := SysUtils.StringReplace(Result, SEPARATOR_FIELDS_FROM_JOIN, '.', [rfReplaceAll]);
+  Result := SysUtils.StringReplace(Result, SEPARATOR_FIELDS_FROM_INTERNAL_REFERENCE, '.', [rfReplaceAll]);
+  Result := StrUtils.AnsiPropercase(Result,[' ', #9, '\', #13, #10, '.']);
 end;
 
 procedure ApplyStandardSettingsToFields(aDataset: TDataset; aStandardFloatFormat : String);
