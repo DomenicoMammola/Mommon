@@ -8,10 +8,7 @@ interface
 
 uses
   Classes, contnrs, sysutils,
-  mVirtualDataSetInterfaces, mMaps, mVirtualFieldDefs, mLog;
-
-const
-  PREFIX_JOIN_SEPARATOR = '$';
+  mVirtualDataSetInterfaces, mMaps, mVirtualFieldDefs, mLog, mFieldNames;
 
 type
   TBuildExternalEntityKeyFromDatumFunction = function (aSource : IVDDatum): string of object;
@@ -79,7 +76,7 @@ var
 begin
   aPrefix := '';
   aFieldName := aSource;
-  i := Pos(PREFIX_JOIN_SEPARATOR, aSource);
+  i := Pos(SEPARATOR_FIELDS_FROM_JOIN, aSource);
   if i > 0 then
   begin
     aPrefix := Copy(aSource, 1, i);
@@ -165,8 +162,8 @@ procedure TmBuiltInJoin.SetPrefix(AValue: string);
 begin
   if FPrefix=AValue then Exit;
   FPrefix:=Uppercase(AValue);
-  if Copy(FPrefix, Length(FPrefix), 1) <> PREFIX_JOIN_SEPARATOR then
-    FPrefix := FPrefix + PREFIX_JOIN_SEPARATOR;
+  if Copy(FPrefix, Length(FPrefix), 1) <> SEPARATOR_FIELDS_FROM_JOIN then
+    FPrefix := FPrefix + SEPARATOR_FIELDS_FROM_JOIN;
 end;
 
 constructor TmBuiltInJoin.Create;
