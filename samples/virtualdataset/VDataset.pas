@@ -9,7 +9,7 @@ interface
 uses
   Classes, DB,
   contnrs, sysutils,
-  mVirtualDataSet, mVirtualFieldDefs, mVirtualDatasetPivoter;
+  mVirtualDataSet, mDataProviderFieldDefs, mVirtualDatasetPivoter;
 
 type
 

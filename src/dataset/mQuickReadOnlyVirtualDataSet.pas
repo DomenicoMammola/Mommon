@@ -18,8 +18,8 @@ interface
 
 uses
   DB, Classes, contnrs, Variants, StrHashMap,
-  mVirtualDataSet, mVirtualDataSetInterfaces, mSortConditions, mFilter, mIntList, mLog,
-  mVirtualDataSetJoins, mVirtualFieldDefs, mVirtualDatasetFormulas, KAParser;
+  mVirtualDataSet, mDataProviderInterfaces, mSortConditions, mFilter, mIntList, mLog,
+  mVirtualDataSetJoins, mDataProviderFieldDefs, mVirtualDatasetFormulas, KAParser;
 
 const
   KEY_FIELD_NAME = '_KEY';

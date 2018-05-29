@@ -21,7 +21,7 @@ uses
   Data.DbConsts,
   {$ENDIF}
   Forms, DB,
-  mVirtualFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
+  mDataProviderFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
   mInterfaces, mFilter, mVirtualDataSetJoins, mSummary;
 
 {$REGION 'Documentation'}

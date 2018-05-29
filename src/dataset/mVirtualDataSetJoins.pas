@@ -8,7 +8,7 @@ interface
 
 uses
   Classes, contnrs, sysutils,
-  mVirtualDataSetInterfaces, mMaps, mVirtualFieldDefs, mLog, mFieldNames;
+  mDataProviderInterfaces, mMaps, mDataProviderFieldDefs, mLog, mFieldNames;
 
 type
   TBuildExternalEntityKeyFromDatumFunction = function (aSource : IVDDatum): string of object;

@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, contnrs, db,
-  mVirtualFieldDefs, StrHashMap;
+  mDataProviderFieldDefs, StrHashMap;
 
 type
 

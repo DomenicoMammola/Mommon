@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit mVirtualDataSetInterfaces;
+unit mDataProviderInterfaces;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -19,7 +19,7 @@ interface
 
 uses
   Classes,
-  mVirtualFieldDefs;
+  mDataProviderFieldDefs;
 
 type
 
@@ -28,7 +28,6 @@ type
     procedure Assign(aSource : TObject);
     function AsString : string;
   end;
-
 
   IVDDatum = interface
     ['{DDB32FAA-C54E-47DF-A0D1-CFE37F092BAD}']

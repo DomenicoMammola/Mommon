@@ -19,7 +19,7 @@ interface
 uses
   {$IFNDEF FPC}mInterfaces,{$ENDIF}
   Classes,
-  mVirtualFieldDefs, mVirtualDataSetInterfaces, mVirtualDatasetDataProvider;
+  mDataProviderFieldDefs, mDataProviderInterfaces, mDataProvider;
 
 type
 
@@ -80,7 +80,7 @@ type
 
   { TBooleanDatasetDataProvider }
 
-  TBooleanDatasetDataProvider = class (TmDatasetDataProvider)
+  TBooleanDatasetDataProvider = class (TmDataProvider)
   strict private
     FTrueValue : TBooleanDatum;
     FFalseValue : TBooleanDatum;

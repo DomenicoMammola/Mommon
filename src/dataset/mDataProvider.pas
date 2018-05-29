@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit mVirtualDatasetDataProvider;
+unit mDataProvider;
 
 {$IFDEF FPC}
   {$MODE DELPHI}  
@@ -18,14 +18,13 @@ interface
 
 uses
   Contnrs, Dialogs, Classes,
-  mVirtualDataSetInterfaces, mVirtualFieldDefs, mMaps;
+  mDataProviderInterfaces, mDataProviderFieldDefs, mMaps;
 
 type
 
+  { TmDataProvider }
 
-  { TmDatasetDataProvider }
-
-  TmDatasetDataProvider = class abstract ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IVDDataProvider)
+  TmDataProvider = class abstract ({$IFNDEF FPC}TJavaInterfacedObject, {$ENDIF}IVDDataProvider)
   strict private
     FList : TObjectList;
 
@@ -53,15 +52,15 @@ type
 implementation
 
 
-{ TmDatasetDataProvider }
+{ TmDataProvider }
 
-procedure TmDatasetDataProvider.InternalAdd(aDatum: TObject);
+procedure TmDataProvider.InternalAdd(aDatum: TObject);
 begin
   FList.Add(aDatum);
   FMustRebuildIndex:=true;
 end;
 
-function TmDatasetDataProvider.InternalFindByString(aStringKey: string): TObject;
+function TmDataProvider.InternalFindByString(aStringKey: string): TObject;
 begin
   if FMustRebuildIndex then
     RebuildIndex;
@@ -69,7 +68,7 @@ begin
   FMustRebuildIndex:=false;
 end;
 
-function TmDatasetDataProvider.InternalGetDatum(aIndex: integer): TObject;
+function TmDataProvider.InternalGetDatum(aIndex: integer): TObject;
 begin
   Result := nil;
   if aIndex < FList.Count then
@@ -79,7 +78,7 @@ begin
   end;
 end;
 
-procedure TmDatasetDataProvider.RebuildIndex;
+procedure TmDataProvider.RebuildIndex;
 var
   i : integer;
 begin
@@ -89,26 +88,26 @@ begin
   FMustRebuildIndex:= false;
 end;
 
-procedure TmDatasetDataProvider.GetMinimumFields(aFieldsForLookup: TStringList);
+procedure TmDataProvider.GetMinimumFields(aFieldsForLookup: TStringList);
 begin
   aFieldsForLookup.Clear;
 end;
 
-constructor TmDatasetDataProvider.Create;
+constructor TmDataProvider.Create;
 begin
   FList := TObjectList.Create(true);
   FMap := TmStringDictionary.Create;
   FMustRebuildIndex:= true;
 end;
 
-destructor TmDatasetDataProvider.Destroy;
+destructor TmDataProvider.Destroy;
 begin
   FList.Free;
   FMap.Free;
   inherited Destroy;
 end;
 
-procedure TmDatasetDataProvider.Clear;
+procedure TmDataProvider.Clear;
 begin
   FList.Clear;
   FMap.Clear;
@@ -116,22 +115,22 @@ begin
 
 end;
 
-function TmDatasetDataProvider.Count: integer;
+function TmDataProvider.Count: integer;
 begin
   Result := FList.Count;
 end;
 
-function TmDatasetDataProvider.GetDatum(const aIndex: integer): IVDDatum;
+function TmDataProvider.GetDatum(const aIndex: integer): IVDDatum;
 begin
   Result := InternalGetDatum(aIndex) as IVDDatum;
 end;
 
-function TmDatasetDataProvider.FindDatumByKey(const aKey: IVDDatumKey): IVDDatum;
+function TmDataProvider.FindDatumByKey(const aKey: IVDDatumKey): IVDDatum;
 begin
   Result := FindDatumByStringKey(aKey.AsString);
 end;
 
-function TmDatasetDataProvider.FindDatumByStringKey (const aStringKey : string): IVDDatum;
+function TmDataProvider.FindDatumByStringKey (const aStringKey : string): IVDDatum;
 begin
   Result := Self.InternalFindByString(aStringKey) as IVDDatum;
 end;
