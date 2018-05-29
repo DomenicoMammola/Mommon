@@ -18,6 +18,7 @@ interface
 
 uses
   {$IFNDEF FPC}mInterfaces,{$ENDIF}
+  Classes,
   mVirtualFieldDefs, mVirtualDataSetInterfaces, mVirtualDatasetDataProvider;
 
 type
@@ -58,7 +59,9 @@ type
     property Key : TBooleanDatumKey read FKey;
   end;
 
-  TBooleanDataProvider = class (IVDListDataProvider)
+  { TBooleanDataProvider }
+
+  TBooleanDataProvider = class (IVDDataProvider)
   strict private
     FTrueValue : TBooleanDatum;
     FFalseValue : TBooleanDatum;
@@ -71,6 +74,8 @@ type
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure Clear;
     procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
+    function GetKeyFieldName : String;
+    procedure GetMinimumFields(aFieldsForLookup : TStringList);
   end;
 
   { TBooleanDatasetDataProvider }
@@ -183,6 +188,16 @@ end;
 procedure TBooleanDataProvider.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; const aPrefix: String);
 begin
   TBooleanDatum.FillVirtualFieldDefs(aFieldDefs, aPrefix);
+end;
+
+function TBooleanDataProvider.GetKeyFieldName: String;
+begin
+  Result := TBooleanDatum.GetKeyField;
+end;
+
+procedure TBooleanDataProvider.GetMinimumFields(aFieldsForLookup: TStringList);
+begin
+  aFieldsForLookup.Add(TBooleanDatum.FLD_VALUE);
 end;
 
 

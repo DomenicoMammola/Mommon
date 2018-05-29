@@ -108,7 +108,7 @@ type
 
   { TmUpright }
 
-  TmUpright = class (IVDListDataProvider)
+  TmUpright = class (IVDDataProvider)
   strict private
     FGarbage : TObjectList;
     FDataList : TFPList;
@@ -130,6 +130,8 @@ type
     function FindDatumByKey (const aKey : IVDDatumKey): IVDDatum;
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
+    function GetKeyFieldName : String;
+    procedure GetMinimumFields(aFieldsForLookup : TStringList);
   end;
 
   function TmUprightHighlightTypeToVariant (const aValue : TmUprightHighlightType): Variant;
@@ -503,6 +505,18 @@ end;
 procedure TmUpright.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs;const aPrefix: String);
 begin
   TmUprightDatum.FillVirtualFieldDefs(aFieldDefs, aPrefix);
+end;
+
+function TmUpright.GetKeyFieldName: String;
+begin
+  Result := TmUprightDatum.GetKeyField;
+end;
+
+procedure TmUpright.GetMinimumFields(aFieldsForLookup: TStringList);
+begin
+  aFieldsForLookup.Add(TmUprightDatum.FLD_POSITION);
+  aFieldsForLookup.Add(TmUprightDatum.FLD_DATE);
+  aFieldsForLookup.Add(TmUprightDatum.FLD_UPRIGHT);
 end;
 
 end.

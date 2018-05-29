@@ -18,7 +18,8 @@ unit mVirtualDataSetInterfaces;
 interface
 
 uses
-  Classes;
+  Classes,
+  mVirtualFieldDefs;
 
 type
 
@@ -36,20 +37,26 @@ type
     function AsObject : TObject;
   end;
 
-  IVDListDataProvider = interface
+  IVDDataProvider = interface
     ['{F3F52A84-CEEF-4567-98CF-847BC64342E7}']
     function Count : integer;
     function GetDatum(const aIndex : integer) : IVDDatum;
     function FindDatumByKey (const aKey : IVDDatumKey): IVDDatum;
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
     procedure Clear;
+    procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
+    function GetKeyFieldName : String;
+    procedure GetMinimumFields(aFieldsForLookup : TStringList);
   end;
 
+
 function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >
+function ConcatenateFieldValues (const aDatum : IVDDatum; const aFields: TStringList) : string;
 
 implementation
 
 uses
+  Variants,
   mUtility;
 
 function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >
@@ -67,6 +74,21 @@ begin
     aLastCheckedConditionIndex := i;
     if Result <> 0 then
       break;
+  end;
+end;
+
+
+function ConcatenateFieldValues(const aDatum: IVDDatum; const aFields: TStringList): string;
+var
+  k : integer;
+  Separator : String;
+begin
+  Result:= '';
+  Separator:= '';
+  for k := 0 to aFields.Count - 1 do
+  begin
+    Result:= Result + Separator + VarToStr(aDatum.GetPropertyByFieldName(aFields.Strings[k]));
+    Separator := ',';
   end;
 end;
 

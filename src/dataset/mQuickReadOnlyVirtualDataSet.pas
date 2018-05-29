@@ -30,7 +30,7 @@ type
 
   TReadOnlyVirtualDatasetProvider = class (TmVirtualDatasetDataProvider)
   strict private
-    FIDataProvider : IVDListDataProvider;
+    FIDataProvider : IVDDataProvider;
     FSortedIndex : TFPList;
     FFilteredIndex : TCardinalList;
     FCurrentSortFields : TStringList;
@@ -55,7 +55,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    procedure Init (aDataProvider : IVDListDataProvider);
+    procedure Init (aDataProvider : IVDDataProvider);
 
     procedure GetFieldValue (const AFieldName: String; const AIndex: Cardinal; out AValue: variant); override;
     procedure DeleteRecord (const AIndex :integer); override;
@@ -291,7 +291,7 @@ begin
 end;
 
 
-procedure TReadOnlyVirtualDatasetProvider.Init(aDataProvider: IVDListDataProvider);
+procedure TReadOnlyVirtualDatasetProvider.Init(aDataProvider: IVDDataProvider);
 begin
   FIDataProvider := aDataProvider;
   FSortedIndex.Clear;
