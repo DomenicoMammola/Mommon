@@ -164,6 +164,9 @@ type
     procedure Assign(const aValue: String); override; overload;
     function AsVariant: Variant; override;
 
+    procedure Add(const aValue : double); overload;
+    procedure Add(const aValue : TNullableDouble); overload;
+
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant; const aDisplayFormat : string): String;
 
@@ -226,6 +229,9 @@ type
     function AsVariant: Variant; override;
     function AsString: String; override;
     function AsFormattedString (aFormat: String): String;
+
+    procedure Add (const aValue : integer); overload;
+    procedure Add (const aValue : TNullableInteger); overload;
 
     class function StringToVariant(const aValue : String) : Variant;
     class function VariantToString(const aValue : Variant) : String;
@@ -824,6 +830,20 @@ begin
     Result := FormatFloat(aFormat, Self.Value);
 end;
 
+procedure TNullableInteger.Add(const aValue: integer);
+begin
+  if Self.IsNull then
+    Self.SetValue(aValue)
+  else
+    Self.SetValue(aValue + Self.Value);
+end;
+
+procedure TNullableInteger.Add(const aValue: TNullableInteger);
+begin
+  if aValue.NotNull then
+    Self.Add(aValue.Value);
+end;
+
 class function TNullableInteger.StringToVariant(const aValue: String): Variant;
 begin
   if IsNumeric(aValue, false) then
@@ -1177,6 +1197,20 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+procedure TNullableDouble.Add(const aValue: double);
+begin
+  if Self.IsNull then
+    Self.SetValue(aValue)
+  else
+    Self.SetValue(aValue + Self.Value);
+end;
+
+procedure TNullableDouble.Add(const aValue: TNullableDouble);
+begin
+  if aValue.NotNull then
+    Self.Add(aValue.Value);
 end;
 
 class function TNullableDouble.StringToVariant(const aValue: String): Variant;
