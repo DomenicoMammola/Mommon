@@ -925,8 +925,8 @@ begin
     if (FVirtualDatasetProvider.VirtualFieldDefs.VirtualFieldDefs[i].DefaultFormat <> '') then
     begin
       tmpField := Self.FieldByName(FVirtualDatasetProvider.VirtualFieldDefs.VirtualFieldDefs[i].Name);
-      if Assigned(tmpField) and (tmpField is TFloatField) then
-        (tmpField as TFloatField).DisplayFormat:= FVirtualDatasetProvider.VirtualFieldDefs.VirtualFieldDefs[i].DefaultFormat;
+      if Assigned(tmpField) and (tmpField is TNumericField) then
+        (tmpField as TNumericField).DisplayFormat:= FVirtualDatasetProvider.VirtualFieldDefs.VirtualFieldDefs[i].DefaultFormat;
     end;
   end;
 end;
