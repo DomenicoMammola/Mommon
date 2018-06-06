@@ -17,8 +17,11 @@ interface
 
 uses
   Classes, contnrs,
-  mUtility, mFloatsManagement, mNullables,
+  mUtility, mFloatsManagement, mNullables, mDoubleList,
   mDataProviderInterfaces, mDataProviderFieldDefs;
+
+const
+  MAX_NUM_OF_VALUES = 10;
 
 type
 
@@ -43,7 +46,7 @@ type
   TmUprightEvent = class
   strict private
     FEventDate : TDateTime;
-    FValue : double;
+    FValues : array [0..MAX_NUM_OF_VALUES-1] of double;
     FAttribute1 : TNullableString;
     FAttribute2 : TNullableString;
     FAttribute3 : TNullableString;
@@ -55,9 +58,10 @@ type
     constructor Create;
     destructor Destroy; override;
     function CompareTo (aOther : TmUprightEvent) : integer;
+    function GetValue (const aIndex : byte) : double;
+    procedure SetValue (const aIndex: byte; const aValue : double);
 
     property EventDate: TDateTime read FEventDate write FEventDate;
-    property Value: double read FValue write FValue;
     property Attribute1 : TNullableString read FAttribute1;
     property Attribute2 : TNullableString read FAttribute2;
     property Attribute3 : TNullableString read FAttribute3;
@@ -72,11 +76,15 @@ type
   private
     FEvent : TmUprightEvent;
     FKey : TmUprightValueKey;
-    FUpright : double;
+    FUprights : array[0..MAX_NUM_OF_VALUES-1] of double;
     FHighlight : TmUprightHighlightType;
     FLimit : TNullableDouble;
     FRemaining : TNullableDouble;
+
     function GetPosition: integer;
+  private
+    const LENGTH_FLD_DELTA = 5;
+    const LENGTH_FLD_UPRIGHT = 7;
   public
     const FLD_POSITION = 'POSITION';
     const FLD_DATE = 'DATE';
@@ -98,11 +106,12 @@ type
     procedure SetPropertyByFieldName(const aFieldName: String; const aValue : Variant);
     function AsObject: TObject;
 
-    class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String);
+    class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String; const aValuesCount : integer = 1);
     class function GetKeyField : String;
+    procedure SetUpright(const aIndex: byte; const aValue : double);
+    function GetUpright(const aIndex: byte): double;
 
     property Position : integer read GetPosition;
-    property Upright: double read FUpright;
     property Highlight : TmUprightHighlightType read FHighlight;
   end;
 
@@ -123,7 +132,7 @@ type
     destructor Destroy; override;
 
     function Add : TmUprightEvent;
-    procedure Calculate;
+    procedure Calculate(const aDoSort : boolean = true);
     function Count : integer;
     procedure Clear;
     function GetDatum(const aIndex : integer) : IVDDatum;
@@ -171,8 +180,11 @@ begin
 end;
 
 constructor TmUprightDatum.Create;
+var
+  i : integer;
 begin
-  FUpright:= 0;
+  for i := 0 to MAX_NUM_OF_VALUES - 1 do
+    FUprights[i] := 0;
   FHighlight:= uhNone;
   FKey := TmUprightValueKey.Create;
   FLimit := TNullableDouble.Create;
@@ -187,16 +199,19 @@ begin
 end;
 
 constructor TmUprightEvent.Create;
+var
+  i : integer;
 begin
   EventDate:= 0;
   DatumKey:= '';
-  Value:= 0;
   EventType:= etuValue;
 
   FAttribute1 := TNullableString.Create;
   FAttribute2 := TNullableString.Create();
   FAttribute3 := TNullableString.Create();
   FAttribute4 := TNullableString.Create();
+  for i := 0 to MAX_NUM_OF_VALUES - 1 do
+    FValues[i] := 0;
 end;
 
 destructor TmUprightEvent.Destroy;
@@ -218,17 +233,30 @@ begin
     Result := 1;
 end;
 
+function TmUprightEvent.GetValue(const aIndex: byte): double;
+begin
+  Result := FValues[aIndex];
+end;
+
+procedure TmUprightEvent.SetValue(const aIndex: byte; const aValue: double);
+begin
+  FValues[aIndex] := aValue;
+end;
+
 function TmUprightDatum.GetDatumKey: IVDDatumKey;
 begin
   Result := FKey;
 end;
 
 function TmUprightDatum.GetPropertyByFieldName(const aFieldName: String): Variant;
+var
+  i : integer;
 begin
+  Result := Null;
   if aFieldName = FLD_POSITION then
     Result := FKey.Position
   else if aFieldName = FLD_DELTA then
-    Result := FEvent.Value
+    Result := FEvent.GetValue(0)
   else if aFieldName = FLD_ATTRIBUTE1 then
     Result := FEvent.Attribute1.AsVariant
   else if aFieldName = FLD_ATTRIBUTE2 then
@@ -238,7 +266,7 @@ begin
   else if aFieldName = FLD_ATTRIBUTE4 then
     Result := FEvent.Attribute4.AsVariant
   else if aFieldName = FLD_UPRIGHT then
-    Result := FUpright
+    Result := GetUpright(0)
   else if aFieldName = FLD_HIGHLIGHT then
     Result := TmUprightHighlightTypeToVariant(FHighlight)
   else if aFieldName = FLD_REMAINING then
@@ -247,8 +275,23 @@ begin
     Result := FLimit.AsVariant
   else if aFieldName = FLD_DATE then
     Result := FEvent.EventDate
-  else
-    Result := Null;
+  else begin
+    i := Pos(FLD_DELTA, aFieldName);
+    if i > 0 then
+    begin
+      i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_DELTA, 999));
+      Result := FEvent.GetValue(i - 1);
+    end
+    else
+    begin
+      i := Pos(FLD_UPRIGHT, aFieldName);
+      if i > 0 then
+      begin
+        i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_UPRIGHT, 999));
+        Result := GetUpright(i - 1);
+      end;
+    end;
+  end;
 end;
 
 procedure TmUprightDatum.SetPropertyByFieldName(const aFieldName: String; const aValue: Variant);
@@ -261,7 +304,9 @@ begin
   Result := Self;
 end;
 
-class procedure TmUprightDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String);
+class procedure TmUprightDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String; const aValuesCount : integer = 1);
+var
+  i : integer;
 begin
   with aFieldDefs.AddFieldDef do
   begin
@@ -278,11 +323,28 @@ begin
     Name := aPrefix + FLD_DELTA;
     DataType:= vftFloat;
   end;
+  for i := 2 to aValuesCount do
+  begin
+    with aFieldDefs.AddFieldDef do
+    begin
+      Name := aPrefix + FLD_DELTA + IntToStr(i);
+      DataType:= vftFloat;
+    end;
+  end;
   with aFieldDefs.AddFieldDef do
   begin
     Name := aPrefix + FLD_UPRIGHT;
     DataType:= vftFloat;
   end;
+  for i := 2 to aValuesCount do
+  begin
+    with aFieldDefs.AddFieldDef do
+    begin
+      Name := aPrefix + FLD_UPRIGHT + IntToStr(i);
+      DataType:= vftFloat;
+    end;
+  end;
+
   with aFieldDefs.AddFieldDef do
   begin
     Name := aPrefix + FLD_LIMIT;
@@ -330,6 +392,16 @@ begin
   Result := FLD_POSITION;
 end;
 
+procedure TmUprightDatum.SetUpright(const aIndex: byte; const aValue: double);
+begin
+  FUprights[aIndex] := aValue;
+end;
+
+function TmUprightDatum.GetUpright(const aIndex: byte): double;
+begin
+  Result := FUprights[aIndex];
+end;
+
 { TmUpright }
 
 function TmUpright.OnCompareData(Item1, Item2: Pointer): Integer;
@@ -355,29 +427,23 @@ begin
   tmpMin := 0;
   tmpMax := 0;
 
+  idxMin := 0;
+  idxMax := 0;
+
+
   for i := 0 to FDataList.Count -1 do
   begin
     tmp:= TmUprightDatum(FDataList.Items[i]);
     tmp.FHighlight := uhNone;
-    if i = 0 then
+    if not mFloatsManagement.DoubleIsLessThan(tmpMin, tmp.GetUpright(0)) then
     begin
-      tmpMin:= tmp.FUpright;
-      tmpMax:= tmp.FUpright;
-      idxMin := 0;
-      idxMax := 0;
-    end
-    else
+      tmpMin := tmp.GetUpright(0);
+      idxMin := i;
+    end;
+    if mFloatsManagement.DoubleIsLessThan(tmpMax, tmp.GetUpright(0)) then
     begin
-      if not mFloatsManagement.DoubleIsLessThan(tmpMin, tmp.FUpright) then
-      begin
-        tmpMin := tmp.FUpright;
-        idxMin := i;
-      end;
-      if mFloatsManagement.DoubleIsLessThan(tmpMax, tmp.FUpright) then
-      begin
-        tmpMax := tmp.FUpright;
-        idxMax := i;
-      end;
+      tmpMax := tmp.GetUpright(0);
+      idxMax := i;
     end;
   end;
   TmUprightDatum(FDataList.Items[idxMin]).FHighlight := uhMin;
@@ -407,13 +473,13 @@ begin
   FEventsList.Add(Result);
 end;
 
-procedure TmUpright.Calculate;
+procedure TmUpright.Calculate (const aDoSort : boolean = true);
 var
-  i : integer;
+  i, k : integer;
   tmpEvent : TmUprightEvent;
   tmpDatum : TmUprightDatum;
-  lastValue : double;
   currentLimitIndex : integer;
+  lastValues : array [0..MAX_NUM_OF_VALUES -1] of double;
 begin
   FDataList.Clear;
   FLimitsList.Clear;
@@ -435,11 +501,16 @@ begin
     end;
   end;
 
-  MergeSort(FDataList, OnCompareData);
-  MergeSort(FLimitsList, OnCompareEvents);
-  lastValue := 0;
+  if aDoSort then
+  begin
+    MergeSort(FDataList, OnCompareData);
+    MergeSort(FLimitsList, OnCompareEvents);
+  end;
 
   currentLimitIndex:= -1;
+
+  for i := 0 to MAX_NUM_OF_VALUES -1 do
+    lastValues[i] := 0;
 
   for i := 0 to FDataList.Count -1 do
   begin
@@ -459,16 +530,16 @@ begin
     end;
 
     tmpDatum.FKey.FPosition := i + 1;
-    if i = 0 then
-      tmpDatum.FUpright:= tmpDatum.FEvent.Value
-    else
-      tmpDatum.FUpright:= lastValue + tmpDatum.FEvent.Value;
-    lastValue := tmpDatum.FUpright;
+    for k := 0 to MAX_NUM_OF_VALUES - 1 do
+    begin
+      tmpDatum.SetUpright(k, lastValues[k] + tmpDatum.FEvent.GetValue(k));
+      lastValues[k] := tmpDatum.GetUpright(k);
+    end;
     if currentLimitIndex >= 0 then
     begin
       tmpEvent := TmUprightEvent(FLimitsList.Items[currentLimitIndex]);
-      tmpDatum.FLimit.Value := tmpEvent.Value;
-      tmpDatum.FRemaining.Value := tmpDatum.FLimit.Value + tmpDatum.FUpright;
+      tmpDatum.FLimit.Value := tmpEvent.GetValue(0);
+      tmpDatum.FRemaining.Value := tmpDatum.FLimit.Value + tmpDatum.GetUpright(0);
     end;
   end;
   Self.CalculateHighlights;
