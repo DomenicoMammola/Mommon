@@ -228,6 +228,7 @@ type
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
     function AsString: String; override;
+    function AsInteger : integer;
     function AsFormattedString (aFormat: String): String;
 
     procedure Add (const aValue : integer); overload;
@@ -302,8 +303,6 @@ type
     function AsString: String;
     function AsFloat: double;
   end;
-
-
 
 implementation
 
@@ -820,6 +819,14 @@ end;
 function TNullableInteger.AsString: String;
 begin
   Result := TNullableInteger.VariantToString(Self.AsVariant);
+end;
+
+function TNullableInteger.AsInteger: integer;
+begin
+  if Self.IsNull then
+    Result := 0
+  else
+    Result := FValue;
 end;
 
 function TNullableInteger.AsFormattedString(aFormat: String): String;
