@@ -102,6 +102,8 @@ function ValidEmail(const email: string): boolean;
 // Author: Marc Durdin
 function EncodeURIComponent(const ASrc: string): UTF8String;
 
+function EncodeSVGString(const aSrc : string): String;
+
 function IsRunningAsRoot : boolean;
 
 implementation
@@ -1458,6 +1460,64 @@ begin
   end;
 
   SetLength(Result, J-1);
+end;
+
+function EncodeSVGString(const aSrc: string): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := 1 to Length(aSrc) do
+  begin
+    if aSrc[i] = '''' then
+      Result := Result + '&#x2032;'
+    else if aSrc[i] = '"' then
+      Result := Result + '&#x2033;'
+    else if aSrc[i] = '&' then
+      Result := Result + '&#x0026;'
+    else if aSrc[i] = '-' then
+      Result := Result + '&#x002D;'
+    else if aSrc[i] = ',' then
+      Result := Result + '&#x002C;'
+    else if aSrc[i] = '.' then
+      Result := Result + '&#x002E;'
+    else if aSrc[i] = '/' then
+      Result := Result + '&#x002F;'
+    else if aSrc[i] = '!' then
+      Result := Result + '&#x0021;'
+    else if aSrc[i] = '#' then
+      Result := Result + '&#x0023;'
+    else if aSrc[i] = ' ' then
+      Result := Result + '&#x0020;'
+    else if aSrc[i] = '$' then
+      Result := Result + '&#x0024;'
+    else if aSrc[i] = '%' then
+      Result := Result + '&#x0025;'
+    else if aSrc[i] = '(' then
+      Result := Result + '&#x0028;'
+    else if aSrc[i] = ')' then
+      Result := Result + '&#x0029;'
+    else if aSrc[i] = '*' then
+      Result := Result + '&#x002A;'
+    else if aSrc[i] = '+' then
+      Result := Result + '&#x002B;'
+    else if aSrc[i] = '.' then
+      Result := Result + '&#x002E;'
+    else if aSrc[i] = ';' then
+      Result := Result + '&#x003B;'
+    else if aSrc[i] = '<' then
+      Result := Result + '&#x003C;'
+    else if aSrc[i] = '=' then
+      Result := Result + '&#x003D;'
+    else if aSrc[i] = '>' then
+      Result := Result + '&#x003E;'
+    else if aSrc[i] = '?' then
+      Result := Result + '&#xU+003F;'
+    else if aSrc[i] = '@' then
+      Result := Result + '&#x0040;'
+    else
+      Result := Result + aSrc[i];
+  end;
 end;
 
 function IsRunningAsRoot: boolean;
