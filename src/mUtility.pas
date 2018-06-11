@@ -1512,9 +1512,11 @@ begin
     else if aSrc[i] = '>' then
       Result := Result + '&#x003E;'
     else if aSrc[i] = '?' then
-      Result := Result + '&#xU+003F;'
+      Result := Result + '&#x+003F;'
     else if aSrc[i] = '@' then
       Result := Result + '&#x0040;'
+    else if aSrc[i] = '°' then
+      Result := Result + '&#x00B0;'
     else
       Result := Result + aSrc[i];
   end;
