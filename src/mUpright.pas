@@ -22,6 +22,7 @@ uses
 
 const
   MAX_NUM_OF_VALUES = 10;
+  MAX_NUM_OF_ATTRIBUTES = 10;
 
 type
 
@@ -46,11 +47,8 @@ type
   TmUprightEvent = class
   strict private
     FEventDate : TDateTime;
-    FValues : array [0..MAX_NUM_OF_VALUES-1] of double;
-    FAttribute1 : TNullableString;
-    FAttribute2 : TNullableString;
-    FAttribute3 : TNullableString;
-    FAttribute4 : TNullableString;
+    FValues : array [0..MAX_NUM_OF_VALUES-1] of TNullableDouble;
+    FAttributes : array [0..MAX_NUM_OF_ATTRIBUTES-1] of TNullableString;
     FEventType : TmUprightEventType;
 
     FDatumKey : String;
@@ -58,14 +56,10 @@ type
     constructor Create;
     destructor Destroy; override;
     function CompareTo (aOther : TmUprightEvent) : integer;
-    function GetValue (const aIndex : byte) : double;
-    procedure SetValue (const aIndex: byte; const aValue : double);
+    function GetValue (const aIndex : byte) : TNullableDouble;
+    function GetAttribute (const aIndex: byte): TNullableString;
 
     property EventDate: TDateTime read FEventDate write FEventDate;
-    property Attribute1 : TNullableString read FAttribute1;
-    property Attribute2 : TNullableString read FAttribute2;
-    property Attribute3 : TNullableString read FAttribute3;
-    property Attribute4 : TNullableString read FAttribute4;
     property DatumKey: string read FDatumKey write FDatumKey;
     property EventType : TmUprightEventType read FEventType write FEventType;
   end;
@@ -73,46 +67,57 @@ type
   { TmUprightDatum }
 
   TmUprightDatum= class (IVDDatum)
+  strict private
+    const FLD_UPRIGHT = 'UPRIGHT';
+    const FLD_ATTRIBUTE = 'ATTRIBUTE';
+    const FLD_DELTA = 'DELTA';
+    const FLD_HIGHLIGHT = 'HIGHLIGHT';
+    const FLD_LIMIT = 'LIMIT';
+    const FLD_REMAINING = 'REMAINING';
+
+    const LENGTH_FLD_DELTA = 5;
+    const LENGTH_FLD_UPRIGHT = 7;
+    const LENGTH_FLD_ATTRIBUTE = 9;
+    const LENGTH_FLD_LIMIT = 5;
+    const LENGTH_FLD_HIGHLIGHT = 9;
+    const LENGTH_FLD_REMAINING = 9;
   private
     FEvent : TmUprightEvent;
     FKey : TmUprightValueKey;
     FUprights : array[0..MAX_NUM_OF_VALUES-1] of double;
-    FHighlight : TmUprightHighlightType;
-    FLimit : TNullableDouble;
-    FRemaining : TNullableDouble;
+    FHighlights : array[0..MAX_NUM_OF_VALUES-1] of TmUprightHighlightType;
+    FLimits : array[0..MAX_NUM_OF_VALUES-1] of TNullableDouble;
+    FRemainings : array[0..MAX_NUM_OF_VALUES-1] of TNullableDouble;
 
     function GetPosition: integer;
-  private
-    const LENGTH_FLD_DELTA = 5;
-    const LENGTH_FLD_UPRIGHT = 7;
   public
     const FLD_POSITION = 'POSITION';
     const FLD_DATE = 'DATE';
-    const FLD_DELTA = 'DELTA';
-    const FLD_UPRIGHT = 'UPRIGHT';
-    const FLD_HIGHLIGHT = 'HIGHLIGHT';
-    const FLD_LIMIT = 'LIMIT';
-    const FLD_REMAINING = 'REMAINING';
-    const FLD_ATTRIBUTE1 = 'ATTRIBUTE_1';
-    const FLD_ATTRIBUTE2 = 'ATTRIBUTE_2';
-    const FLD_ATTRIBUTE3 = 'ATTRIBUTE_3';
-    const FLD_ATTRIBUTE4 = 'ATTRIBUTE_4';
   public
     constructor Create;
     destructor Destroy; override;
 
     function GetDatumKey : IVDDatumKey;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
-    procedure SetPropertyByFieldName(const aFieldName: String; const aValue : Variant);
     function AsObject: TObject;
 
-    class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String; const aValuesCount : integer = 1);
+    class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String; const aValuesCount : integer = 1; const aAttributesCount : integer = 4);
     class function GetKeyField : String;
+
+    class function GetDeltaFieldName (const aIndex : integer) : String;
+    class function GetAttributeFieldName (const aIndex : integer) : String;
+    class function GetUprightFieldName (const aIndex : integer) : string;
+    class function GetHighLightFieldName(const aIndex : integer): string;
+    class function GetLimitFieldName(const aIndex : integer): string;
+    class function GetRemainingFieldName(const aIndex : integer): string;
+
     procedure SetUpright(const aIndex: byte; const aValue : double);
     function GetUpright(const aIndex: byte): double;
+    function GetRemaining(const aIndex: byte): TNullableDouble;
+
 
     property Position : integer read GetPosition;
-    property Highlight : TmUprightHighlightType read FHighlight;
+    property Event : TmUprightEvent read FEvent;
   end;
 
   { TmUpright }
@@ -122,7 +127,6 @@ type
     FGarbage : TObjectList;
     FDataList : TFPList;
     FEventsList : TObjectList;
-    FLimitsList : TFPList;
 
     function OnCompareData (Item1, Item2: Pointer): Integer;
     function OnCompareEvents (Item1, Item2: Pointer): Integer;
@@ -138,6 +142,7 @@ type
     function GetDatum(const aIndex : integer) : IVDDatum;
     function FindDatumByKey (const aKey : IVDDatumKey): IVDDatum;
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
+    function GetUprightDatum (const aIndex : integer): TmUprightDatum;
     procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
     function GetKeyFieldName : String;
     procedure GetMinimumFields(aFieldsForLookup : TStringList);
@@ -184,18 +189,26 @@ var
   i : integer;
 begin
   for i := 0 to MAX_NUM_OF_VALUES - 1 do
+  begin
     FUprights[i] := 0;
-  FHighlight:= uhNone;
+    FHighlights[i] := uhNone;
+    FLimits [i] := TNullableDouble.Create();
+    FRemainings[i] := TNullableDouble.Create();
+  end;
+
   FKey := TmUprightValueKey.Create;
-  FLimit := TNullableDouble.Create;
-  FRemaining := TNullableDouble.Create;
 end;
 
 destructor TmUprightDatum.Destroy;
+var
+  i : integer;
 begin
   FKey.Free;
-  FLimit.Free;
-  FRemaining.Free;
+  for i := 0 to MAX_NUM_OF_VALUES - 1 do
+  begin
+    FLimits [i].Free;
+    FRemainings[i].Free;
+  end;
 end;
 
 constructor TmUprightEvent.Create;
@@ -206,20 +219,22 @@ begin
   DatumKey:= '';
   EventType:= etuValue;
 
-  FAttribute1 := TNullableString.Create;
-  FAttribute2 := TNullableString.Create();
-  FAttribute3 := TNullableString.Create();
-  FAttribute4 := TNullableString.Create();
-  for i := 0 to MAX_NUM_OF_VALUES - 1 do
-    FValues[i] := 0;
+  for i := 0 to MAX_NUM_OF_ATTRIBUTES -1 do
+  begin
+    FAttributes[i] := TNullableString.Create();
+    FValues[i] := TNullableDouble.Create();
+  end;
 end;
 
 destructor TmUprightEvent.Destroy;
+var
+  i : integer;
 begin
-  FAttribute1.Free;
-  FAttribute2.Free;
-  FAttribute3.Free;
-  FAttribute4.Free;
+  for i:= 0 to MAX_NUM_OF_ATTRIBUTES - 1 do
+  begin
+    FAttributes[i].Free;
+    FValues[i].Free;
+  end;
   inherited Destroy;
 end;
 
@@ -233,14 +248,14 @@ begin
     Result := 1;
 end;
 
-function TmUprightEvent.GetValue(const aIndex: byte): double;
+function TmUprightEvent.GetValue(const aIndex: byte): TNullableDouble;
 begin
   Result := FValues[aIndex];
 end;
 
-procedure TmUprightEvent.SetValue(const aIndex: byte; const aValue: double);
+function TmUprightEvent.GetAttribute(const aIndex: byte): TNullableString;
 begin
-  FValues[aIndex] := aValue;
+  Result := FAttributes[aIndex];
 end;
 
 function TmUprightDatum.GetDatumKey: IVDDatumKey;
@@ -255,24 +270,6 @@ begin
   Result := Null;
   if aFieldName = FLD_POSITION then
     Result := FKey.Position
-  else if aFieldName = FLD_DELTA then
-    Result := FEvent.GetValue(0)
-  else if aFieldName = FLD_ATTRIBUTE1 then
-    Result := FEvent.Attribute1.AsVariant
-  else if aFieldName = FLD_ATTRIBUTE2 then
-    Result := FEvent.Attribute2.AsVariant
-  else if aFieldName = FLD_ATTRIBUTE3 then
-    Result := FEvent.Attribute3.AsVariant
-  else if aFieldName = FLD_ATTRIBUTE4 then
-    Result := FEvent.Attribute4.AsVariant
-  else if aFieldName = FLD_UPRIGHT then
-    Result := GetUpright(0)
-  else if aFieldName = FLD_HIGHLIGHT then
-    Result := TmUprightHighlightTypeToVariant(FHighlight)
-  else if aFieldName = FLD_REMAINING then
-    Result := FRemaining.AsVariant
-  else if aFieldName = FLD_LIMIT then
-    Result := FLimit.AsVariant
   else if aFieldName = FLD_DATE then
     Result := FEvent.EventDate
   else begin
@@ -280,7 +277,7 @@ begin
     if i > 0 then
     begin
       i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_DELTA, 999));
-      Result := FEvent.GetValue(i - 1);
+      Result := FEvent.GetValue(i - 1).AsVariant;
     end
     else
     begin
@@ -289,22 +286,54 @@ begin
       begin
         i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_UPRIGHT, 999));
         Result := GetUpright(i - 1);
+      end
+      else
+      begin
+        i := Pos (FLD_ATTRIBUTE, aFieldName);
+        if i > 0 then
+        begin
+          i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_ATTRIBUTE, 999));
+          Result := FEvent.GetAttribute(i - 1).AsVariant;
+        end
+        else
+        begin
+          i := Pos(FLD_HIGHLIGHT, aFieldName);
+          if i > 0 then
+          begin
+            i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_HIGHLIGHT, 999));
+            Result := TmUprightHighlightTypeToVariant(FHighlights[i - 1]);
+          end
+          else
+          begin
+            i := Pos(FLD_REMAINING, aFieldName);
+            if i > 0 then
+            begin
+              i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_REMAINING, 999));
+              Result := FRemainings[i - 1].AsVariant;
+            end
+            else
+            begin
+              i := Pos(FLD_LIMIT, aFieldName);
+              if i > 0 then
+              begin
+                i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_LIMIT, 999));
+                Result := FLimits[i - 1].AsVariant;
+              end;
+            end;
+          end;
+        end;
       end;
     end;
   end;
 end;
 
-procedure TmUprightDatum.SetPropertyByFieldName(const aFieldName: String; const aValue: Variant);
-begin
-  // none
-end;
 
 function TmUprightDatum.AsObject: TObject;
 begin
   Result := Self;
 end;
 
-class procedure TmUprightDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String; const aValuesCount : integer = 1);
+class procedure TmUprightDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String; const aValuesCount : integer = 1; const aAttributesCount : integer = 4);
 var
   i : integer;
 begin
@@ -318,78 +347,83 @@ begin
     Name := aPrefix + FLD_DATE;
     DataType := vftDateTime;
   end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_DELTA;
-    DataType:= vftFloat;
-  end;
-  for i := 2 to aValuesCount do
+  for i := 0 to aValuesCount - 1 do
   begin
     with aFieldDefs.AddFieldDef do
     begin
-      Name := aPrefix + FLD_DELTA + IntToStr(i);
+      Name := aPrefix + Self.GetDeltaFieldName(i);
       DataType:= vftFloat;
     end;
   end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_UPRIGHT;
-    DataType:= vftFloat;
-  end;
-  for i := 2 to aValuesCount do
+  for i := 0 to aValuesCount - 1 do
   begin
     with aFieldDefs.AddFieldDef do
     begin
-      Name := aPrefix + FLD_UPRIGHT + IntToStr(i);
+      Name := aPrefix + Self.GetUprightFieldName(i);
       DataType:= vftFloat;
+    end;
+    with aFieldDefs.AddFieldDef do
+    begin
+      Name := aPrefix + Self.GetLimitFieldName(i);
+      DataType:= vftFloat;
+    end;
+    with aFieldDefs.AddFieldDef do
+    begin
+      Name := aPrefix + Self.GetRemainingFieldName(i);
+      DataType:= vftFloat;
+    end;
+    with aFieldDefs.AddFieldDef do
+    begin
+      Name := aPrefix + Self.GetHighLightFieldName(i);
+      DataType:= vftString;
+      Size := 10;
     end;
   end;
 
-  with aFieldDefs.AddFieldDef do
+  for i := 0 to aAttributesCount - 1 do
   begin
-    Name := aPrefix + FLD_LIMIT;
-    DataType:= vftFloat;
-  end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_REMAINING;
-    DataType:= vftFloat;
-  end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_HIGHLIGHT;
-    DataType:= vftString;
-    Size := 10;
-  end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_ATTRIBUTE1;
-    DataType:= vftString;
-    Size := 255;
-  end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_ATTRIBUTE2;
-    DataType:= vftString;
-    Size := 255;
-  end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_ATTRIBUTE3;
-    DataType:= vftString;
-    Size := 255;
-  end;
-  with aFieldDefs.AddFieldDef do
-  begin
-    Name := aPrefix + FLD_ATTRIBUTE4;
-    DataType:= vftString;
-    Size := 255;
+    with aFieldDefs.AddFieldDef do
+    begin
+      Name := aPrefix + Self.GetAttributeFieldName(i);
+      DataType:= vftString;
+      Size := 255;
+    end;
   end;
 end;
 
 class function TmUprightDatum.GetKeyField: String;
 begin
   Result := FLD_POSITION;
+end;
+
+class function TmUprightDatum.GetDeltaFieldName(const aIndex: integer): String;
+begin
+  Result := FLD_DELTA + IntToStr(aIndex + 1);
+end;
+
+class function TmUprightDatum.GetAttributeFieldName(const aIndex: integer): String;
+begin
+  Result := FLD_ATTRIBUTE + IntToStr(aIndex + 1);
+end;
+
+class function TmUprightDatum.GetUprightFieldName(const aIndex: integer): string;
+begin
+  Result := FLD_UPRIGHT + IntToStr(aIndex + 1);
+end;
+
+class function TmUprightDatum.GetHighLightFieldName(const aIndex: integer): string;
+begin
+  Result := FLD_HIGHLIGHT + IntToStr(aIndex + 1);
+end;
+
+class function TmUprightDatum.GetLimitFieldName(const aIndex: integer): string;
+begin
+  Result := FLD_LIMIT + IntToStr(aIndex + 1);
+end;
+
+class function TmUprightDatum.GetRemainingFieldName(const aIndex: integer): string;
+begin
+  Result := FLD_REMAINING + IntToStr(aIndex + 1);
 end;
 
 procedure TmUprightDatum.SetUpright(const aIndex: byte; const aValue: double);
@@ -400,6 +434,11 @@ end;
 function TmUprightDatum.GetUpright(const aIndex: byte): double;
 begin
   Result := FUprights[aIndex];
+end;
+
+function TmUprightDatum.GetRemaining(const aIndex: byte): TNullableDouble;
+begin
+  Result := FRemainings[aIndex];
 end;
 
 { TmUpright }
@@ -416,38 +455,50 @@ end;
 
 procedure TmUpright.CalculateHighlights;
 var
-  i : integer;
+  i, k : integer;
   tmp : TmUprightDatum;
-  tmpMin, tmpMax : double;
-  idxMin, idxMax : integer;
+  tmpMin, tmpMax : array[0..MAX_NUM_OF_VALUES-1] of double;
+  idxMin, idxMax : array[0..MAX_NUM_OF_VALUES-1] of integer;
 begin
   if FDataList.Count = 0 then
     exit;
 
-  tmpMin := 0;
-  tmpMax := 0;
+  for k := 0 to MAX_NUM_OF_VALUES -1 do
+  begin
+    tmpMin[k] := MaxInt;
+    tmpMax[k] := -MaxInt;
 
-  idxMin := 0;
-  idxMax := 0;
+    idxMin[k] := -1;
+    idxMax[k] := -1;
+  end;
 
 
   for i := 0 to FDataList.Count -1 do
   begin
     tmp:= TmUprightDatum(FDataList.Items[i]);
-    tmp.FHighlight := uhNone;
-    if not mFloatsManagement.DoubleIsLessThan(tmpMin, tmp.GetUpright(0)) then
+    for k := 0 to MAX_NUM_OF_VALUES -1 do
     begin
-      tmpMin := tmp.GetUpright(0);
-      idxMin := i;
-    end;
-    if mFloatsManagement.DoubleIsLessThan(tmpMax, tmp.GetUpright(0)) then
-    begin
-      tmpMax := tmp.GetUpright(0);
-      idxMax := i;
+      tmp.FHighlights[k] := uhNone;
+      if not mFloatsManagement.DoubleIsLessThan(tmpMin[k], tmp.GetUpright(k)) then
+      begin
+        tmpMin[k] := tmp.GetUpright(k);
+        idxMin[k] := i;
+      end;
+      if mFloatsManagement.DoubleIsLessThan(tmpMax[k], tmp.GetUpright(k)) then
+      begin
+        tmpMax[k] := tmp.GetUpright(k);
+        idxMax[k] := i;
+      end;
     end;
   end;
-  TmUprightDatum(FDataList.Items[idxMin]).FHighlight := uhMin;
-  TmUprightDatum(FDataList.Items[idxMax]).FHighlight := uhMax;
+
+  for k := 0 to MAX_NUM_OF_VALUES - 1 do
+  begin
+    if idxMin[k] >= 0 then
+      TmUprightDatum(FDataList.Items[idxMin[k]]).FHighlights[k] := uhMin;
+    if idxMax[k] >= 0 then
+      TmUprightDatum(FDataList.Items[idxMax[k]]).FHighlights[k] := uhMax;
+  end;
 end;
 
 constructor TmUpright.Create;
@@ -455,7 +506,6 @@ begin
   FDataList := TFPList.Create;
   FEventsList := TObjectList.Create(true);
   FGarbage := TObjectList.Create(true);
-  FLimitsList := TFPList.Create;
 end;
 
 destructor TmUpright.Destroy;
@@ -463,7 +513,6 @@ begin
   FDataList.Free;
   FEventsList.Free;
   FGarbage.Free;
-  FLimitsList.Free;
   inherited Destroy;
 end;
 
@@ -478,71 +527,88 @@ var
   i, k : integer;
   tmpEvent : TmUprightEvent;
   tmpDatum : TmUprightDatum;
-  currentLimitIndex : integer;
+  currentLimitIndex : array[0..MAX_NUM_OF_VALUES-1] of integer;
   lastValues : array [0..MAX_NUM_OF_VALUES -1] of double;
+  tmpLimits : TFPList;
+
 begin
   FDataList.Clear;
-  FLimitsList.Clear;
   FGarbage.Clear;
 
-  for i := 0 to FEventsList.Count - 1 do
-  begin
-    tmpEvent:= TmUprightEvent(FEventsList.Items[i]);
-    if tmpEvent.EventType = etuValue then
+  tmpLimits := TFPList.Create;
+  try
+
+    for i := 0 to FEventsList.Count - 1 do
     begin
-      tmpDatum := TmUprightDatum.Create;
-      tmpDatum.FEvent := tmpEvent;
-      FDataList.Add(tmpDatum);
-      FGarbage.Add(tmpDatum);
-    end
-    else
-    begin
-      FLimitsList.Add(tmpEvent);
-    end;
-  end;
-
-  if aDoSort then
-  begin
-    MergeSort(FDataList, OnCompareData);
-    MergeSort(FLimitsList, OnCompareEvents);
-  end;
-
-  currentLimitIndex:= -1;
-
-  for i := 0 to MAX_NUM_OF_VALUES -1 do
-    lastValues[i] := 0;
-
-  for i := 0 to FDataList.Count -1 do
-  begin
-    tmpDatum:= TmUprightDatum(FDataList.Items[i]);
-
-    if (FLimitsList.Count > currentLimitIndex + 1) then
-    begin
-      tmpEvent := TmUprightEvent(FLimitsList.Items[currentLimitIndex + 1]);
-      while Assigned(tmpEvent) and  DoubleIsLessThan(tmpEvent.EventDate, tmpDatum.FEvent.EventDate) do
+      tmpEvent:= TmUprightEvent(FEventsList.Items[i]);
+      if tmpEvent.EventType = etuValue then
       begin
-        inc(currentLimitIndex);
-        if (FLimitsList.Count > currentLimitIndex + 1) then
-          tmpEvent := TmUprightEvent(FLimitsList.Items[currentLimitIndex + 1])
-        else
-          tmpEvent := nil;
+        tmpDatum := TmUprightDatum.Create;
+        tmpDatum.FEvent := tmpEvent;
+        FDataList.Add(tmpDatum);
+        FGarbage.Add(tmpDatum);
+      end
+      else
+      begin
+        tmpLimits.Add(tmpEvent);
       end;
     end;
 
-    tmpDatum.FKey.FPosition := i + 1;
-    for k := 0 to MAX_NUM_OF_VALUES - 1 do
+    if aDoSort then
     begin
-      tmpDatum.SetUpright(k, lastValues[k] + tmpDatum.FEvent.GetValue(k));
-      lastValues[k] := tmpDatum.GetUpright(k);
+      MergeSort(FDataList, OnCompareData);
+      MergeSort(tmpLimits, OnCompareEvents);
     end;
-    if currentLimitIndex >= 0 then
+
+
+
+    for i := 0 to MAX_NUM_OF_VALUES -1 do
     begin
-      tmpEvent := TmUprightEvent(FLimitsList.Items[currentLimitIndex]);
-      tmpDatum.FLimit.Value := tmpEvent.GetValue(0);
-      tmpDatum.FRemaining.Value := tmpDatum.FLimit.Value + tmpDatum.GetUpright(0);
+      lastValues[i] := 0;
+      currentLimitIndex[i]:= -1;
     end;
+
+    for i := 0 to FDataList.Count -1 do
+    begin
+      tmpDatum:= TmUprightDatum(FDataList.Items[i]);
+
+      for k := 0 to MAX_NUM_OF_VALUES -1 do
+      begin
+        if (tmpLimits.Count > currentLimitIndex[k] + 1) then
+        begin
+          tmpEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k] + 1]);
+          while Assigned(tmpEvent) and (tmpEvent.GetValue(k).NotNull) and DoubleIsLessThan(tmpEvent.EventDate, tmpDatum.FEvent.EventDate) do
+          begin
+            inc(currentLimitIndex[k]);
+            if (tmpLimits.Count > currentLimitIndex[k] + 1) then
+              tmpEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k] + 1])
+            else
+              tmpEvent := nil;
+          end;
+        end;
+      end;
+      tmpDatum.FKey.FPosition := i + 1;
+      for k := 0 to MAX_NUM_OF_VALUES - 1 do
+      begin
+        tmpDatum.SetUpright(k, lastValues[k] + tmpDatum.FEvent.GetValue(k).AsFloat);
+        lastValues[k] := tmpDatum.GetUpright(k);
+      end;
+
+      for k := 0 to MAX_NUM_OF_VALUES - 1 do
+      begin
+        if currentLimitIndex[k] >= 0 then
+        begin
+          tmpEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k]]);
+          tmpDatum.FLimits[k].Assign(tmpEvent.GetValue(k));
+          tmpDatum.FRemainings[k].Value := tmpDatum.FLimits[k].AsFloat + tmpDatum.GetUpright(k);
+        end;
+      end;
+    end;
+    Self.CalculateHighlights;
+
+  finally
+    tmpLimits.Free;
   end;
-  Self.CalculateHighlights;
 end;
 
 function TmUpright.Count: integer;
@@ -555,7 +621,6 @@ begin
   FDataList.Clear;
   FEventsList.Clear;
   FGarbage.Clear;
-  FLimitsList.Clear;
 end;
 
 function TmUpright.GetDatum(const aIndex: integer): IVDDatum;
@@ -573,6 +638,11 @@ begin
   Result := TmUprightDatum(FDataList.Items[StrToInt(aStringKey)]);
 end;
 
+function TmUpright.GetUprightDatum(const aIndex: integer): TmUprightDatum;
+begin
+  Result := TmUprightDatum(FDataList.Items[aIndex]);
+end;
+
 procedure TmUpright.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs;const aPrefix: String);
 begin
   TmUprightDatum.FillVirtualFieldDefs(aFieldDefs, aPrefix);
@@ -587,7 +657,7 @@ procedure TmUpright.GetMinimumFields(aFieldsForLookup: TStringList);
 begin
   aFieldsForLookup.Add(TmUprightDatum.FLD_POSITION);
   aFieldsForLookup.Add(TmUprightDatum.FLD_DATE);
-  aFieldsForLookup.Add(TmUprightDatum.FLD_UPRIGHT);
+  aFieldsForLookup.Add(TmUprightDatum.GetUprightFieldName(0));
 end;
 
 end.
