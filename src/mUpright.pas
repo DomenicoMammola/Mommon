@@ -52,6 +52,8 @@ type
     FEventType : TmUprightEventType;
 
     FDatumKey : String;
+    FReference : TObject;
+    FOwnsReference : boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -62,6 +64,8 @@ type
     property EventDate: TDateTime read FEventDate write FEventDate;
     property DatumKey: string read FDatumKey write FDatumKey;
     property EventType : TmUprightEventType read FEventType write FEventType;
+    property Reference : TObject read FReference write FReference;
+    property OwnsReference : boolean read FOwnsReference write FOwnsReference;
   end;
 
   { TmUprightDatum }
@@ -218,6 +222,8 @@ begin
   EventDate:= 0;
   DatumKey:= '';
   EventType:= etuValue;
+  FReference := nil;
+  FOwnsReference:= false;
 
   for i := 0 to MAX_NUM_OF_ATTRIBUTES -1 do
   begin
@@ -235,6 +241,8 @@ begin
     FAttributes[i].Free;
     FValues[i].Free;
   end;
+  if FOwnsReference then
+    FreeAndNil(FReference);
   inherited Destroy;
 end;
 
