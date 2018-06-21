@@ -44,8 +44,12 @@ begin
     Result := '='
   else if aOperator = foGtOrEq then
     Result := '>='
+  else if aOperator = foGt then
+    Result := '>'
   else if aOperator = foLtOrEq then
     Result := '<='
+  else if aOperator = foLt then
+    Result := '<'
   else if (aOperator = foLike) or (aOperator = foStartWith) or (aOperator = foEndWith) then
     Result := 'LIKE'
   else if aOperator = foNotEq then

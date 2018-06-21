@@ -231,13 +231,13 @@ begin
     foNotEq:
       Result := mUtility.CompareVariants(aActualValue, FCurrentFilter.Value) <> 0;
     foGtOrEq:
-      begin
-        Result := mUtility.CompareVariants(aActualValue, FCurrentFilter.Value) >= 0;
-      end;
+      Result := mUtility.CompareVariants(aActualValue, FCurrentFilter.Value) >= 0;
+    foGt:
+      Result := mUtility.CompareVariants(aActualValue, FCurrentFilter.Value) > 0;
     foLtOrEq:
-      begin
-        Result := mUtility.CompareVariants(aActualValue, FCurrentFilter.Value) <= 0;
-      end;
+      Result := mUtility.CompareVariants(aActualValue, FCurrentFilter.Value) <= 0;
+    foLt:
+      Result := mUtility.CompareVariants(aActualValue, FCurrentFilter.Value) < 0;
     foLike:
       begin
         if not VarIsNull(FCurrentFilter.Value) then

@@ -17,7 +17,7 @@ unit mFilterOperators;
 interface
 
 type
-  TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foLike, foNotEq, foStartWith, foEndWith, foIn, foBetween);
+  TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foGt, foLt, foLike, foNotEq, foStartWith, foEndWith, foIn, foBetween);
 
   TmFilterOperatorsSet = set of TmFilterOperator;
 
@@ -33,8 +33,12 @@ begin
     Result := '='
   else if aValue = foGtOrEq then
     Result := '>='
+  else if aValue = foGt then
+    Result := '>'
   else if aValue = foLtOrEq then
     Result := '<='
+  else if aValue = foLt then
+    Result := '<'
   else if aValue = foLike then
     Result := 'contains'
   else if aValue = foNotEq then
