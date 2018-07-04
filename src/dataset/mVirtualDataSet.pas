@@ -96,8 +96,6 @@ type
 {$IFEND}
 
   EVirtualDatasetError = class(Exception);
-  PVariantList         = ^TVariantList;
-  TVariantList         = array [0 .. 0] of OleVariant;
 
   TDeleteRecordEvent = procedure(
     Sender : TmCustomVirtualDataset;
@@ -178,33 +176,10 @@ type
     property SummaryValues : TmSummaryValues read FSummaryValues;
   end;
 
-  { TBlobStream }
-
-(*  TBlobStream = class(TMemoryStream)
-  private
-    FField     : TBlobField;
-    FDataSet   : TmCustomVirtualDataset;
-    FBuffer    : TRecordBuffer;
-    FFieldNo   : Integer;
-    FModified  : Boolean;
-    FData      : Variant;
-    FFieldData : Variant;
-
-  protected
-    procedure ReadBlobData;
-    function Realloc(var NewCapacity: PtrInt): Pointer; override;
-
-  public
-    constructor Create(Field: TBlobField; Mode: TBlobStreamMode);
-    destructor Destroy; override;
-    function Write(const Buffer; Count: Longint): Longint; override;
-    procedure Truncate;
-  end;*)
-
-  TVirtualMasterDataLink = class(TMasterDataLink)
+(*  TVirtualMasterDataLink = class(TMasterDataLink)
   protected
     procedure ActiveChanged; override;
-  end;
+  end;*)
 
   TmVirtualDatasetSortableManager = class;
   TmVirtualDatasetFilterManager = class;
@@ -218,9 +193,9 @@ type
     FCurrentRecord    : Longint;      // current record (0 to FRecordCount - 1)
     FFilterBuffer     : TRecordBuffer;
     FReadOnly         : Boolean;
-    FRecordBufferSize : Integer;      // data + housekeeping (TRecordInfo)
+    FRecordBufferSize : Integer;      // TRecordInfo
 
-    FMasterDataLink : TVirtualMasterDataLink;
+//    FMasterDataLink : TVirtualMasterDataLink;
     FModifiedFields : TList;
     FOldValueBuffer : TRecordBuffer;
     FLastFieldListCheckSum : {$IFDEF FPC}PtrUInt{$ELSE}NativeUInt{$ENDIF};
@@ -245,11 +220,11 @@ type
       ABuffer   : Pointer
     );
 
-    function GetMasterSource: TDataSource;
+//    function GetMasterSource: TDataSource;
     function GetTopIndex: Longint;
     function GetTopRecNo: Longint;
     procedure SetTopIndex(Value: Integer);
-    procedure SetMasterSource(Value: TDataSource);
+//    procedure SetMasterSource(Value: TDataSource);
     procedure UpdateDisplayFormats;
   protected
     FSorted : boolean;
@@ -268,8 +243,8 @@ type
 
     function InternalGetRecord(ABuffer  : TRecordBuffer; AGetMode : TGetMode; ADoCheck : Boolean): TGetResult; virtual;
 
-    procedure MasterChanged(Sender: TObject); virtual;
-    procedure MasterDisabled(Sender: TObject); virtual;
+//    procedure MasterChanged(Sender: TObject); virtual;
+//    procedure MasterDisabled(Sender: TObject); virtual;
 
     function GetActiveRecBuf(out ARecBuf: TRecordBuffer): Boolean;
 
@@ -320,8 +295,7 @@ type
 
     property ModifiedFields: TList read FModifiedFields;
 
-    property RecordBufferSize: Integer
-      read FRecordBufferSize write FRecordBufferSize;
+    property RecordBufferSize: Integer read FRecordBufferSize write FRecordBufferSize;
 
   public
     procedure AfterConstruction; override;
@@ -350,9 +324,9 @@ type
 
     function GetFieldData(Field: TField; {$IFNDEF FPC}var{$ENDIF} Buffer: TValueBuffer): Boolean; override;
 
-    property MasterDataLink: TVirtualMasterDataLink read FMasterDataLink;
+//    property MasterDataLink: TVirtualMasterDataLink read FMasterDataLink;
 
-    property MasterSource: TDataSource read GetMasterSource write SetMasterSource;
+//    property MasterSource: TDataSource read GetMasterSource write SetMasterSource;
 
     property ReadOnly: Boolean read FReadOnly write FReadOnly default False;
 
@@ -379,7 +353,7 @@ type
     property Active;
     property Filtered;
     property ReadOnly;
-    property MasterSource;
+//    property MasterSource;
 
     property AfterCancel;
     property AfterClose;
@@ -484,7 +458,7 @@ resourcestring
   {$IFDEF FPC}
   SFieldReadOnly = 'Field ''%s'' cannot be modified';
   SNotEditing = 'Dataset not in edit or insert mode';
-  SCircularDataLink = 'Circular datalinks are not allowed';
+  //SCircularDataLink = 'Circular datalinks are not allowed';
   {$ENDIF}
 
 type
@@ -497,7 +471,6 @@ type
     constructor Create (aEvent : TNotifyEvent);
   end;
 
-{$REGION 'interfaced routines'}
 procedure VirtualDatasetError(const AMessage: string;
   ADataset: TmCustomVirtualDataset = nil);
 begin
@@ -512,9 +485,7 @@ procedure VirtualDatasetErrorFmt(const AMessage: string;
 begin
   VirtualDatasetError(Format(AMessage, AArgs), ADataset);
 end;
-{$ENDREGION}
 
-{$REGION 'non-interfaced routines'}
 function FieldListCheckSum(Dataset: TDataSet): {$IFDEF FPC}PtrUInt{$ELSE}NativeUInt{$ENDIF};
 var
   I: Integer;
@@ -639,142 +610,7 @@ begin
 end;
 
 
-{$ENDREGION}
-
 (*
-{$REGION 'TBlobStream'}
-constructor TBlobStream.Create(Field: TBlobField; Mode: TBlobStreamMode);
-begin
-  FField     := Field;
-  FFieldNo   := FField.FieldNo - 1;
-  FDataSet   := FField.Dataset as TmCustomVirtualDataset;
-  FFieldData := Null;
-  FData      := Null;
-  if not FDataSet.GetActiveRecBuf(FBuffer) then
-    Exit;
-  if Mode <> bmRead then
-  begin
-    if FField.ReadOnly then
-      DatabaseErrorFmt(SFieldReadOnly, [FField.DisplayName], FDataSet);
-    if not(FDataSet.State in [dsEdit, dsInsert]) then
-      DatabaseError(SNotEditing, FDataSet);
-  end;
-  if Mode = bmWrite then
-    Truncate
-  else
-    ReadBlobData;
-end;
-
-destructor TBlobStream.Destroy;
-begin
-  if FModified then
-    try
-      FDataSet.SetFieldData(FField, @FData);
-      FField.Modified := True;
-      FDataSet.DataEvent(deFieldChange, Longint(FField));
-    except
-      ApplicationHandleException(Self);
-    end;
-  inherited Destroy;
-end;
-
-procedure TBlobStream.ReadBlobData;
-var
-  l1, l2 : Int64;
-begin
-  FDataSet.GetFieldData(FField, @FFieldData, True);
-  if not VarIsNull(FFieldData) then
-  begin
-    if VarType(FFieldData) = varOleStr then
-    begin
-      if FField.BlobType = ftWideMemo then
-      begin
-        l1 := Length(WideString(FFieldData));
-        l2 := SizeOf(widechar);
-        Size := l1 * l2;
-      end
-      else
-      begin
-        { Convert OleStr into a pascal string (format used by TBlobField) }
-        FFieldData := AnsiString(FFieldData);
-        Size       := Length(FFieldData);
-      end;
-    end
-    else
-      Size     := VarArrayHighBound(FFieldData, 1) + 1;
-    FFieldData := Null;
-  end;
-end;
-
-function TBlobStream.Realloc(var NewCapacity: PtrInt): Pointer;
-
-  procedure VarAlloc(var V: Variant; Field: TFieldType);
-  var
-    W: WideString;
-    S: AnsiString;
-  begin
-    if Field = ftMemo then
-    begin
-      if not VarIsNull(V) then
-        S := AnsiString(V);
-      SetLength(S, NewCapacity);
-      V := S;
-    end
-    else if Field = ftWideMemo then
-    begin
-      if not VarIsNull(V) then
-        W := WideString(V);
-      SetLength(W, NewCapacity div 2);
-      V := W;
-    end
-    else
-    begin
-      if VarIsClear(V) or VarIsNull(V) then
-        V := VarArrayCreate([0, NewCapacity - 1], varByte)
-      else
-        VarArrayRedim(V, NewCapacity - 1);
-    end;
-  end;
-
-begin
-  Result := Memory;
-  if NewCapacity <> Capacity then
-  begin
-    if VarIsArray(FData) then
-      VarArrayUnlock(FData);
-    if NewCapacity = 0 then
-    begin
-      FData  := Null;
-      Result := nil;
-    end
-    else
-    begin
-      if VarIsNull(FFieldData) then
-        VarAlloc(FData, FField.DataType)
-      else
-        FData := FFieldData;
-      if VarIsArray(FData) then
-        Result := VarArrayLock(FData)
-      else
-        Result := TVarData(FData).VString;
-    end;
-  end;
-end;
-
-function TBlobStream.Write(const Buffer; Count: Longint): Longint;
-begin
-  Result    := inherited write(Buffer, Count);
-  FModified := True;
-end;
-
-procedure TBlobStream.Truncate;
-begin
-  Clear;
-  FModified := True;
-end;
-{$ENDREGION}
-*)
-{$REGION 'TVirtualMasterDataLink'}
 procedure TVirtualMasterDataLink.ActiveChanged;
 begin
   if Dataset = nil then
@@ -792,11 +628,8 @@ begin
     end
     else if Assigned(OnMasterDisable) then
       OnMasterDisable(Self);
-end;
-{$ENDREGION}
+end;*)
 
-{$REGION 'TmCustomVirtualDataset'}
-{$REGION 'construction and destruction'}
 procedure TmCustomVirtualDataset.AfterConstruction;
 begin
   inherited;
@@ -804,9 +637,9 @@ begin
   FInternalOpen                  := False;
   FReadOnly                      := False;
   FModifiedFields                := TList.Create;
-  FMasterDataLink                := TVirtualMasterDataLink.Create(Self);
-  MasterDataLink.OnMasterChange  := MasterChanged;
-  MasterDataLink.OnMasterDisable := MasterDisabled;
+//  FMasterDataLink                := TVirtualMasterDataLink.Create(Self);
+//  MasterDataLink.OnMasterChange  := MasterChanged;
+//  MasterDataLink.OnMasterDisable := MasterDisabled;
   FAutomaticInitFieldsFormat := true;
   FSortManager := TmVirtualDatasetSortableManager.Create;
   FSortManager.FVirtualDataset := Self;
@@ -821,7 +654,7 @@ end;
 procedure TmCustomVirtualDataset.BeforeDestruction;
 begin
   FModifiedFields.Free;
-  FMasterDataLink.Free;
+//  FMasterDataLink.Free;
   FSortManager.Free;
   FFilterManager.Free;
   FSummaryManager.Free;
@@ -839,9 +672,7 @@ begin
   inherited Refresh;
 end;
 
-{$ENDREGION}
 
-{$REGION 'property access methods'}
 function TmCustomVirtualDataset.GetRecordCount: Integer;
 begin
   assert (Assigned(FVirtualDatasetProvider));
@@ -887,12 +718,10 @@ function TmCustomVirtualDataset.GetRecNo: Longint;
 var
   RecBuf: TRecordBuffer;
 begin
-//  Logger.EnterMethod(Self, 'GetRecNo');
   CheckActive;
   Result := -1;
   if GetActiveRecBuf(RecBuf) and (PRecordInfo(RecBuf)^.BookmarkFlag = bfCurrent) then
     Result := PRecordInfo(RecBuf)^.Bookmark + 1;
-//  Logger.ExitMethod(Self, 'GetRecNo');
 end;
 
 procedure TmCustomVirtualDataset.SetRecNo(Value: Longint);
@@ -908,12 +737,12 @@ begin
   end;
 end;
 
-procedure TmCustomVirtualDataset.SetMasterSource(Value: TDataSource);
+(*procedure TmCustomVirtualDataset.SetMasterSource(Value: TDataSource);
 begin
   if IsLinkedTo(Value) then
     DatabaseError(SCircularDataLink, Self);
   MasterDataLink.DataSource := Value;
-end;
+end;*)
 
 procedure TmCustomVirtualDataset.UpdateDisplayFormats;
 var
@@ -935,15 +764,11 @@ function TmCustomVirtualDataset.GetCanModify: Boolean;
 begin
   Result := not FReadOnly;
 end;
-{$ENDREGION}
 
 function TmCustomVirtualDataset.AllocRecordBuffer: TRecordBuffer;
 begin
   if not(csDestroying in ComponentState) then
-  begin
-    Result := AllocMem(FRecordBufferSize);
-    Initialize(PVariantList(Result + SizeOf(TRecordInfo))^, Fields.Count);
-  end
+    Result := AllocMem(FRecordBufferSize)
   else
     Result := nil;
 end;
@@ -1045,33 +870,6 @@ begin
     end;
   end;
 end;
-(*
-function TmCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark)
-  : Integer;
-const
-  RetCodes: array [Boolean, Boolean] of ShortInt = ((2, -1), (1, 0));
-
-begin
-  Result := RetCodes[Bookmark1 = nil, Bookmark2 = nil];
-  if Result = 2 then
-  begin
-    if PInteger(Bookmark1)^ < PInteger(Bookmark2)^ then
-      Result := -1
-    else if PInteger(Bookmark1)^ > PInteger(Bookmark2)^ then
-      Result := 1
-    else
-      Result := 0;
-  end;
-end;
-*)
-
-
-
-(*function TmCustomVirtualDataset.CreateBlobStream(Field: TField;
-  Mode: TBlobStreamMode): TStream;
-begin
-  Result := TBlobStream.Create(Field as TBlobField, Mode);
-end;*)
 
 procedure TmCustomVirtualDataset.DataEvent(Event: TDataEvent; Info: Ptrint);
 begin
@@ -1083,7 +881,6 @@ begin
   inherited;
 end;
 
-{$REGION 'event dispatch methods'}
 procedure TmCustomVirtualDataset.DoDeleteRecord(AIndex: Integer);
 begin
   assert (Assigned(FVirtualDatasetProvider));
@@ -1105,10 +902,7 @@ procedure TmCustomVirtualDataset.DoOnNewRecord;
 begin
   FModifiedFields.Clear;
   if FOldValueBuffer = nil then
-    FOldValueBuffer := AllocRecordBuffer
-  else
-    Finalize(PVariantList(FOldValueBuffer + SizeOf(TRecordInfo))^,
-      Fields.Count);
+    FOldValueBuffer := AllocRecordBuffer;
   InitRecord(FOldValueBuffer);
   inherited DoOnNewRecord;
 end;
@@ -1131,9 +925,7 @@ begin
   if Assigned(FOnPostData) then
     FOnPostData(Self, AIndex);
 end;
-{$ENDREGION}
 
-{$REGION 'private methods'}
 procedure TmCustomVirtualDataset.DateTimeToNative(ADataType: TFieldType;
   AData: TDateTime; ABuffer: Pointer);
 var
@@ -1147,18 +939,18 @@ begin
     TDateTime(ABuffer^) := TimeStampToMSecs(TimeStamp);
   end;
 end;
-{$ENDREGION}
 
 procedure TmCustomVirtualDataset.FreeRecordBuffer(var Buffer: TRecordBuffer);
 begin
-  Finalize(PVariantList(Buffer + SizeOf(TRecordInfo))^, Fields.Count);
-  FreeMem(Buffer);
+  if Buffer <> nil then
+    FreeMem(Buffer);
+//  FinalizeBuffer(Buffer);
+  //Finalize(PVariantList(Buffer + SizeOf(TRecordInfo))^, Fields.Count);
+//  FreeMem(Buffer);
 end;
 
-function TmCustomVirtualDataset.GetActiveRecBuf(out ARecBuf: TRecordBuffer)
-  : Boolean;
+function TmCustomVirtualDataset.GetActiveRecBuf(out ARecBuf: TRecordBuffer) : Boolean;
 begin
-//  Logger.EnterMethod(Self, 'GetActiveRecBuf');
   ARecBuf := nil;
   case State of
     dsBlockRead, dsBrowse:
@@ -1177,7 +969,6 @@ begin
       ARecBuf := FFilterBuffer;
   end;
   Result := ARecBuf <> nil;
-//  Logger.ExitMethod(Self, 'GetActiveRecBuf');
 end;
 
 {$IFNDEF FPC}
@@ -1191,21 +982,16 @@ end;
 procedure TmCustomVirtualDataset.GetBookmarkData(Buffer: TRecordBuffer;
   Data: Pointer);
 begin
-//  Logger.EnterMethod(Self, 'GetBookmarkData');
   PLongint(Data)^ := PRecordInfo(Buffer)^.Bookmark;
-//  Logger.ExitMethod(Self, 'GetBookmarkData');
 end;
 
 function TmCustomVirtualDataset.GetBookmarkFlag(Buffer: TRecordBuffer)
   : TBookmarkFlag;
 begin
-//  Logger.EnterMethod(Self, 'GetBookmarkFlag');
   Result := PRecordInfo(Buffer)^.BookmarkFlag;
-//  Logger.ExitMethod(Self, 'GetBookmarkFlag');
 end;
 
-procedure TmCustomVirtualDataset.VariantToBuffer(AField: TField; AVariant: Variant;
-  out ABuffer: Pointer; ANativeFormat: Boolean);
+procedure TmCustomVirtualDataset.VariantToBuffer(AField: TField; AVariant: Variant; out ABuffer: Pointer; ANativeFormat: Boolean);
 
   procedure CurrToBuffer(const C: Currency);
   begin
@@ -1222,15 +1008,14 @@ var
   TempWideChar: WideChar;
   {$ENDIF}
 begin
-//  Logger.EnterMethod(Self, 'VariantToBuffer');
 
   case AField.DataType of
     ftGuid, ftFixedChar, ftString:
       begin
-        PAnsiChar(ABuffer)[AField.Size] := #0;
+        // PAnsiChar(ABuffer)[AField.Size] := #0;
         if (VarType(AVariant) = varString) or (VarType(AVariant) = varolestr) then
         begin
-          Size                     := Min(Length(AVariant), AField.Size);
+          Size := Min(Length(AVariant), AField.Size);
           PAnsiChar(ABuffer)[Size] := #0;
           Move(PChar(string(AVariant))^, PChar(ABuffer)^, Size);
         end
@@ -1241,12 +1026,8 @@ begin
             PAnsiChar(ABuffer)[0] := #0
           else
           begin
-//            ShowMessage(VarTypeAsText(AVariant));
-//            ShowMessage(IntToStr(integer(VarType(aVariant))));
             {$IFDEF FPC}
             PAnsiChar(ABuffer)[0] := #0;
-//            else
-//              raise Exception.Create('not supported');
             {$ELSE}
             WideCharToMultiByte(0, 0, tagVariant(AVariant).bStrVal,
               Size + 1, ABuffer,
@@ -1358,9 +1139,9 @@ begin
         AField.DisplayName]);
   end;
 
-//  Logger.ExitMethod(Self, 'VariantToBuffer');
 end;
 
+(*
 function TmCustomVirtualDataset.GetMasterSource: TDataSource;
 begin
   if Assigned(MasterDataLink) then
@@ -1368,6 +1149,7 @@ begin
   else
     Result := nil;
 end;
+*)
 
 function TmCustomVirtualDataset.GetRecord(Buffer: TRecordBuffer;
   GetMode: TGetMode; DoCheck: Boolean): TGetResult;
@@ -1375,7 +1157,6 @@ var
   Accept    : Boolean;
   SaveState : TDataSetState;
 begin
-//  Logger.EnterMethod(Self, 'GetRecord');
   if Filtered and Assigned(OnFilterRecord) then
   begin
     FFilterBuffer := Buffer;
@@ -1399,7 +1180,6 @@ begin
   end
   else
     Result := InternalGetRecord(Buffer, GetMode, DoCheck);
-//  Logger.ExitMethod(Self, 'GetRecord');
 end;
 
 function TmCustomVirtualDataset.InternalGetRecord(ABuffer: TRecordBuffer;
@@ -1407,7 +1187,6 @@ function TmCustomVirtualDataset.InternalGetRecord(ABuffer: TRecordBuffer;
 var
   iRecCount: Longint;
 begin
-//  Logger.EnterMethod(Self, 'InternalGetRecord');
   try
     Result := grOK;
     case AGetMode of
@@ -1448,7 +1227,6 @@ begin
         Bookmark     := FCurrentRecord;
         BookmarkFlag := bfCurrent;
       end;
-      Finalize(PVariantList(ABuffer + SizeOf(TRecordInfo))^, Fields.Count);
       GetCalcFields(ABuffer);
     end;
   except
@@ -1456,8 +1234,6 @@ begin
       raise;
     Result := grError;
   end;
-//  Logger.Watch('CurrentRecord', FCurrentRecord);
-//  Logger.ExitMethod(Self, 'InternalGetRecord');
 end;
 
 procedure TmCustomVirtualDataset.InternalGotoBookmark(ABookmark: Pointer);
@@ -1478,8 +1254,6 @@ begin
   if FOldValueBuffer <> nil then
   begin
     try
-      Finalize(PVariantList(FOldValueBuffer + SizeOf(TRecordInfo))^,
-        Fields.Count);
       FreeMem(FOldValueBuffer);
     finally
       FOldValueBuffer := nil;
@@ -1507,10 +1281,7 @@ begin
   FModifiedFields.Clear;
 
   if FOldValueBuffer = nil then
-    FOldValueBuffer := AllocRecordBuffer
-  else
-    Finalize(PVariantList(FOldValueBuffer + SizeOf(TRecordInfo))^,
-      Fields.Count);
+    FOldValueBuffer := AllocRecordBuffer;
 end;
 
 procedure TmCustomVirtualDataset.InternalFirst;
@@ -1531,13 +1302,8 @@ begin
 end;
 
 procedure TmCustomVirtualDataset.InternalInitRecord(Buffer: TRecordBuffer);
-var
-  I: Integer;
 begin
-//  Logger.EnterMethod(Self, 'InternalInitRecord');
-  for I := 0 to Fields.Count - 1 do
-    PVariantList(Buffer + SizeOf(TRecordInfo))[I] := 0; //{$IFDEF FPC}[0]{$ENDIF} := 0;
-//  Logger.ExitMethod(Self, 'InternalInitRecord');
+  FillChar(Buffer[0], FRecordBufferSize, 0);
 end;
 
 procedure TmCustomVirtualDataset.InternalLast;
@@ -1546,8 +1312,6 @@ begin
 end;
 
 procedure TmCustomVirtualDataset.InternalOpen;
-var
-  i : integer;
 begin
   FInternalOpen := True;
   InternalFirst;
@@ -1557,7 +1321,7 @@ begin
   Fields.Clear;
   CreateFields;
   BindFields(True);
-  RecordBufferSize := SizeOf(TRecordInfo) + (Fields.Count * SizeOf(Variant));
+  FRecordBufferSize := SizeOf(TRecordInfo); // + (Fields.Count * SizeOf(Variant));
 
   FVirtualDatasetProvider.SetDefaultVisibilityOfFields (Fields);
 end;
@@ -1576,12 +1340,10 @@ end;
 
 procedure TmCustomVirtualDataset.InternalSetToRecord(Buffer: TRecordBuffer);
 begin
-//  Logger.EnterMethod(Self, 'InternalSetToRecord');
   if PRecordInfo(Buffer)^.BookmarkFlag in [bfCurrent, bfInserted] then
   begin
     FCurrentRecord := PRecordInfo(Buffer)^.Bookmark;
   end;
-//  Logger.ExitMethod(Self, 'InternalSetToRecord');
 end;
 
 function TmCustomVirtualDataset.IsCursorOpen: Boolean;
@@ -1695,14 +1457,16 @@ begin
   FSummaryManager.NotifyChanges;
 end;
 
+(*
 procedure TmCustomVirtualDataset.MasterChanged(Sender: TObject);
 begin
   if not Active then
     Exit;
   InternalFirst;
   Resync([]);
-end;
+end;*)
 
+(*
 procedure TmCustomVirtualDataset.MasterDisabled(Sender: TObject);
 begin
   if not Active then
@@ -1715,7 +1479,7 @@ begin
   // not change active record?
   // FCurrent := -1;
   Resync([]);
-end;
+end;*)
 
 procedure TmCustomVirtualDataset.SetBookmarkFlag(Buffer: TRecordBuffer;
   Value: TBookmarkFlag);
@@ -1735,9 +1499,6 @@ end;
 procedure TmCustomVirtualDataset.SetFieldData(Field: TField;
   Buffer: TValueBuffer; NativeFormat: Boolean);
 begin
-//  Logger.EnterMethod(Self, 'SetFieldData');
-  InternalSetFieldData(Field, Buffer, NativeFormat);
-//  Logger.ExitMethod(Self, 'SetFieldData');
 end;
 
 procedure TmCustomVirtualDataset.DoAfterOpen;
@@ -1750,11 +1511,13 @@ end;
 
 procedure TmCustomVirtualDataset.InternalSetFieldData(AField: TField;
   ABuffer: Pointer; ANativeFormat: Boolean);
-var
+(*var
   Data  : Variant;
   RecBuf: TRecordBuffer;
   TempValue : Variant;
+  *)
 begin
+  (*
 //  with AField do
 //  begin
     if not(State in dsWriteModes) then
@@ -1773,7 +1536,8 @@ begin
         TempValue := AField.Value;
         if not VarIsEmpty(TempValue) then
         begin
-          PVariantList(FOldValueBuffer + SizeOf(TRecordInfo))[AField.Index] := TempValue; //{$IFDEF FPC}[0]{$ENDIF} := TempValue;
+          InjectVariantInBuffer(FOldValueBuffer, TempValue, aField.Index);
+//          PVariantList(FOldValueBuffer + SizeOf(TRecordInfo))[AField.Index] := TempValue; //{$IFDEF FPC}[0]{$ENDIF} := TempValue;
           FModifiedFields.Add(AField);
         end;
       end;
@@ -1786,11 +1550,13 @@ begin
 
 
 //    PVariantList(RecBuf + SizeOf(TRecordInfo))[Field.Index] := Value
-    PVariantList(RecBuf + SizeOf(TRecordInfo))[AField.Index] := Data; //{$IFDEF FPC}[0]{$ENDIF} := Data;
+//    PVariantList(RecBuf + SizeOf(TRecordInfo))[AField.Index] := Data; //{$IFDEF FPC}[0]{$ENDIF} := Data;
+    InjectVariantInBuffer(RecBuf, Data, AField.Index);
 
     if not(State in [dsCalcFields, dsInternalCalc, dsFilter, dsNewValue]) then
       DataEvent(deFieldChange, Longint(AField));
 //  end;
+*)
 end;
 
 function TmCustomVirtualDataset.GetFieldData(Field: TField;
@@ -1798,7 +1564,6 @@ function TmCustomVirtualDataset.GetFieldData(Field: TField;
 var
   RecBuf: TRecordBuffer;
   Data  : variant;
-  V     : Variant;
   Value : Variant;
 
   procedure RefreshBuffers;
@@ -1810,7 +1575,6 @@ var
   end;
 
 begin
-//  Logger.EnterMethod(Self, 'GetFieldData');
   if not FLastFieldListCheckSumValid then
     RefreshBuffers;
   if (State = dsOldValue) and (FModifiedFields.IndexOf(Field) <> -1) then
@@ -1825,20 +1589,11 @@ begin
   if not Result then
     Exit;
 
-  V := PVariantList(RecBuf + SizeOf(TRecordInfo))^[Field.Index];
-  Data := V;
-
-  // if data hasn't been loaded yet, then get data from dataset.
-  if VarIsEmpty(V) then
-  begin
-    DoGetFieldValue(Field, PRecordInfo(RecBuf)^.Bookmark, Data);
-    if VarType(Data) = vtBoolean then
-      Value := VarAsType(Data, vtBoolean)
-    else
-      Value := Data;
-
-    PVariantList(RecBuf + SizeOf(TRecordInfo))[Field.Index] := Value
-  end;
+  DoGetFieldValue(Field, PRecordInfo(RecBuf)^.Bookmark, Data);
+  if VarType(Data) = vtBoolean then
+    Value := VarAsType(Data, vtBoolean)
+  else
+    Value := Data;
 
   Result := not VarIsNull(Data);
   if Result and (Buffer <> nil) then
@@ -1847,13 +1602,9 @@ begin
       Value := VarAsType(Data, vtBoolean)
     else
       Value := Data;
-    //VariantToBuffer(Field, Data.AsVariant, Buffer, NativeFormat);
     VariantToBuffer(Field, Value, Pointer(Buffer), False);   {TODO -oTS -cGeneral : take a look at NativeFormat }
-
   end;
-//  Logger.ExitMethod(Self, 'GetFieldData');
 end;
-{$ENDREGION}
 
 
 { TmVirtualDatasetDataProvider }

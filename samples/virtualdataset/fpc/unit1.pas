@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   DBGrids, StdCtrls, contnrs, mVirtualDataset, mVirtualDatasetPivoter, db,
-  VDataset;
+  VDataset, SdfData;
 
 type
 
