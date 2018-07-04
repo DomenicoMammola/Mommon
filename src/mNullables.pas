@@ -201,7 +201,8 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
-    function AsString : String; override;
+    function AsString: String; override;
+    function AsBoolean: Boolean;
 
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -269,15 +270,14 @@ type
     Value : string;
     IsNull : boolean;
 
-    procedure CreateAsNull;
-    procedure CreateWithValue (const aValue : String);
+    procedure SetNull;
+    procedure SetValue (const aValue : String);
 
     procedure Assign(const aSource : TNullableStringRecord); overload;
     procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aValue : String); overload;
     procedure Assign(const aValue : Variant);overload;
     procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
-    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
     function AsVariant: Variant;
     procedure Trim();
     procedure ChangeToBlankIfNull;
@@ -291,23 +291,108 @@ type
     Value : double;
     IsNull : boolean;
 
-    procedure CreateAsNull;
-    procedure CreateWithValue (const aValue: Double);
+    procedure SetNull;
+    procedure SetValue (const aValue: Double);
 
     procedure Assign(const aSource : TNullableDoubleRecord); overload;
     procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aValue : String); overload;
     procedure Assign(const aValue : Variant);overload;
-    function CheckIfDifferentAndAssign(const aValue : Variant) : boolean;
     function AsVariant: Variant;
     function AsString: String;
     function AsFloat: double;
+  end;
+
+  { TNullableDateTimeRecord }
+
+  TNullableDateTimeRecord = record
+  public
+    Value : TDateTime;
+    IsNull : boolean;
+    procedure SetNull;
+    procedure SetValue (const aValue : TDateTime);
+
+    procedure Assign(const aSource : TNullableDatetimeRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aValue : Variant);overload;
+    function AsVariant: Variant;
+    function AsString (const aShowTime: boolean): String;
   end;
 
 implementation
 
 uses
   SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
+
+{ TNullableDateTimeRecord }
+
+procedure TNullableDateTimeRecord.SetNull;
+begin
+  IsNull:= true;
+  Value:= 0;
+end;
+
+procedure TNullableDateTimeRecord.SetValue(const aValue: TDateTime);
+begin
+  IsNull:= false;
+  Value:= aValue;
+end;
+
+procedure TNullableDateTimeRecord.Assign(const aSource: TNullableDatetimeRecord);
+begin
+  IsNull:= aSource.IsNull;
+  Value:= aSource.Value;
+end;
+
+procedure TNullableDateTimeRecord.Assign(const aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    SetNull
+  else
+    SetValue(aSourceField.AsDateTime);
+end;
+
+procedure TNullableDateTimeRecord.Assign(const aValue: String);
+begin
+  Assign(TNullableDateTime.StringToVariant(aValue));
+end;
+
+procedure TNullableDateTimeRecord.Assign(const aValue: Variant);
+var
+  tmpDateTime : TDateTime;
+begin
+  if VarIsNull(aValue) then
+  begin
+    SetNull;
+  end
+  else
+  begin
+    tmpDateTime := aValue;
+    SetValue(tmpDateTime);
+  end;
+end;
+
+function TNullableDateTimeRecord.AsVariant: Variant;
+begin
+  if IsNull then
+    Result := Null
+  else
+    Result := Value;
+end;
+
+function TNullableDateTimeRecord.AsString(const aShowTime: boolean): String;
+begin
+  if IsNull then
+    Result := ''
+  else
+  begin
+    if aShowTime then
+      Result := DateTimeToStr(Value)
+    else
+      Result := DateToStr(Value);
+  end;
+end;
 
 { TNullableTime }
 
@@ -464,13 +549,13 @@ end;
 
 { TNullableDoubleRecord }
 
-procedure TNullableDoubleRecord.CreateAsNull;
+procedure TNullableDoubleRecord.SetNull;
 begin
   IsNull:= true;
   Value:= 0;
 end;
 
-procedure TNullableDoubleRecord.CreateWithValue(const aValue: Double);
+procedure TNullableDoubleRecord.SetValue(const aValue: Double);
 begin
   IsNull:= false;
   Value:= aValue;
@@ -485,9 +570,9 @@ end;
 procedure TNullableDoubleRecord.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
-    CreateAsNull
+    SetNull
   else
-    CreateWithValue(aSourceField.AsFloat);
+    SetValue(aSourceField.AsFloat);
 end;
 
 procedure TNullableDoubleRecord.Assign(const aValue: String);
@@ -496,30 +581,18 @@ begin
 end;
 
 procedure TNullableDoubleRecord.Assign(const aValue: Variant);
-begin
-  CheckIfDifferentAndAssign(aValue);
-end;
-
-function TNullableDoubleRecord.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpDouble : double;
 begin
   if VarIsNull(aValue) then
-  begin
-    Result := not IsNull;
-    CreateAsNull;
-  end
+    SetNull
   else
   begin
     tmpDouble := aValue;
-    if IsNull then
-      Result := true
-    else
-      Result := not mFloatsManagement.DoublesAreEqual(tmpDouble, Value);
-    if Result then
-      CreateWithValue(tmpDouble);
+    SetValue(tmpDouble);
   end;
 end;
+
 
 function TNullableDoubleRecord.AsVariant: Variant;
 begin
@@ -547,12 +620,12 @@ end;
 
 { TNullableStringRecord }
 
-procedure TNullableStringRecord.CreateAsNull;
+procedure TNullableStringRecord.SetNull;
 begin
   IsNull:= true;
 end;
 
-procedure TNullableStringRecord.CreateWithValue(const aValue: String);
+procedure TNullableStringRecord.SetValue(const aValue: String);
 begin
   IsNull := false;
   Value:= aValue;
@@ -567,9 +640,9 @@ end;
 procedure TNullableStringRecord.Assign(const aSourceField: TField);
 begin
   if aSourceField.IsNull then
-    CreateAsNull
+    SetNull
   else
-    CreateWithValue(aSourceField.AsString);
+    SetValue(aSourceField.AsString);
 end;
 
 procedure TNullableStringRecord.Assign(const aValue: String);
@@ -579,7 +652,10 @@ end;
 
 procedure TNullableStringRecord.Assign(const aValue: Variant);
 begin
-  CheckIfDifferentAndAssign(aValue);
+  if VarIsNull(aValue) then
+    SetNull
+  else
+    SetValue(VarToStr(aValue));
 end;
 
 procedure TNullableStringRecord.Assign(const aValue: String; const aAllowBlankValue: boolean);
@@ -589,23 +665,6 @@ begin
     Self.ChangeToBlankIfNull;
 end;
 
-function TNullableStringRecord.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
-begin
-  if VarIsNull(aValue) then
-  begin
-    Result := not IsNull;
-    CreateAsNull;
-  end
-  else
-  begin
-    if Self.IsNull then
-      Result := true
-    else
-      Result := aValue <> Value;
-    if Result then
-      CreateWithValue(aValue);
-  end;
-end;
 
 function TNullableStringRecord.AsVariant: Variant;
 begin
@@ -958,6 +1017,11 @@ begin
     Result := BoolToStr(FValue, true)
   else
     Result := '';
+end;
+
+function TNullableBoolean.AsBoolean: Boolean;
+begin
+  Result := (Self.NotNull) and (Self.Value);
 end;
 
 function TNullableBoolean.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
