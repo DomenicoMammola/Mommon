@@ -11,6 +11,7 @@ unit mUpright;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$INTERFACES CORBA}
 {$ENDIF}
 
 interface
@@ -638,7 +639,7 @@ end;
 
 function TmUpright.FindDatumByKey(const aKey: IVDDatumKey): IVDDatum;
 begin
-  Result := TmUprightDatum(FDataList.Items[TmUprightValueKey(aKey).Position]);
+  Result := Self.FindDatumByStringKey(aKey.AsString);
 end;
 
 function TmUpright.FindDatumByStringKey(const aStringKey: string): IVDDatum;
