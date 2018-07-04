@@ -51,6 +51,8 @@ type
 
 implementation
 
+uses
+  sysutils;
 
 { TmDataProvider }
 
@@ -84,7 +86,11 @@ var
 begin
   FMap.Clear;
   for i := 0 to Self.Count -1 do
+  begin
+    if FMap.Contains(Self.GetDatum(i).GetDatumKey.AsString) then
+      raise Exception.Create('Duplicate key: ' + Self.GetDatum(i).GetDatumKey.AsString);
     FMap.Add(Self.GetDatum(i).GetDatumKey.AsString, Self.InternalGetDatum(i));
+  end;
   FMustRebuildIndex:= false;
 end;
 
