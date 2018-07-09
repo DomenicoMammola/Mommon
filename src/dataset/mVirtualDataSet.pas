@@ -198,7 +198,7 @@ type
 //    FMasterDataLink : TVirtualMasterDataLink;
     FModifiedFields : TList;
     FOldValueBuffer : TRecordBuffer;
-    FLastFieldListCheckSum : {$IFDEF FPC}PtrUInt{$ELSE}NativeUInt{$ENDIF};
+    FLastFieldListCheckSum : {$IFDEF FPC}QWord(*PtrUInt*){$ELSE}NativeUInt{$ENDIF};
     FLastFieldListCheckSumValid : boolean;
 
     FOnDeleteRecord   : TDeleteRecordEvent;
@@ -486,7 +486,7 @@ begin
   VirtualDatasetError(Format(AMessage, AArgs), ADataset);
 end;
 
-function FieldListCheckSum(Dataset: TDataSet): {$IFDEF FPC}PtrUInt{$ELSE}NativeUInt{$ENDIF};
+function FieldListCheckSum(Dataset: TDataSet): {$IFDEF FPC}QWord{$ELSE}NativeUInt{$ENDIF};
 var
   I: Integer;
 begin
