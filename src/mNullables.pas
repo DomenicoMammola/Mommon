@@ -85,6 +85,7 @@ type
     class function VariantToString(const aValue: Variant): String;
 
     function AsString : String; override;
+    function AsUppercaseString : String;
 
     property Value : String read GetValue write SetValue;
   end;
@@ -1184,6 +1185,11 @@ end;
 function TNullableString.AsString: String;
 begin
   Result := TNullableString.VariantToString(Self.AsVariant);
+end;
+
+function TNullableString.AsUppercaseString: String;
+begin
+  Result := Uppercase(Self.AsString);
 end;
 
 { TNullableDouble }
