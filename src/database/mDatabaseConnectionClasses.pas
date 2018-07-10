@@ -27,7 +27,7 @@ type
 
   TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptTime, ptInteger, ptFloat, ptString, ptWideString);
 
-  TmBooleanParameterConvention = (bpcUseIntegers, bpcUseIntegersButStrings);
+  TmBooleanParameterConvention = (bpcUseIntegers, bpcUseIntegersButStrings, bpcUseIntegersAvoidNull, bpcUseIntegersButStringsAvoidNull);
 
 { TmQueryParameter }
 
@@ -548,20 +548,20 @@ end;
 
 procedure TmQueryParameter.Assign(aValue: TNullableBoolean; const aConvention: TmBooleanParameterConvention);
 begin
-  if aValue.IsNull then
+  if (aValue.IsNull) and (aConvention <> bpcUseIntegersAvoidNull) and (aConvention <> bpcUseIntegersButStringsAvoidNull) then
     Self.SetNull
   else
   begin
-    if aConvention = bpcUseIntegers then
+    if (aConvention = bpcUseIntegers) or (aConvention = bpcUseIntegersAvoidNull) then
     begin
-      if aValue.Value then
+      if aValue.AsBoolean then
         Self.AsInteger:= 1
       else
         Self.AsInteger:= 0;
     end
-    else if aConvention = bpcUseIntegersButStrings then
+    else if (aConvention = bpcUseIntegersButStrings) or (aConvention = bpcUseIntegersButStringsAvoidNull) then
     begin
-      if aValue.Value then
+      if aValue.AsBoolean then
         Self.AsString:= '1'
       else
         Self.AsString:= '0';
