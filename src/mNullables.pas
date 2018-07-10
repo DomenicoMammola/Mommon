@@ -321,10 +321,103 @@ type
     function AsString (const aShowTime: boolean): String;
   end;
 
+  { TNullableIntegerRecord }
+
+  TNullableIntegerRecord = record
+  public
+    Value : integer;
+    IsNull : boolean;
+
+    procedure SetNull;
+    procedure SetValue (const aValue: Integer);
+
+    procedure Assign(const aSource : TNullableIntegerRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aValue : Variant);overload;
+    function AsVariant: Variant;
+    function AsString: String;
+    function AsInteger: integer;
+  end;
+
+
 implementation
 
 uses
   SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
+
+{ TNullableIntegerRecord }
+
+procedure TNullableIntegerRecord.SetNull;
+begin
+  IsNull:= true;
+  Value:= 0;
+end;
+
+procedure TNullableIntegerRecord.SetValue(const aValue: Integer);
+begin
+  IsNull:= false;
+  Value:= aValue;
+end;
+
+procedure TNullableIntegerRecord.Assign(const aSource: TNullableIntegerRecord);
+begin
+  IsNull:= aSource.IsNull;
+  Value:= aSource.Value;
+end;
+
+procedure TNullableIntegerRecord.Assign(const aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    SetNull
+  else
+    SetValue(aSourceField.AsInteger);
+end;
+
+procedure TNullableIntegerRecord.Assign(const aValue: String);
+begin
+  Assign(TNullableInteger.StringToVariant(aValue));
+end;
+
+procedure TNullableIntegerRecord.Assign(const aValue: Variant);
+var
+  tmpInt : integer;
+begin
+  if VarIsNull(aValue) then
+  begin
+    SetNull;
+  end
+  else
+  begin
+    tmpInt := aValue;
+    SetValue(tmpInt);
+  end;
+
+end;
+
+function TNullableIntegerRecord.AsVariant: Variant;
+begin
+  if IsNull then
+    Result := Null
+  else
+    Result := Value;
+end;
+
+function TNullableIntegerRecord.AsString: String;
+begin
+  if IsNull then
+    Result := ''
+  else
+    Result := IntToStr(Value);
+end;
+
+function TNullableIntegerRecord.AsInteger: integer;
+begin
+  if IsNull then
+    Result := 0
+  else
+    Result := Value;
+end;
 
 { TNullableDateTimeRecord }
 
