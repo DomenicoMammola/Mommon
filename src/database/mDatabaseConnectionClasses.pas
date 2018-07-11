@@ -133,6 +133,7 @@ type
     procedure SaveToXMLElement (aXMLElement : TmXmlElement; const aCryptPassword : string);
     procedure LoadFromXMLElement (const aXMLElement : TmXmlElement; const aCryptPassword : string);
     procedure Assign (aSource : TmDatabaseConnectionInfo);
+    procedure GetReport (aReport : TStringList);
 
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
     property Server : String read GetServer write SetServer;
@@ -319,6 +320,19 @@ begin
   Self.Password := aSource.Password;
   Self.WindowsIntegratedSecurity := aSource.WindowsIntegratedSecurity;
   Self.ExtraSettings := aSource.ExtraSettings;
+end;
+
+procedure TmDatabaseConnectionInfo.GetReport(aReport: TStringList);
+var
+  tmp : String;
+begin
+  WriteStr(tmp, VendorType);
+  aReport.Add('Vendor: ' + tmp );
+  aReport.Add('Server: ' + Server);
+  aReport.Add('Database: ' + DatabaseName);
+  aReport.Add('User: ' + UserName);
+  aReport.Add('Windows integrated security: ' + BoolToStr(WindowsIntegratedSecurity, true));
+  aReport.Add('Extra settings: ' + ExtraSettings);
 end;
 
 { TmQueryParameter }
