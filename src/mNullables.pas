@@ -67,6 +67,7 @@ type
     FValue : String;
     function GetValue: String;
     procedure SetValue(AValue: String);
+    procedure InternalSetValue(AValue : String);
   public
     constructor Create(); override; overload;
     constructor Create(aValue: String); overload;
@@ -97,6 +98,7 @@ type
       FValue : TDateTime;
       function GetValue : TDateTime;
       procedure SetValue (AValue : TDateTime);
+      procedure InternalSetValue (AValue : TDateTime);
     public
       constructor Create(); override; overload;
       constructor Create(aValue: TDateTime); overload;
@@ -124,6 +126,7 @@ type
     FValue : TDateTime;
     function GetValue : TDateTime;
     procedure SetValue (AValue : TDateTime);
+    procedure InternalSetValue (AValue : TDateTime);
   public
     constructor Create(); override; overload;
     constructor Create(aValue: TDateTime); overload;
@@ -155,6 +158,7 @@ type
     procedure SetDisplayFormat(AValue: String);
     procedure SetFractionalPartDigits(AValue: byte);
     procedure SetValue (AValue : Double);
+    procedure InternalSetValue (AValue : Double);
   public
     constructor Create(); override; overload;
     constructor Create(aValue: Double); overload;
@@ -190,6 +194,7 @@ type
     FValue : Boolean;
     function GetValue : Boolean;
     procedure SetValue (AValue : Boolean);
+    procedure InternalSetValue (AValue : Boolean);
   public
     constructor Create(); override; overload;
     constructor Create(aValue: Boolean); overload;
@@ -218,6 +223,7 @@ type
     FValue : Integer;
     function GetValue : Integer;
     procedure SetValue(AValue: Integer);
+    procedure InternalSetValue(AValue: Integer);
   public
     constructor Create(); override; overload;
     constructor Create(aValue: Integer); overload;
@@ -249,6 +255,7 @@ type
     FValue : TColor;
     function GetValue: TColor;
     procedure SetValue(AValue: TColor);
+    procedure InternalSetValue(AValue: TColor);
   public
     constructor Create(); override; overload;
     constructor Create(aValue : TColor); overload;
@@ -497,6 +504,12 @@ end;
 
 procedure TNullableTime.SetValue(AValue: TDateTime);
 begin
+  InternalSetValue(AValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableTime.InternalSetValue(AValue: TDateTime);
+begin
   FValue:= aValue;
   FIsNull := false;
 end;
@@ -567,9 +580,9 @@ begin
     else
       Result := not DoublesAreEqual(Self.Value, tmpTime);
     if Result then
-      Self.Value:= tmpTime;
+      Self.InternalSetValue(tmpTime);
   end;
-  Self.FTagChanged:= Result;
+  Self.FTagChanged:= Result or Self.FTagChanged;
 end;
 
 class function TNullableTime.StringToVariant(const aValue: String): Variant;
@@ -797,8 +810,14 @@ end;
 
 procedure TNullableColor.SetValue(AValue: TColor);
 begin
+  InternalSetValue(AValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableColor.InternalSetValue(AValue: TColor);
+begin
   FValue:= aValue;
-  FIsNull := false;
+  FIsNull:= false;
 end;
 
 constructor TNullableColor.Create();
@@ -865,9 +884,9 @@ begin
     else
       Result:= tmpValue <> FValue;
     if Result then
-      Self.Value:= tmpValue;
+      Self.InternalSetValue(tmpValue);
   end;
-  Self.FTagChanged:= Result;
+  Self.FTagChanged:= Result or FTagChanged;
 end;
 
 function TNullableColor.AsVariant: Variant;
@@ -895,8 +914,14 @@ end;
 
 procedure TNullableInteger.SetValue(AValue: Integer);
 begin
+  InternalSetValue(AValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableInteger.InternalSetValue(AValue: Integer);
+begin
   FValue:= aValue;
-  FIsNull := false;
+  FIsNull:= false;
 end;
 
 constructor TNullableInteger.Create();
@@ -956,9 +981,9 @@ begin
     else
       Result := tmpInt <> Self.Value;
     if Result then
-      Self.Value:= tmpInt;
+      Self.InternalSetValue(tmpInt);
   end;
-  Self.FTagChanged:= Result;
+  Self.FTagChanged:= Result or FTagChanged;
 end;
 
 function TNullableInteger.AsVariant: Variant;
@@ -1028,6 +1053,12 @@ begin
 end;
 
 procedure TNullableBoolean.SetValue(AValue: Boolean);
+begin
+  InternalSetValue(AValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableBoolean.InternalSetValue(AValue: Boolean);
 begin
   FValue:= aValue;
   FIsNull := false;
@@ -1135,9 +1166,9 @@ begin
     else
       Result := tmpBool <> Self.Value;
     if Result then
-      Self.Value:= tmpBool;
+      Self.InternalSetValue(tmpBool);
   end;
-  Self.FTagChanged:= Result;
+  Self.FTagChanged:= Result or Self.FTagChanged;
 end;
 
 class function TNullableBoolean.StringToVariant(const aValue: String): Variant;
@@ -1167,6 +1198,12 @@ begin
 end;
 
 procedure TNullableString.SetValue(AValue: String);
+begin
+  InternalSetValue(AValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableString.InternalSetValue(AValue: String);
 begin
   FValue:= aValue;
   FIsNull:= False;
@@ -1234,9 +1271,9 @@ begin
     else
       Result:= aValue <> FValue;
     if Result then
-      Self.Value:= aValue;
+      Self.InternalSetValue(aValue);
   end;
-  Self.FTagChanged:= Result;
+  Self.FTagChanged:= Result or Self.FTagChanged;
 end;
 
 function TNullableString.AsVariant: Variant;
@@ -1308,10 +1345,16 @@ end;
 
 procedure TNullableDouble.SetValue(AValue: Double);
 begin
+  InternalSetValue(AValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableDouble.InternalSetValue(AValue: Double);
+begin
   if FFractionalPartDigits > 0 then
     FValue:= RoundToExt(AValue, FRoundingMethod, FFractionalPartDigits)
   else
-    FValue:= aValue;
+    FValue:= RoundDoubleToStandardPrecision(aValue);
   FIsNull := false;
 end;
 
@@ -1424,9 +1467,9 @@ begin
     else
       Result := not mFloatsManagement.DoublesAreEqual(tmpDouble, Self.Value);
     if Result then
-      Self.Value:= RoundDoubleToStandardPrecision(tmpDouble);
+      Self.InternalSetValue(tmpDouble);
   end;
-  Self.FTagChanged:= Result;
+  Self.FTagChanged:= Result or Self.FTagChanged;
 end;
 
 function TNullableDouble.AsString: String;
@@ -1529,6 +1572,12 @@ end;
 
 procedure TNullableDateTime.SetValue(AValue: TDateTime);
 begin
+  InternalSetValue(aValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableDateTime.InternalSetValue(AValue: TDateTime);
+begin
   FValue:= aValue;
   FIsNull := false;
 end;
@@ -1598,9 +1647,9 @@ begin
     else
       Result := not DoublesAreEqual(Self.Value, tmpDate);
     if Result then
-      Self.Value:= tmpDate;
+      Self.InternalSetValue(tmpDate);
   end;
-  Self.FTagChanged:= Result;
+  Self.FTagChanged:= Result or Self.FTagChanged;
 end;
 
 class function TNullableDateTime.StringToVariant(const aValue: String): Variant;
