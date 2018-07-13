@@ -1435,9 +1435,6 @@ begin
 end;
 
 class function TNullableDouble.VariantToString(const aValue: Variant; const aDisplayFormat: string): String;
-var
-  i : integer;
-  str : String;
 begin
   if VarIsNull(aValue) then
     Result := ''
