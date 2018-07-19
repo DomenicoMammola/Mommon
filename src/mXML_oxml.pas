@@ -272,8 +272,7 @@ end;
 
 constructor TImpl_oxml_mXmlDocument.Create;
 begin
-  FXML := CreateXMLDoc;
-  FXML.Encoding := 'utf-8';
+  FXML := CreateXMLDoc('', true);
   FXML.WriterSettings.WriteBOM := False;
   FRoot := nil;
   FRootElement := nil;
