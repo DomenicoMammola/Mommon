@@ -115,6 +115,7 @@ type
 
       function AsString (const aShowTime : boolean) : String; overload;
       function AsString : String; override; overload;
+      function AsStringForFilename (const aShowTime, aUseSeparators: boolean): String;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -1685,6 +1686,28 @@ end;
 function TNullableDateTime.AsString: String;
 begin
   Result := AsString(true);
+end;
+
+function TNullableDateTime.AsStringForFilename(const aShowTime, aUseSeparators: boolean): String;
+begin
+  Result := '';
+  if Self.NotNull then
+  begin
+    if aShowTime then
+    begin
+      if aUseSeparators then
+        Result := FormatDateTime('YYYY-MM-DD HH_NN_SS', Self.Value)
+      else
+        Result := FormatDateTime('YYYYMMDD HHNNSS', Self.Value);
+    end
+    else
+    begin
+      if aUseSeparators  then
+        Result := FormatDateTime('YYYY-MM-DD', Self.Value)
+      else
+        Result := FormatDateTime('YYYYMMDD', Self.Value);
+    end;
+  end;
 end;
 
 { TAbstractNullable }
