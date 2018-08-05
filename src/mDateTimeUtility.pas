@@ -31,11 +31,13 @@ interface
   function IsItalianPublicHoliday (const aDate : TDateTime) : boolean;
   function IsItalianWorkingDay (const aDate : TDateTime; const aSaturdayIsWorkingDay : boolean = false) : boolean;
   function NextWorkingDayInItaly (const aOrigin : TDateTime; const aDirection : TTimeDirection; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
+  function Intersect (const aStart1, aEnd1, aStart2, aEnd2 : TDateTime) : boolean;
 
 implementation
 
 uses
-  sysutils, DateUtils, StrUtils;
+  sysutils, DateUtils, StrUtils,
+  mFloatsManagement;
 
 function  AddYears(startDate: TDateTime; n: Integer) : TDateTime;
   var
@@ -138,6 +140,21 @@ begin
   Result := aOrigin + TimeDirectionToIncrement;
   while not IsItalianWorkingDay(Result, aSaturdayIsWorkingDay) do
     Result := Result + TimeDirectionToIncrement;
+end;
+
+function Intersect(const aStart1, aEnd1, aStart2, aEnd2: TDateTime): boolean;
+var
+  c1, c2, c3, c4 : boolean;
+begin
+  c1 := mFloatsManagement.DoubleIsLessThan(aStart1, aStart2);
+  c2 := mFloatsManagement.DoubleIsLessThan(aStart1, aEnd2);
+  Result := ((not c1) and c2);
+  if not Result then
+  begin
+    c3 := mFloatsManagement.DoubleIsLessThan(aEnd1, aStart1);
+    c4 := mFloatsManagement.DoubleIsLessThan(aEnd1, aEnd2);
+    Result := ((not c3) and c4) or (c1 and (not c4));
+  end;
 end;
 
 function CalculateEasterDate(const year: word; const method: word): TDateTime;
