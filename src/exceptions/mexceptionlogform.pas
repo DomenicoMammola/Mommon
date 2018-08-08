@@ -89,19 +89,30 @@ begin
     if ValidEmail(EditSendToMailAddresses.Text) then
     begin
       SendReportByMail;
+      Self.ModalResult:= mrOk;
     end
     else
       TmToast.ShowText(SWrongEmailMessage);
-  end;
-  Self.ModalResult:= mrOk;
+  end
+  else
+    Self.ModalResult:= mrOk;
 end;
 
 procedure TExceptionLogForm.BtnHaltClick(Sender: TObject);
 begin
   FUserWantsToShutDown:=true;
-  if ExceptionLogConfiguration.SendTraceLogByMail and (ExceptionLogConfiguration.TraceLogMailDestination <> '') then
-    SendReportByMail;
-  Self.ModalResult:= mrOk;
+  if CBSendByMail.Checked and  (EditSendToMailAddresses.Text <> '') then
+  begin
+    if ValidEmail(EditSendToMailAddresses.Text) then
+    begin
+      SendReportByMail;
+      Self.ModalResult:= mrOk;
+    end
+    else
+      TmToast.ShowText(SWrongEmailMessage);
+  end
+  else
+    Self.ModalResult:= mrOk;
 end;
 
 procedure TExceptionLogForm.CBSendByMailChange(Sender: TObject);
