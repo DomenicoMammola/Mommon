@@ -127,6 +127,8 @@ begin
   if FSQL = '' then
     raise Exception.Create('Missing SQL. Prepare SQL string command before.');
   Result := FParameters.FindByName(Value);
+  if not Assigned(Result) then
+    raise Exception.Create('Unknown parameter ' + Value);
 end;
 
 function TmSQLBuilder.BuildSQL: string;
