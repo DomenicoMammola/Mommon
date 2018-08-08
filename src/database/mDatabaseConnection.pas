@@ -100,10 +100,11 @@ type
     procedure Prepare;
     procedure Unprepare;
     function Prepared : boolean;
-    function ParamByName(const Value: string): TmQueryParameter;
+    function ParamByName(const aValue: string): TmQueryParameter;
+    procedure SetSQL(const aValue : string);
 
     property DatabaseConnection : TmDatabaseConnection read FDatabaseConnection write FDatabaseConnection;
-    property SQL : TStringList read FSQL;
+    // property SQL : TStringList read FSQL;
   end;
 
 
@@ -345,7 +346,7 @@ begin
   Result := FImplementation.Prepared;
 end;
 
-function TmAbstractDatabaseCommand.ParamByName(const Value: string): TmQueryParameter;
+function TmAbstractDatabaseCommand.ParamByName(const aValue: string): TmQueryParameter;
 begin
   CreateImplementation;
   if PrepareIfNecessary then
@@ -353,7 +354,13 @@ begin
     // must reload FParameters
     ReloadParameters;
   end;
-  Result := FParameters.FindByName(Value);
+  Result := FParameters.FindByName(aValue);
+end;
+
+procedure TmAbstractDatabaseCommand.SetSQL(const aValue: string);
+begin
+  Self.FSQL.Clear;
+  Self.FSQL.Append(aValue);
 end;
 
 { TmDatabaseCommand }
@@ -386,7 +393,7 @@ function TmDatabaseCommand.Execute: integer;
 var
   i : integer;
 begin
-  TraceSQL(SQL.Text);
+  TraceSQL(FSQL.Text);
   CreateImplementation;
   PrepareIfNecessary;
   for i := 0 to FParameters.Count -1 do
@@ -425,7 +432,7 @@ procedure TmDatabaseQuery.Open;
 var
   i : integer;
 begin
-  TraceSQL(SQL.Text);
+  TraceSQL(FSQL.Text);
   CreateImplementation;
   PrepareIfNecessary;
   for i := 0 to FParameters.Count -1 do
