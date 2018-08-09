@@ -147,7 +147,7 @@ begin
   if l > 0 then
   begin
     i := 1;
-    while (aValue[i] = '0') and (i <= l) do
+    while (i <= l) and (aValue[i] = '0')  do
       inc(i);
     if i <= l then
       Result := Copy(aValue, i, 9999)
