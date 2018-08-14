@@ -13,17 +13,34 @@ unit mMaps;
 interface
 
 uses
+  contnrs,
   mMapsImpl;
 
 type
 
+  { TmBaseDictionary }
+
+  TmBaseDictionary = class abstract
+  strict private
+    FGarbage : TObjectList;
+  protected
+    FOwnsObjects : boolean;
+    procedure InternalAdd (const aObject : TObject);
+    procedure InternalRemove (aObject : TObject);
+    procedure InternalClear;
+  public
+    constructor Create(const aOwnsObjects : boolean = false); virtual;
+    destructor Destroy; override;
+  end;
+
+
   { TmStringDictionary }
 
-  TmStringDictionary = class
+  TmStringDictionary = class (TmBaseDictionary)
     strict private
       FImpl : TmStringDictionaryImpl;
     public
-      constructor Create();
+      constructor Create(const aOwnsObjects : boolean = false); override;
       destructor Destroy; override;
 
       procedure Add(const aStringKey: String; aObject: TObject);
@@ -36,11 +53,11 @@ type
 
   { TmIntegerDictionary }
 
-  TmIntegerDictionary = class
+  TmIntegerDictionary = class (TmBaseDictionary)
     strict private
       FImpl : TmIntegerDictionaryImpl;
     public
-      constructor Create();
+      constructor Create(const aOwnsObjects : boolean = false); override;
       destructor Destroy; override;
 
       procedure Add(const aIntegerKey : integer; aObject: TObject);
@@ -52,10 +69,47 @@ type
 
 implementation
 
+uses
+  sysutils;
+
+{ TmBaseDictionary }
+
+procedure TmBaseDictionary.InternalAdd(const aObject: TObject);
+begin
+  if FOwnsObjects and Assigned(aObject) then
+    FGarbage.Add(aObject);
+end;
+
+procedure TmBaseDictionary.InternalRemove(aObject: TObject);
+begin
+  if FOwnsObjects and Assigned(aObject) then
+    FGarbage.Remove(aObject);
+end;
+
+procedure TmBaseDictionary.InternalClear;
+begin
+  if FOwnsObjects then
+    FGarbage.Clear;
+end;
+
+constructor TmBaseDictionary.Create(const aOwnsObjects: boolean);
+begin
+  FOwnsObjects:= aOwnsObjects;
+  if FOwnsObjects then
+    FGarbage := TObjectList.Create(true);
+end;
+
+destructor TmBaseDictionary.Destroy;
+begin
+  FreeAndNil(FGarbage);
+  inherited Destroy;
+end;
+
 { TmIntegerDictionary }
 
-constructor TmIntegerDictionary.Create;
+constructor TmIntegerDictionary.Create(const aOwnsObjects : boolean = false);
 begin
+  inherited;
   FImpl := CreateTmIntegerDictionary;
 end;
 
@@ -68,6 +122,7 @@ end;
 procedure TmIntegerDictionary.Add(const aIntegerKey: integer; aObject: TObject);
 begin
   FImpl._Add(aIntegerKey, aObject);
+  InternalAdd(aObject);
 end;
 
 function TmIntegerDictionary.Find(const aIntegerKey: integer): TObject;
@@ -76,13 +131,18 @@ begin
 end;
 
 procedure TmIntegerDictionary.Remove(const aIntegerKey: integer);
+var
+  tmpObj : TObject;
 begin
+  tmpObj := Self.Find(aIntegerKey);
   FImpl._Remove(aIntegerKey);
+  InternalRemove(tmpObj);
 end;
 
 procedure TmIntegerDictionary.Clear;
 begin
   FImpl._Clear;
+  InternalClear;
 end;
 
 function TmIntegerDictionary.Count: integer;
@@ -92,8 +152,9 @@ end;
 
 { TmStringDictionary }
 
-constructor TmStringDictionary.Create();
+constructor TmStringDictionary.Create(const aOwnsObjects : boolean = false);
 begin
+  Inherited;
   FImpl := CreateTmStringDictionary;
 end;
 
@@ -106,6 +167,7 @@ end;
 procedure TmStringDictionary.Add(const aStringKey: String; aObject: TObject);
 begin
   FImpl._Add(aStringKey, aObject);
+  InternalAdd(aObject);
 end;
 
 function TmStringDictionary.Find(const aStringKey: String): TObject;
@@ -119,13 +181,18 @@ begin
 end;
 
 procedure TmStringDictionary.Remove(const aStringKey: String);
+var
+  tmpObj : TObject;
 begin
+  tmpObj := Self.Find(aStringKey);
   FImpl._Remove(aStringKey);
+  InternalRemove(tmpObj);
 end;
 
 procedure TmStringDictionary.Clear;
 begin
   FImpl._Clear;
+  InternalClear;
 end;
 
 function TmStringDictionary.Count: integer;
