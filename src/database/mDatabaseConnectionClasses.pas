@@ -66,7 +66,7 @@ type
     procedure Assign(aValue : TNullableDateTime); overload;
     procedure Assign(aValue : TNullableTime); overload;
     procedure Assign(aValue : TNullableDouble); overload;
-    procedure Assign(aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention); overload;
+    procedure Assign(aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0); overload;
     procedure Assign(const aFilter : TmFilter); overload;
 
     procedure AsStringList (aList : TStringList);
@@ -560,7 +560,7 @@ begin
     Self.AsFloat:= aValue.Value;
 end;
 
-procedure TmQueryParameter.Assign(aValue: TNullableBoolean; const aConvention: TmBooleanParameterConvention);
+procedure TmQueryParameter.Assign(aValue: TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0);
 begin
   if (aValue.IsNull) and (aConvention <> bpcUseIntegersAvoidNull) and (aConvention <> bpcUseIntegersButStringsAvoidNull) then
     Self.SetNull
@@ -569,16 +569,16 @@ begin
     if (aConvention = bpcUseIntegers) or (aConvention = bpcUseIntegersAvoidNull) then
     begin
       if aValue.AsBoolean then
-        Self.AsInteger:= 1
+        Self.AsInteger:= aValueForTrue
       else
-        Self.AsInteger:= 0;
+        Self.AsInteger:= aValueForFalse;
     end
     else if (aConvention = bpcUseIntegersButStrings) or (aConvention = bpcUseIntegersButStringsAvoidNull) then
     begin
       if aValue.AsBoolean then
-        Self.AsString:= '1'
+        Self.AsString:= IntToStr(aValueForTrue)
       else
-        Self.AsString:= '0';
+        Self.AsString:= IntToStr(aValueForFalse);
     end;
   end;
 end;
