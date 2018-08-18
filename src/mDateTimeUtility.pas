@@ -151,7 +151,7 @@ begin
   Result := ((not c1) and c2);
   if not Result then
   begin
-    c3 := mFloatsManagement.DoubleIsLessThan(aEnd1, aStart1);
+    c3 := mFloatsManagement.DoubleIsLessThan(aEnd1, aStart2);
     c4 := mFloatsManagement.DoubleIsLessThan(aEnd1, aEnd2);
     Result := ((not c3) and c4) or (c1 and (not c4));
   end;
