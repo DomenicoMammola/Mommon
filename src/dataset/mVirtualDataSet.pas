@@ -1008,7 +1008,6 @@ var
   TempWideChar: WideChar;
   {$ENDIF}
 begin
-
   case AField.DataType of
     ftGuid, ftFixedChar, ftString:
       begin
@@ -1635,7 +1634,8 @@ begin
   newName := aPrefix + aSource.Name;
   aFieldDef.Name := newName;
   aFieldDef.DataType := FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
-  aFieldDef.Size := aSource.Size;
+  if (aSource.DataType in [vftString, vftWideString]) then
+    aFieldDef.Size := aSource.Size;
   if aSource.Required then
     aFieldDef.Attributes := [faRequired];
   if aReadOnly or aSource.ReadOnly then
