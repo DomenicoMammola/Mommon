@@ -541,7 +541,12 @@ begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
-    Self.Value:= aSourceField.AsDateTime;
+  begin
+    if aSourceField.DataType in [ftDateTime, ftTime, ftTimeStamp, ftDate] then
+      Self.Value:= aSourceField.AsDateTime
+    else
+      Self.Assign(aSourceField.AsString);
+  end;
   FTagChanged:= false;
 end;
 
@@ -589,11 +594,13 @@ end;
 class function TNullableTime.StringToVariant(const aValue: String): Variant;
 var
   tmptime : TDateTime;
+  newValue : String;
 begin
-  if aValue = '' then
+  newValue := Trim(aValue);
+  if newValue = '' then
     Result := Null
   else
-    if TryToUnderstandTimeString(aValue, tmptime) then
+    if TryToUnderstandTimeString(newValue, tmptime) then
       Result := tmptime
     else
       raise Exception.Create('This string cannot be converted to time: ' + aValue);
@@ -1605,7 +1612,10 @@ begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
-    Self.Value:= aSourceField.AsDateTime;
+    if aSourceField.DataType in [ftDateTime, ftTime, ftTimeStamp, ftDate] then
+      Self.Value:= aSourceField.AsDateTime
+    else
+      Self.Assign(aSourceField.AsString);
   FTagChanged:= false;
 end;
 
@@ -1653,11 +1663,13 @@ end;
 class function TNullableDateTime.StringToVariant(const aValue: String): Variant;
 var
   tmpDate : TDateTime;
+  newValue : String;
 begin
-  if aValue = '' then
+  newValue := Trim(aValue);
+  if newValue = '' then
     Result := Null
   else
-    if TryToUnderstandDateString(aValue, tmpDate) then
+    if TryToUnderstandDateString(newValue, tmpDate) then
       Result := tmpDate
     else
       raise Exception.Create('This string cannot be converted to date: ' + aValue);
