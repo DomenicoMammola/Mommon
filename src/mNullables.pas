@@ -33,8 +33,6 @@ type
   public
     constructor Create(); virtual;
     function AsVariant: Variant; virtual; abstract;
-    procedure Assign(const aSourceField : TField); overload; virtual; abstract;
-    procedure Assign (const aValue : String); overload; virtual; abstract;
     procedure Assign(const aValue: variant); overload; virtual; abstract;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; virtual; abstract;
@@ -73,8 +71,7 @@ type
     constructor Create(aValue: String); overload;
 
     procedure Assign(const aSource : TNullableString); overload;
-    procedure Assign(const aSourceField : TField); override; overload;
-    procedure Assign(const aValue : String); override; overload;
+    procedure Assign(const aSourceField : TField; const aAllowBlankValues : boolean); overload;
     procedure Assign(const aValue : Variant); override; overload;
     procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
@@ -82,7 +79,7 @@ type
     procedure Trim();
     procedure ChangeToBlankIfNull;
 
-    class function StringToVariant(const aValue: String): Variant;
+    class function StringToVariant(const aValue: String; const aAllowBlankValues : boolean): Variant;
     class function VariantToString(const aValue: Variant): String;
 
     function AsString : String; override;
@@ -104,9 +101,9 @@ type
       constructor Create(aValue: TDateTime); overload;
 
       procedure Assign(const aSource : TNullableDateTime); overload;
-      procedure Assign(const aSourceField : TField); override; overload;
+      procedure Assign(const aSourceField : TField); overload;
       procedure Assign (const aValue: Variant); override; overload;
-      procedure Assign (const aValue: String); override; overload;
+      procedure Assign (const aValue: String);  overload;
       function AsVariant: Variant; override;
       function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
 
@@ -133,9 +130,9 @@ type
     constructor Create(aValue: TDateTime); overload;
 
     procedure Assign(const aSource : TNullableTime); overload;
-    procedure Assign(const aSourceField : TField); override; overload;
+    procedure Assign(const aSourceField : TField); overload;
     procedure Assign (const aValue: Variant); override; overload;
-    procedure Assign (const aValue: String); override; overload;
+    procedure Assign (const aValue: String); overload;
     function AsVariant: Variant; override;
     function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
 
@@ -165,9 +162,9 @@ type
     constructor Create(aValue: Double); overload;
 
     procedure Assign(const aSource : TNullableDouble); overload;
-    procedure Assign(const aSourceField : TField); override; overload;
+    procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aValue : Variant); override; overload;
-    procedure Assign(const aValue: String); override; overload;
+    procedure Assign(const aValue: String); overload;
     function AsVariant: Variant; override;
 
     procedure Add(const aValue : double); overload;
@@ -201,10 +198,10 @@ type
     constructor Create(aValue: Boolean); overload;
 
     procedure Assign(const aSource : TNullableBoolean); overload;
-    procedure Assign(const aSourceField : TField); override; overload;
+    procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aSourceField: TField; const aAllowNull: boolean); overload;
     procedure Assign (const aValue : Variant); override; overload;
-    procedure Assign (const aValue : string); override; overload;
+    procedure Assign (const aValue : string); overload;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
@@ -230,8 +227,8 @@ type
     constructor Create(aValue: Integer); overload;
 
     procedure Assign(const aSource : TNullableInteger); overload;
-    procedure Assign(const aSourceField : TField); override; overload;
-    procedure Assign(const aValue : String); override; overload;
+    procedure Assign(const aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
     procedure Assign(const aValue : Variant); override; overload;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
@@ -262,9 +259,9 @@ type
     constructor Create(aValue : TColor); overload;
 
     procedure Assign(const aSource : TNullableColor); overload;
-    procedure Assign(const aSourceField: TField); override; overload;
+    procedure Assign(const aSourceField: TField); overload;
     procedure Assign(const aValue : Variant); override; overload;
-    procedure Assign(const aValue : String); override; overload;
+    procedure Assign(const aValue : String); overload;
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant : Variant; override;
     function AsString : String; override;
@@ -283,13 +280,10 @@ type
     procedure SetValue (const aValue : String);
 
     procedure Assign(const aSource : TNullableStringRecord); overload;
-    procedure Assign(const aSourceField : TField); overload;
-    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aSourceField : TField; const aAllowBlankValue : boolean); overload;
     procedure Assign(const aValue : Variant);overload;
-    procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
     function AsVariant: Variant;
     procedure Trim();
-    procedure ChangeToBlankIfNull;
     function AsString : String;
   end;
 
@@ -752,17 +746,17 @@ begin
   Value := aSource.Value;
 end;
 
-procedure TNullableStringRecord.Assign(const aSourceField: TField);
+procedure TNullableStringRecord.Assign(const aSourceField: TField; const aAllowBlankValue : boolean);
 begin
   if aSourceField.IsNull then
     SetNull
   else
-    SetValue(aSourceField.AsString);
-end;
-
-procedure TNullableStringRecord.Assign(const aValue: String);
-begin
-  Self.Assign(TNullableString.StringToVariant(aValue));
+  begin
+    if (not aAllowBlankValue) and (aSourceField.AsString = '') then
+      SetNull
+    else
+      SetValue(aSourceField.AsString);
+  end;
 end;
 
 procedure TNullableStringRecord.Assign(const aValue: Variant);
@@ -772,14 +766,6 @@ begin
   else
     SetValue(VarToStr(aValue));
 end;
-
-procedure TNullableStringRecord.Assign(const aValue: String; const aAllowBlankValue: boolean);
-begin
-  Self.Assign(aValue);
-  if aAllowBlankValue then
-    Self.ChangeToBlankIfNull;
-end;
-
 
 function TNullableStringRecord.AsVariant: Variant;
 begin
@@ -793,12 +779,6 @@ procedure TNullableStringRecord.Trim();
 begin
   if not IsNull then
     Value:= SysUtils.Trim(Self.Value);
-end;
-
-procedure TNullableStringRecord.ChangeToBlankIfNull;
-begin
-  if IsNull then
-    Value:= '';
 end;
 
 function TNullableStringRecord.AsString: String;
@@ -1237,18 +1217,13 @@ begin
   FTagChanged:= false;
 end;
 
-procedure TNullableString.Assign(const aSourceField: TField);
+procedure TNullableString.Assign(const aSourceField: TField; const aAllowBlankValues : boolean);
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
-    Self.Assign(aSourceField.AsString);
+    Self.Assign(TNullableString.StringToVariant(aSourceField.AsString, aAllowBlankValues));
   FTagChanged:= false;
-end;
-
-procedure TNullableString.Assign(const aValue: String);
-begin
-  Self.Assign(TNullableString.StringToVariant(aValue));
 end;
 
 procedure TNullableString.Assign(const aValue: Variant);
@@ -1259,9 +1234,10 @@ end;
 
 procedure TNullableString.Assign(const aValue: String; const aAllowBlankValue: boolean);
 begin
-  Self.Assign(aValue);
-  if aAllowBlankValue then
-    Self.ChangeToBlankIfNull;
+  if (not aAllowBlankValue) and (aValue = '') then
+    Self.IsNull := true
+  else
+    Self.InternalSetValue(aValue);
   FTagChanged:= false;
 end;
 
@@ -1304,9 +1280,9 @@ begin
     Self.Value:= '';
 end;
 
-class function TNullableString.StringToVariant(const aValue: String): Variant;
+class function TNullableString.StringToVariant(const aValue: String; const aAllowBlankValues : boolean): Variant;
 begin
-  if aValue = '' then
+  if (not aAllowBlankValues) and (aValue = '') then
     Result:= Null
   else
     Result:= aValue;
