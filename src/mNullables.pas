@@ -58,6 +58,99 @@ type
     procedure Add(const aNullableItem: TAbstractNullable);
   end;
 
+  TNullableDateTime = class;
+  TNullableString = class;
+  TNullableDouble = class;
+  TNullableInteger = class;
+
+  { TNullableStringRecord }
+
+  TNullableStringRecord = record
+  private
+    FValue : string;
+    // https://forum.lazarus.freepascal.org/index.php?topic=31870.0
+    //class operator Initialize (var aRec: TNullableStringRecord);
+  public
+    IsNull : boolean;
+  public
+    function Value : string;
+    procedure SetNull;
+    procedure SetValue (const aValue : String);
+
+    procedure Assign(const aSource : TNullableStringRecord); overload;
+    procedure Assign(const aSourceField : TField; const aAllowBlankValue : boolean); overload;
+    procedure Assign(const aValue : Variant);overload;
+    procedure Assign(const aSource : TNullableString); overload;
+    function AsVariant: Variant;
+    procedure Trim();
+    function AsString : String;
+  end;
+
+  { TNullableDoubleRecord }
+
+  TNullableDoubleRecord = record
+  private
+    FValue : double;
+  public
+    IsNull : boolean;
+  public
+    function Value : double;
+
+    procedure SetNull;
+    procedure SetValue (const aValue: Double);
+
+    procedure Assign(const aSource : TNullableDoubleRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aValue : Variant);overload;
+    procedure Assign(const aSource : TNullableDouble); overload;
+    function AsVariant: Variant;
+    function AsString: String;
+    function AsFloat: double;
+  end;
+
+  { TNullableDateTimeRecord }
+
+  TNullableDateTimeRecord = record
+  private
+    FValue : TDateTime;
+  public
+    IsNull : boolean;
+  public
+    function Value : TDateTime;
+    procedure SetNull;
+    procedure SetValue (const aValue : TDateTime);
+
+    procedure Assign(const aSource : TNullableDatetimeRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aValue : Variant);overload;
+    procedure Assign(const aSource : TNullableDateTime); overload;
+    function AsVariant: Variant;
+    function AsString (const aShowTime: boolean): String;
+  end;
+
+  { TNullableIntegerRecord }
+
+  TNullableIntegerRecord = record
+  public
+    Value : integer;
+    IsNull : boolean;
+
+    procedure SetNull;
+    procedure SetValue (const aValue: Integer);
+
+    procedure Assign(const aSource : TNullableIntegerRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aValue : Variant);overload;
+    procedure Assign(const aSource : TNullableInteger); overload;
+    function AsVariant: Variant;
+    function AsString: String;
+    function AsInteger: integer;
+  end;
+
+
   { TNullableString }
 
   TNullableString = class(TAbstractNullable)
@@ -104,6 +197,7 @@ type
       procedure Assign(const aSourceField : TField); overload;
       procedure Assign (const aValue: Variant); override; overload;
       procedure Assign (const aValue: String);  overload;
+      procedure Assign (const aSource : TNullableDateTimeRecord); overload;
       function AsVariant: Variant; override;
       function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
 
@@ -230,6 +324,7 @@ type
     procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aValue : String); overload;
     procedure Assign(const aValue : Variant); override; overload;
+    procedure Assign(const aSource : TNullableIntegerRecord); overload;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
@@ -269,78 +364,6 @@ type
     property Value : TColor read GetValue write SetValue;
   end;
 
-  { TNullableStringRecord }
-
-  TNullableStringRecord = record
-  public
-    Value : string;
-    IsNull : boolean;
-
-    procedure SetNull;
-    procedure SetValue (const aValue : String);
-
-    procedure Assign(const aSource : TNullableStringRecord); overload;
-    procedure Assign(const aSourceField : TField; const aAllowBlankValue : boolean); overload;
-    procedure Assign(const aValue : Variant);overload;
-    function AsVariant: Variant;
-    procedure Trim();
-    function AsString : String;
-  end;
-
-  { TNullableDoubleRecord }
-
-  TNullableDoubleRecord = record
-  public
-    Value : double;
-    IsNull : boolean;
-
-    procedure SetNull;
-    procedure SetValue (const aValue: Double);
-
-    procedure Assign(const aSource : TNullableDoubleRecord); overload;
-    procedure Assign(const aSourceField : TField); overload;
-    procedure Assign(const aValue : String); overload;
-    procedure Assign(const aValue : Variant);overload;
-    function AsVariant: Variant;
-    function AsString: String;
-    function AsFloat: double;
-  end;
-
-  { TNullableDateTimeRecord }
-
-  TNullableDateTimeRecord = record
-  public
-    Value : TDateTime;
-    IsNull : boolean;
-    procedure SetNull;
-    procedure SetValue (const aValue : TDateTime);
-
-    procedure Assign(const aSource : TNullableDatetimeRecord); overload;
-    procedure Assign(const aSourceField : TField); overload;
-    procedure Assign(const aValue : String); overload;
-    procedure Assign(const aValue : Variant);overload;
-    function AsVariant: Variant;
-    function AsString (const aShowTime: boolean): String;
-  end;
-
-  { TNullableIntegerRecord }
-
-  TNullableIntegerRecord = record
-  public
-    Value : integer;
-    IsNull : boolean;
-
-    procedure SetNull;
-    procedure SetValue (const aValue: Integer);
-
-    procedure Assign(const aSource : TNullableIntegerRecord); overload;
-    procedure Assign(const aSourceField : TField); overload;
-    procedure Assign(const aValue : String); overload;
-    procedure Assign(const aValue : Variant);overload;
-    function AsVariant: Variant;
-    function AsString: String;
-    function AsInteger: integer;
-  end;
 
 
 implementation
@@ -397,6 +420,14 @@ begin
 
 end;
 
+procedure TNullableIntegerRecord.Assign(const aSource: TNullableInteger);
+begin
+  if aSource.IsNull then
+    SetNull
+  else
+    SetValue(aSource.Value);
+end;
+
 function TNullableIntegerRecord.AsVariant: Variant;
 begin
   if IsNull then
@@ -423,22 +454,32 @@ end;
 
 { TNullableDateTimeRecord }
 
+function TNullableDateTimeRecord.Value: TDateTime;
+begin
+  if Self.IsNull then
+    Result := 0
+  else
+    Result := FValue;
+end;
+
 procedure TNullableDateTimeRecord.SetNull;
 begin
   IsNull:= true;
-  Value:= 0;
+  FValue:= 0;
 end;
 
 procedure TNullableDateTimeRecord.SetValue(const aValue: TDateTime);
 begin
   IsNull:= false;
-  Value:= aValue;
+  FValue:= aValue;
 end;
 
 procedure TNullableDateTimeRecord.Assign(const aSource: TNullableDatetimeRecord);
 begin
-  IsNull:= aSource.IsNull;
-  Value:= aSource.Value;
+  if aSource.IsNull then
+    Self.SetNull
+  else
+    Self.SetValue(aSource.Value);
 end;
 
 procedure TNullableDateTimeRecord.Assign(const aSourceField: TField);
@@ -459,14 +500,20 @@ var
   tmpDateTime : TDateTime;
 begin
   if VarIsNull(aValue) then
-  begin
-    SetNull;
-  end
+    SetNull
   else
   begin
     tmpDateTime := aValue;
     SetValue(tmpDateTime);
   end;
+end;
+
+procedure TNullableDateTimeRecord.Assign(const aSource: TNullableDateTime);
+begin
+  if aSource.IsNull then
+    SetNull
+  else
+    SetValue(aSource.Value);
 end;
 
 function TNullableDateTimeRecord.AsVariant: Variant;
@@ -658,22 +705,32 @@ end;
 
 { TNullableDoubleRecord }
 
+function TNullableDoubleRecord.Value: double;
+begin
+  if IsNull then
+    Result := 0
+  else
+    Result := FValue;
+end;
+
 procedure TNullableDoubleRecord.SetNull;
 begin
   IsNull:= true;
-  Value:= 0;
+  FValue:= 0;
 end;
 
 procedure TNullableDoubleRecord.SetValue(const aValue: Double);
 begin
   IsNull:= false;
-  Value:= aValue;
+  FValue:= aValue;
 end;
 
 procedure TNullableDoubleRecord.Assign(const aSource: TNullableDoubleRecord);
 begin
-  IsNull:= aSource.IsNull;
-  Value:= aSource.Value;
+  if aSource.IsNull then
+    SetNull
+  else
+    SetValue(aSource.Value);
 end;
 
 procedure TNullableDoubleRecord.Assign(const aSourceField: TField);
@@ -700,6 +757,14 @@ begin
     tmpDouble := aValue;
     SetValue(tmpDouble);
   end;
+end;
+
+procedure TNullableDoubleRecord.Assign(const aSource: TNullableDouble);
+begin
+  if aSource.IsNull then
+    SetNull
+  else
+    SetValue(aSource.Value);
 end;
 
 
@@ -729,21 +794,37 @@ end;
 
 { TNullableStringRecord }
 
+//class operator TNullableStringRecord.Initialize(var aRec: TNullableStringRecord);
+//begin
+//  SetNull;
+//end;
+
+function TNullableStringRecord.Value: string;
+begin
+  if IsNull then
+    Result := ''
+  else
+    Result := FValue;
+end;
+
 procedure TNullableStringRecord.SetNull;
 begin
   IsNull:= true;
+  FValue := '';
 end;
 
 procedure TNullableStringRecord.SetValue(const aValue: String);
 begin
   IsNull := false;
-  Value:= aValue;
+  FValue:= aValue;
 end;
 
 procedure TNullableStringRecord.Assign(const aSource: TNullableStringRecord);
 begin
-  IsNull := aSource.IsNull;
-  Value := aSource.Value;
+  if aSource.IsNull then
+    Self.SetNull
+  else
+    Self.SetValue(aSource.Value);
 end;
 
 procedure TNullableStringRecord.Assign(const aSourceField: TField; const aAllowBlankValue : boolean);
@@ -767,6 +848,14 @@ begin
     SetValue(VarToStr(aValue));
 end;
 
+procedure TNullableStringRecord.Assign(const aSource: TNullableString);
+begin
+  if aSource.IsNull then
+    SetNull
+  else
+    SetValue(aSource.Value);
+end;
+
 function TNullableStringRecord.AsVariant: Variant;
 begin
   if IsNull then
@@ -778,7 +867,7 @@ end;
 procedure TNullableStringRecord.Trim();
 begin
   if not IsNull then
-    Value:= SysUtils.Trim(Self.Value);
+    SetValue(SysUtils.Trim(Self.Value));
 end;
 
 function TNullableStringRecord.AsString: String;
@@ -949,6 +1038,15 @@ end;
 procedure TNullableInteger.Assign(const aValue: Variant);
 begin
   CheckIfDifferentAndAssign(aValue);
+  FTagChanged:= false;
+end;
+
+procedure TNullableInteger.Assign(const aSource: TNullableIntegerRecord);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
   FTagChanged:= false;
 end;
 
@@ -1604,6 +1702,15 @@ end;
 procedure TNullableDateTime.Assign(const aValue: String);
 begin
   Self.Assign(TNullableDateTime.StringToVariant(aValue));
+end;
+
+procedure TNullableDateTime.Assign(const aSource: TNullableDateTimeRecord);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
+  FTagChanged:= false;
 end;
 
 function TNullableDateTime.AsVariant: Variant;
