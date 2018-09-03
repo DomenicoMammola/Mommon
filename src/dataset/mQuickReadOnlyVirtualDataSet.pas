@@ -190,7 +190,7 @@ begin
       else
       begin
         try
-          if not FParser.CalculateString(tmpFormulaField.Formula, tmpString) then
+          if FParser.CalculateString(tmpFormulaField.Formula, tmpString) then
             aValue := tmpString
           else
             aValue := Null;

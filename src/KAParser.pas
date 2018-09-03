@@ -646,7 +646,7 @@ end;
 
 function TKAParser.DoInternalStringCalculate(calculation: TCalculationType; const subFormula: string; var resValue: string): boolean;
 begin
-  Result := false;
+  Result := true;
   if calculation = calculateFunction then
   begin
     if CompareText(subFormula, mpFunction_trim) = 0 then
@@ -664,6 +664,13 @@ begin
       else
         Result := false;
     end;
+  end
+  else
+  begin
+    if Assigned(FOnGetStrValue) then
+      FOnGetStrValue(Self, subFormula, resValue, Result)
+    else
+      Result := false;
   end;
 end;
 
@@ -1556,12 +1563,12 @@ begin
 
   // ------------ an identifier?
 
-  if CharInSet(lexState.CurrentChar, ['A'..'Z','a'..'z','_', '@']) then
+  if CharInSet(lexState.CurrentChar, ['A'..'Z','a'..'z','_', '@', '#']) then
   begin
     currentString := lexState.CurrentChar;
     lexState.Advance;
 
-    while (not lexState.IsEof) and CharInSet(lexState.currentChar, ['A'..'Z','a'..'z','0'..'9','_', '@']) do
+    while (not lexState.IsEof) and CharInSet(lexState.currentChar, ['A'..'Z','a'..'z','0'..'9','_', '@', '#']) do
     begin
       currentString := currentString + lexState.currentChar;
       lexState.Advance;
