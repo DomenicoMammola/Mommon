@@ -1563,12 +1563,12 @@ begin
 
   // ------------ an identifier?
 
-  if CharInSet(lexState.CurrentChar, ['A'..'Z','a'..'z','_', '@', '#']) then
+  if CharInSet(lexState.CurrentChar, ['A'..'Z','a'..'z','_', '@', '#', '$']) then
   begin
     currentString := lexState.CurrentChar;
     lexState.Advance;
 
-    while (not lexState.IsEof) and CharInSet(lexState.currentChar, ['A'..'Z','a'..'z','0'..'9','_', '@', '#']) do
+    while (not lexState.IsEof) and CharInSet(lexState.currentChar, ['A'..'Z','a'..'z','0'..'9','_', '@', '#', '$']) do
     begin
       currentString := currentString + lexState.currentChar;
       lexState.Advance;
