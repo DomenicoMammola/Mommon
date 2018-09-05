@@ -225,11 +225,86 @@ type
     property OnCalcStrUserFunction : TKAParserOnCalcStrUserFunction read FOnCalcStrUserFunction write FOnCalcStrUserFunction;
   end;
 
+  procedure GetFunctionsList(aList : TStringList; const aAddRangeFunctions : boolean);
+
 implementation
 
 uses
   Math, DateUtils,
   mFloatsManagement, mUtility;
+
+procedure GetFunctionsList(aList: TStringList; const aAddRangeFunctions : boolean);
+begin
+  aList.Clear;
+  aList.Add(mpConst_now);
+  aList.Add(mpConst_today);
+  aList.Add(mpConst_true);
+  aList.Add(mpConst_false);
+  aList.Add(mpConst_pi);
+
+  aList.Add(mpFunction_trunc);
+  aList.Add(mpFunction_sin);
+  aList.Add(mpFunction_cos);
+  aList.Add(mpFunction_tan);
+  aList.Add(mpFunction_frac);
+  aList.Add(mpFunction_int);
+  aList.Add(mpFunction_if);
+  aList.Add(mpFunction_empty);
+  aList.Add(mpFunction_len);
+  aList.Add(mpFunction_and);
+  aList.Add(mpFunction_or);
+  aList.Add(mpFunction_safediv);
+  aList.Add(mpFunction_between);
+  aList.Add(mpFunction_concatenate);
+  aList.Add(mpFunction_concat);
+  aList.Add(mpFunction_repl);
+  aList.Add(mpFunction_left);
+  aList.Add(mpFunction_right);
+  aList.Add(mpFunction_substr);
+  aList.Add(mpFunction_tostr);
+  aList.Add(mpFunction_pos);
+  aList.Add(mpFunction_trim);
+  aList.Add(mpFunction_ltrim);
+  aList.Add(mpFunction_rtrim);
+  aList.Add(mpFunction_uppercase);
+  aList.Add(mpFunction_lowercase);
+  aList.Add(mpFunction_compare);
+  aList.Add(mpFunction_comparestr);
+  aList.Add(mpFunction_comparetext);
+  aList.Add(mpFunction_round);
+  aList.Add(mpFunction_ceil);
+  aList.Add(mpFunction_floor);
+  aList.Add(mpFunction_not);
+  aList.Add(mpFunction_sum);
+  aList.Add(mpFunction_max);
+  aList.Add(mpFunction_min);
+  aList.Add(mpFunction_avg);
+  aList.Add(mpFunction_count);
+  aList.Add(mpFunction_now);
+  aList.Add(mpFunction_getday);
+  aList.Add(mpFunction_getweek);
+  aList.Add(mpFunction_getmonth);
+  aList.Add(mpFunction_getyear);
+  aList.Add(mpFunction_startoftheweek);
+  aList.Add(mpFunction_startofthemonth);
+  aList.Add(mpFunction_endofthemonth);
+  aList.Add(mpFunction_todate);
+  aList.Add(mpFunction_todatetime);
+  aList.Add(mpFunction_today);
+  aList.Add(mpFunction_stringtodatetime);
+  aList.Add(mpFunction_todouble);
+
+  if aAddRangeFunctions then
+  begin
+    aList.Add(mpRangeFunction_childsnotnull);
+    aList.Add(mpRangeFunction_parentnotnull);
+    aList.Add(mpRangeFunction_parentsnotnull);
+    aList.Add(mpRangeFunction_childs);
+    aList.Add(mpRangeFunction_parents);
+    aList.Add(mpRangeFunction_parent);
+  end;
+
+end;
 
 { TKAParser }
 
