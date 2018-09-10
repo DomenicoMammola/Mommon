@@ -62,6 +62,7 @@ type
   TNullableString = class;
   TNullableDouble = class;
   TNullableInteger = class;
+  TNullableBoolean = class;
 
   { TNullableStringRecord }
 
@@ -148,6 +149,26 @@ type
     function AsVariant: Variant;
     function AsString: String;
     function AsInteger: integer;
+  end;
+
+  { TNullableBooleanRecord }
+
+  TNullableBooleanRecord = record
+  public
+    Value : Boolean;
+    IsNull : Boolean;
+
+    procedure SetNull;
+    procedure SetValue (const aValue: Boolean);
+
+    procedure Assign(const aSource : TNullableBooleanRecord); overload;
+    procedure Assign(const aSourceField : TField); overload;
+    procedure Assign(const aValue : String); overload;
+    procedure Assign(const aValue : Variant);overload;
+    procedure Assign(const aSource : TNullableBoolean); overload;
+    function AsVariant: Variant;
+    function AsString: String;
+    function AsBoolean: Boolean;
   end;
 
 
@@ -371,6 +392,86 @@ implementation
 uses
   SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
 
+{ TNullableBooleanRecord }
+
+procedure TNullableBooleanRecord.SetNull;
+begin
+  IsNull:= true;
+  Value:= false;
+end;
+
+procedure TNullableBooleanRecord.SetValue(const aValue: Boolean);
+begin
+  IsNull:= false;
+  Value:= aValue;
+end;
+
+procedure TNullableBooleanRecord.Assign(const aSource: TNullableBooleanRecord);
+begin
+  IsNull:= aSource.IsNull;
+  Value:= aSource.Value;
+end;
+
+procedure TNullableBooleanRecord.Assign(const aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    SetNull
+  else
+    SetValue(aSourceField.AsBoolean);
+end;
+
+procedure TNullableBooleanRecord.Assign(const aValue: String);
+begin
+  Assign(TNullableBoolean.StringToVariant(aValue));
+end;
+
+procedure TNullableBooleanRecord.Assign(const aValue: Variant);
+var
+  tmpBool : Boolean;
+begin
+  if VarIsNull(aValue) then
+  begin
+    SetNull;
+  end
+  else
+  begin
+    tmpBool := aValue;
+    SetValue(tmpBool);
+  end;
+end;
+
+procedure TNullableBooleanRecord.Assign(const aSource: TNullableBoolean);
+begin
+  if aSource.IsNull then
+    SetNull
+  else
+    SetValue(aSource.Value);
+end;
+
+function TNullableBooleanRecord.AsVariant: Variant;
+begin
+  if IsNull then
+    Result := Null
+  else
+    Result := Value;
+end;
+
+function TNullableBooleanRecord.AsString: String;
+begin
+  if IsNull then
+    Result := ''
+  else
+    Result := BoolToStr(Value, true);
+end;
+
+function TNullableBooleanRecord.AsBoolean: Boolean;
+begin
+  if IsNull then
+    Result := false
+  else
+    Result := Value;
+end;
+
 { TNullableIntegerRecord }
 
 procedure TNullableIntegerRecord.SetNull;
@@ -417,7 +518,6 @@ begin
     tmpInt := aValue;
     SetValue(tmpInt);
   end;
-
 end;
 
 procedure TNullableIntegerRecord.Assign(const aSource: TNullableInteger);
