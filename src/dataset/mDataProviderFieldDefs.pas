@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, DB,
-  StrHashMap;
+  mMaps;
 
 type
 
@@ -58,7 +58,7 @@ type
 
   TmVirtualFieldDefs = class(TCollection)
   strict private
-    FIndex : TStringHashMap;
+    FIndex : TmStringDictionary;
     function GetVirtualFieldDef(I: Integer): TmVirtualFieldDef;
     procedure OnChangeFieldName (aSender : TObject);
   public
@@ -156,7 +156,6 @@ end;
 
 function TmVirtualFieldDefs.FindByName(const aName: string): TmVirtualFieldDef;
 var
-  tmp : pointer;
   i : integer;
 begin
   if FIndex.Count = 0 then
@@ -164,10 +163,7 @@ begin
     for i := 0 to Self.Count - 1 do
       FIndex.Add(Uppercase(Self.VirtualFieldDefs[i].Name), Self.VirtualFieldDefs[i]);
   end;
-  if FIndex.Find(Uppercase(aName), tmp) then
-    Result := TmVirtualFieldDef(tmp)
-  else
-    Result := nil;
+  Result := FIndex.Find(Uppercase(aName)) as TmVirtualFieldDef;
 end;
 
 procedure TmVirtualFieldDefs.ExtractFieldNames(aList: TStringList);
@@ -183,7 +179,7 @@ end;
 constructor TmVirtualFieldDefs.Create;
 begin
   inherited Create(TmVirtualFieldDef);
-  FIndex := TStringHashMap.Create();
+  FIndex := TmStringDictionary.Create(false);
 end;
 
 destructor TmVirtualFieldDefs.Destroy;
