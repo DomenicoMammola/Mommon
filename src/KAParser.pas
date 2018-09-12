@@ -151,7 +151,7 @@ type
   TKAParserOnGetStrValue = procedure (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean) of Object;
   TKAParserOnGetRangeValuesEvent = procedure (const RangeFunction, Func: string; ValueType: TKAParserValueType; ValuesArray : TmArrayOfVariants;  out Successfull : boolean) of object;
 
-  TKAParserOnCalcUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; var Value: Double; out Successfull : boolean) of object;
+  TKAParserOnCalcUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; out Value: Double; out Successfull : boolean) of object;
   TKAParserOnCalcStrUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; var Value: string; out Handled: Boolean) of object;
 
 
@@ -179,13 +179,13 @@ type
     procedure yylex (var lexState: TLexState; var lexResult : TLexResult);
     // double
     procedure StartCalculate(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
-    procedure Calc6(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
-    procedure Calc5(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
-    procedure Calc4(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
-    procedure Calc3(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
-    procedure Calc2(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
-    procedure Calc1(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
-    procedure CalcTerm(var resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure Calc6(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure Calc5(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure Calc4(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure Calc3(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure Calc2(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure Calc1(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
+    procedure CalcTerm(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
     // string
     procedure StartCalculateStr(var resValue: string; var lexState: TLexState; var lexResult : TLexResult);
     procedure CalculateStrLevel1(var resValue: string; var lexState: TLexState; var lexResult : TLexResult);
@@ -340,7 +340,7 @@ begin
   end;
 end;
 
-procedure TKAParser.Calc1(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.Calc1(out resValue: double; var lexState: TLexState; var lexResult: TLexResult);
 var
   NewDouble : double;
 begin
@@ -353,7 +353,7 @@ begin
   end;
 end;
 
-procedure TKAParser.Calc2(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.Calc2(out resValue: double; var lexState: TLexState; var lexResult: TLexResult);
 var
   LastToken: TFormulaToken;
 begin
@@ -377,7 +377,7 @@ begin
     Calc1(resValue, lexState, lexResult);
 end;
 
-procedure TKAParser.Calc3(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.Calc3(out resValue: double; var lexState: TLexState; var lexResult: TLexResult);
 var
   NewDouble: double;
   LastToken: TFormulaToken;
@@ -397,7 +397,7 @@ begin
   end;
 end;
 
-procedure TKAParser.Calc4(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.Calc4(out resValue: double; var lexState: TLexState; var lexResult: TLexResult);
 var
   NewDouble: double;
   LastToken: TFormulaToken;
@@ -415,7 +415,7 @@ begin
   end;
 end;
 
-procedure TKAParser.Calc5(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.Calc5(out resValue: double; var lexState: TLexState; var lexResult: TLexResult);
 var
   NewDouble: double;
   LastToken: TFormulaToken;
@@ -437,7 +437,7 @@ begin
   end;
 end;
 
-procedure TKAParser.Calc6(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.Calc6(out resValue: double; var lexState: TLexState; var lexResult: TLexResult);
 var
   NewDouble: double;
   LastToken: TFormulaToken;
@@ -469,7 +469,7 @@ begin
   end;
 end;
 
-procedure TKAParser.CalcTerm(var resValue: double; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.CalcTerm(out resValue: double; var lexState: TLexState; var lexResult: TLexResult);
 var
   currentIdent: String;
   ParamList: TStringList;
