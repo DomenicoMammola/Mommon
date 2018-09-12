@@ -79,6 +79,7 @@ procedure ConvertVariantToDateTimeList (const aValue : variant; aList : TDoubleL
 
 function ConvertStringListToVariant (const aList : TStringList): Variant;
 function ConvertIntegerListToVariant (const aList : TIntegerList): Variant;
+function ConvertDoubleListToVariant (const aList : TDoubleList): Variant;
 
 function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
@@ -1038,6 +1039,17 @@ var
   i : integer;
 begin
   tmpVariant := Variants.VarArrayCreate([0, aList.Count - 1], varinteger);
+  for i := 0 to aList.Count - 1 do
+    VarArrayPut(tmpVariant, aList.Items[i], [i]);
+  Result := tmpVariant;
+end;
+
+function ConvertDoubleListToVariant(const aList: TDoubleList): Variant;
+var
+  tmpVariant : variant;
+  i : integer;
+begin
+  tmpVariant := Variants.VarArrayCreate([0, aList.Count - 1], vardouble);
   for i := 0 to aList.Count - 1 do
     VarArrayPut(tmpVariant, aList.Items[i], [i]);
   Result := tmpVariant;
