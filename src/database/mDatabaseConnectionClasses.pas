@@ -61,13 +61,18 @@ type
     procedure SetNull;
     function IsNull : boolean;
 
-    procedure Assign(aValue : TNullableString); overload;
-    procedure Assign(aValue : TNullableInteger); overload;
-    procedure Assign(aValue : TNullableDateTime); overload;
-    procedure Assign(aValue : TNullableTime); overload;
-    procedure Assign(aValue : TNullableDouble); overload;
-    procedure Assign(aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0); overload;
+    procedure Assign(const aValue : TNullableString); overload;
+    procedure Assign(const aValue : TNullableInteger); overload;
+    procedure Assign(const aValue : TNullableDateTime); overload;
+    procedure Assign(const aValue : TNullableTime); overload;
+    procedure Assign(const aValue : TNullableDouble); overload;
+    procedure Assign(const aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0); overload;
     procedure Assign(const aFilter : TmFilter); overload;
+    procedure AssignStrings(const aList : TStringList);
+    procedure AssignIntegers(const aList : TIntegerList);
+    procedure AssignDoubles(const aList: TDoubleList);
+    procedure AssignDates(const aList : TIntegerList);
+    procedure AssignDateTimes(const aList: TDoubleList);
 
     procedure AsStringList (aList : TStringList);
     procedure AsIntegerList (aList : TIntegerList);
@@ -520,7 +525,7 @@ begin
 end;
 *)
 
-procedure TmQueryParameter.Assign(aValue: TNullableString);
+procedure TmQueryParameter.Assign(const aValue: TNullableString);
 begin
   if aValue.IsNull then
     Self.SetNull
@@ -528,7 +533,7 @@ begin
     Self.AsString:= aValue.Value;
 end;
 
-procedure TmQueryParameter.Assign(aValue: TNullableInteger);
+procedure TmQueryParameter.Assign(const aValue: TNullableInteger);
 begin
   if aValue.IsNull then
     Self.SetNull
@@ -536,7 +541,7 @@ begin
     Self.AsInteger:= aValue.Value;
 end;
 
-procedure TmQueryParameter.Assign(aValue: TNullableDateTime);
+procedure TmQueryParameter.Assign(const aValue: TNullableDateTime);
 begin
   if aValue.IsNull then
     Self.SetNull
@@ -544,7 +549,7 @@ begin
     Self.AsDateTime:= aValue.Value;
 end;
 
-procedure TmQueryParameter.Assign(aValue: TNullableTime);
+procedure TmQueryParameter.Assign(const aValue: TNullableTime);
 begin
   if aValue.IsNull then
     Self.SetNull
@@ -552,7 +557,7 @@ begin
     Self.AsTime:= aValue.Value;
 end;
 
-procedure TmQueryParameter.Assign(aValue: TNullableDouble);
+procedure TmQueryParameter.Assign(const aValue: TNullableDouble);
 begin
   if aValue.IsNull then
     Self.SetNull
@@ -560,7 +565,7 @@ begin
     Self.AsFloat:= aValue.Value;
 end;
 
-procedure TmQueryParameter.Assign(aValue: TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0);
+procedure TmQueryParameter.Assign(const aValue: TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0);
 begin
   if (aValue.IsNull) and (aConvention <> bpcUseIntegersAvoidNull) and (aConvention <> bpcUseIntegersButStringsAvoidNull) then
     Self.SetNull
@@ -604,6 +609,61 @@ begin
     Self.SetNull
   else
     FValue := aFilter.Value;
+end;
+
+procedure TmQueryParameter.AssignStrings(const aList: TStringList);
+begin
+  Self.FDataType:= ptString;
+  if Self.Operator = foEq then
+    Self.Operator:= foIn;
+  if aList.Count = 0 then
+    Self.SetNull
+  else
+    FValue := mUtility.ConvertStringListToVariant(aList);
+end;
+
+procedure TmQueryParameter.AssignIntegers(const aList: TIntegerList);
+begin
+  Self.FDataType:= ptInteger;
+  if Self.Operator = foEq then
+    Self.Operator:= foIn;
+  if aList.Count = 0 then
+    Self.SetNull
+  else
+    FValue := mUtility.ConvertIntegerListToVariant(aList);
+end;
+
+procedure TmQueryParameter.AssignDoubles(const aList: TDoubleList);
+begin
+  Self.FDataType:= ptFloat;
+  if Self.Operator = foEq then
+    Self.Operator:= foIn;
+  if aList.Count = 0 then
+    Self.SetNull
+  else
+    FValue := mUtility.ConvertDoubleListToVariant(aList);
+end;
+
+procedure TmQueryParameter.AssignDates(const aList: TIntegerList);
+begin
+  Self.FDataType:= ptDate;
+  if Self.Operator = foEq then
+    Self.Operator:= foIn;
+  if aList.Count = 0 then
+    Self.SetNull
+  else
+    FValue := mUtility.ConvertIntegerListToVariant(aList);
+end;
+
+procedure TmQueryParameter.AssignDateTimes(const aList: TDoubleList);
+begin
+  Self.FDataType:= ptDateTime;
+  if Self.Operator = foEq then
+    Self.Operator:= foIn;
+  if aList.Count = 0 then
+    Self.SetNull
+  else
+    FValue := mUtility.ConvertDoubleListToVariant(aList);
 end;
 
 procedure TmQueryParameter.AsStringList(aList: TStringList);
