@@ -164,6 +164,9 @@ var
 begin
   aValue := Null;
 
+  if not Assigned(aDatum) then
+    exit;
+
   tmpFormulaField := FFormulaFields.FindByName(aFieldName);
   if Assigned(tmpFormulaField) then
   begin
