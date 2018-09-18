@@ -68,6 +68,7 @@ type
     procedure Assign(const aValue : TNullableDouble); overload;
     procedure Assign(const aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0); overload;
     procedure Assign(const aFilter : TmFilter); overload;
+    procedure Assign(const aValue : Variant; const aType: TmParameterDataType); overload;
     procedure AssignStrings(const aList : TStringList);
     procedure AssignIntegers(const aList : TIntegerList);
     procedure AssignDoubles(const aList: TDoubleList);
@@ -609,6 +610,15 @@ begin
     Self.SetNull
   else
     FValue := aFilter.Value;
+end;
+
+procedure TmQueryParameter.Assign(const aValue: Variant; const aType: TmParameterDataType);
+begin
+  Self.FDataType:= aType;
+  if VarIsNull(aValue) then
+    Self.SetNull
+  else
+    FValue:= aValue;
 end;
 
 procedure TmQueryParameter.AssignStrings(const aList: TStringList);
