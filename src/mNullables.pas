@@ -192,6 +192,8 @@ type
     function AsVariant: Variant; override;
     procedure Trim();
     procedure ChangeToBlankIfNull;
+    function IsEqual (const aValue : String) : boolean;
+    function IsEqualCaseInsensitive (const aValue : String): boolean;
 
     class function StringToVariant(const aValue: String; const aAllowBlankValues : boolean): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -1476,6 +1478,16 @@ procedure TNullableString.ChangeToBlankIfNull;
 begin
   if Self.IsNull then
     Self.Value:= '';
+end;
+
+function TNullableString.IsEqual(const aValue: String): boolean;
+begin
+  Result := Self.AsString = aValue;
+end;
+
+function TNullableString.IsEqualCaseInsensitive(const aValue: String): boolean;
+begin
+  Result := (CompareText(Self.AsString, aValue) = 0);
 end;
 
 class function TNullableString.StringToVariant(const aValue: String; const aAllowBlankValues : boolean): Variant;
