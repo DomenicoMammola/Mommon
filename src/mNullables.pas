@@ -323,6 +323,7 @@ type
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
     function AsString: String; override;
+    function AsStringUseNumbers : String;
     function AsBoolean: Boolean;
 
     class function StringToVariant(const aValue: String): Variant;
@@ -1328,6 +1329,14 @@ function TNullableBoolean.AsString: String;
 begin
   if Self.NotNull then
     Result := BoolToStr(FValue, true)
+  else
+    Result := '';
+end;
+
+function TNullableBoolean.AsStringUseNumbers: String;
+begin
+  if Self.NotNull then
+    Result := BoolToStr(FValue, '1', '0')
   else
     Result := '';
 end;
