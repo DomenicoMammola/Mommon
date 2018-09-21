@@ -12,7 +12,7 @@ uses
 
 type
   TBuildExternalEntityKeyFromDatumFunction = function (aSource : IVDDatum): string of object;
-  TFindDatumByStringKeyFunction = function (aStringKey : string): IVDDatum of object;
+  TFindDatumByStringKeyFunction = function (const aStringKey : string): IVDDatum of object;
 
   { TmBuiltInJoin }
 
