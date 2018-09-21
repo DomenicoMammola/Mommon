@@ -17,8 +17,8 @@ unit mBooleanDataProvider;
 interface
 
 uses
-  {$IFNDEF FPC}mInterfaces,{$ENDIF}
   Classes,
+  {$IFNDEF FPC}mInterfaces,{$ENDIF}
   mDataProviderFieldDefs, mDataProviderInterfaces, mDataProvider;
 
 type
@@ -54,7 +54,6 @@ type
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
     class function GetKeyField : String;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
-    procedure SetPropertyByFieldName(const aFieldName: String; const aValue : Variant);
 
     property Key : TBooleanDatumKey read FKey;
   end;
@@ -241,11 +240,6 @@ end;
 function TBooleanDatum.GetPropertyByFieldName(const aFieldName: String): Variant;
 begin
   Result := BoolToStr(FKey.Value, true);
-end;
-
-procedure TBooleanDatum.SetPropertyByFieldName(const aFieldName: String; const aValue: Variant);
-begin
-  // none
 end;
 
 end.
