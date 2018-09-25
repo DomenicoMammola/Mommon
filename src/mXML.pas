@@ -68,6 +68,11 @@ type
     function GetDateTimeAttribute(const aName: TmXmlString): TDateTime; overload;
     function GetDateTimeAttribute(const aName: TmXmlString; const aDefaultValue : TDateTime): TDateTime; overload;
     procedure GetDateTimeAttribute(const aName: TmXmlString; aValue: TNullableDateTime);
+    procedure SetDateAttribute(const aName : TmXmlString; const aValue: TDateTime); overload;
+    procedure SetDateAttribute(const aName: TmXmlString; const aValue: TNullableDateTime); overload;
+    function GetDateAttribute(const aName: TmXmlString): TDateTime; overload;
+    function GetDateAttribute(const aName: TmXmlString; const aDefaultValue : TDateTime): TDateTime; overload;
+    procedure GetDateAttribute(const aName: TmXmlString; aValue: TNullableDateTime);
     procedure SetFloatAttribute(const aName : TmXmlString; const aValue: Double); overload;
     procedure SetFloatAttribute(const aName: TmXmlString; const aValue: TNullableDouble); overload;
     function GetFloatAttribute(const aName: TmXmlString): Double; overload;
@@ -108,6 +113,9 @@ type
     procedure _SetDateTimeAttribute(Name : TmXmlString; Value : TDateTime); virtual; abstract;
     function _GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload; virtual; abstract;
     function _GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; virtual; abstract;
+    procedure _SetDateAttribute(Name : TmXmlString; Value : TDateTime); virtual; abstract;
+    function _GetDateAttribute(Name: TmXmlString): TDateTime; overload; virtual; abstract;
+    function _GetDateAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; virtual; abstract;
     procedure _SetFloatAttribute(Name : TmXmlString; Value : double); virtual; abstract;
     function _GetFloatAttribute(Name: TmXmlString): double; overload; virtual; abstract;
     function _GetFloatAttribute(Name: TmXmlString; Default : double): double; overload; virtual; abstract;
@@ -204,6 +212,35 @@ procedure TmXmlElement.GetDateTimeAttribute(const aName: TmXmlString; aValue: TN
 begin
   if Self.HasAttribute(aName) then
     aValue.Value:= Self.GetDateTimeAttribute(aName)
+  else
+    aValue.IsNull:= true;
+end;
+
+procedure TmXmlElement.SetDateAttribute(const aName: TmXmlString; const aValue: TDateTime);
+begin
+  FImpl._SetDateAttribute(aName, aValue);
+end;
+
+procedure TmXmlElement.SetDateAttribute(const aName: TmXmlString; const aValue: TNullableDateTime);
+begin
+  if aValue.NotNull then
+    Self.SetDateAttribute(aName, aValue.Value);
+end;
+
+function TmXmlElement.GetDateAttribute(const aName: TmXmlString): TDateTime;
+begin
+  Result := FImpl._GetDateAttribute(aName);
+end;
+
+function TmXmlElement.GetDateAttribute(const aName: TmXmlString; const aDefaultValue: TDateTime): TDateTime;
+begin
+  Result := FImpl._GetDateAttribute(aName, aDefaultValue);
+end;
+
+procedure TmXmlElement.GetDateAttribute(const aName: TmXmlString; aValue: TNullableDateTime);
+begin
+  if Self.HasAttribute(aName) then
+    aValue.Value:= Self.GetDateAttribute(aName)
   else
     aValue.IsNull:= true;
 end;

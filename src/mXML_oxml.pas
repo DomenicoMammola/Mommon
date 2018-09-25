@@ -20,6 +20,12 @@ uses
   Classes, Contnrs, BlowFish,
   mXML, OXmlPDOM, mMathUtility, mUtility;
 
+resourcestring
+ mXML_oxml_AttributeNotFound = 'XML attribute %s not found.';
+ mXML_oxml_WrongDateTime = 'XML attribute %s has value %s which is not in ISO date-time format.';
+ mXML_oxml_WrongDate = 'XML attribute %s has value $s which is not in ISO date format.';
+ mXML_oxml_WrongFloat = 'XML attribute %s has value %s that is not a valid float number.';
+
 type
   Tmxml_oxml_PointerShell = class
   public
@@ -33,9 +39,10 @@ type
   private
     FNode : PXMLNode;
     FGarbage : TObjectList;
-    procedure RaiseMissingAttributeException(Name :TmXMLString);
-    procedure RaiseWrongDateTimeException(Name, Value :TmXMLString);
-    procedure RaiseWrongFloatException(Name, Value : TmXMLString);
+    procedure RaiseMissingAttributeException(Name: TmXMLString);
+    procedure RaiseWrongDateTimeException(Name, Value: TmXMLString);
+    procedure RaiseWrongDateException(Name, Value: TmXMLString);
+    procedure RaiseWrongFloatException(Name, Value: TmXMLString);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -49,6 +56,9 @@ type
     procedure _SetDateTimeAttribute(Name : TmXmlString; Value: TDateTime); override;
     function _GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload; override;
     function _GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; override;
+    procedure _SetDateAttribute(Name : TmXmlString; Value: TDateTime); override;
+    function _GetDateAttribute(Name: TmXmlString): TDateTime; overload; override;
+    function _GetDateAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; override;
     procedure _SetFloatAttribute(Name : TmXmlString; Value : double); override;
     function _GetFloatAttribute(Name: TmXmlString): double; overload; override;
     function _GetFloatAttribute(Name: TmXmlString; Default : double): double; overload; override;
@@ -115,17 +125,22 @@ end;
 
 procedure TImpl_oxml_mXmlElement.RaiseMissingAttributeException (Name :TmXMLString);
 begin
-  raise EmXmlError.Create('XML attribute ' + Name + ' not found!');
+  raise EmXmlError.Create(Format(mXML_oxml_AttributeNotFound, [Name]));
 end;
 
 procedure TImpl_oxml_mXmlElement.RaiseWrongDateTimeException (Name, Value :TmXMLString);
 begin
-  raise EmXmlError.Create('XML attribute ' + Name + ' has value ' + Value + ' not in correct ISO format!');
+  raise EmXmlError.Create(Format(mXML_oxml_WrongDateTime, [Name, Value]));
+end;
+
+procedure TImpl_oxml_mXmlElement.RaiseWrongDateException(Name, Value: TmXMLString);
+begin
+  raise EmXmlError.Create(Format(mXML_oxml_WrongDate, [Name, Value]));
 end;
 
 procedure TImpl_oxml_mXmlElement.RaiseWrongFloatException(Name, Value: TmXMLString);
 begin
-  raise EmXmlError.Create('XML attribute ' + Name + ' has value ' + Value + ' that is not a valid float number!');
+  raise EmXmlError.Create(Format(mXML_oxml_WrongFloat, [Name, Value]));
 end;
 
 function TImpl_oxml_mXmlElement._AddElement(Name: TmXMLString): TmXmlElement;
@@ -177,6 +192,47 @@ begin
       Result := tempValue
     else
       RaiseWrongDateTimeException(Name, tmp);
+  end
+  else
+    Result := Default;
+end;
+
+procedure TImpl_oxml_mXmlElement._SetDateAttribute(Name: TmXmlString; Value: TDateTime);
+begin
+  FNode^.SetAttribute(Name, mISOTime.ISODateToStr(Value));
+end;
+
+function TImpl_oxml_mXmlElement._GetDateAttribute(Name: TmXmlString): TDateTime;
+var
+  tmp : string;
+  tempValue : TDateTime;
+begin
+  Result := 0;
+  if FNode^.HasAttribute(Name) then
+  begin
+    tmp := FNode^.GetAttribute(Name);
+    if TryISOStrToDate(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongDateException(Name, tmp);
+  end
+  else
+    RaiseMissingAttributeException(Name);
+end;
+
+function TImpl_oxml_mXmlElement._GetDateAttribute(Name: TmXmlString; Default: TDateTime): TDateTime;
+var
+  tmp : string;
+  tempValue : TDateTime;
+begin
+  Result := 0;
+  if FNode^.HasAttribute(Name) then
+  begin
+    tmp := FNode^.GetAttribute(Name);
+    if TryISOStrToDate(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongDateException(Name, tmp);
   end
   else
     Result := Default;
