@@ -414,6 +414,7 @@ type
     destructor Destroy; override;
     function AsVariant: Variant; override;
     procedure Assign(const aValue: variant); overload; override;
+    procedure Assign(const aSource : TNullableValue); overload;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsString: String; override;
@@ -505,6 +506,12 @@ procedure TNullableValue.Assign(const aValue: variant);
 begin
   CheckActualValue;
   FActualValue.Assign(aValue);
+end;
+
+procedure TNullableValue.Assign(const aSource: TNullableValue);
+begin
+  Self.DataType:= aSource.DataType;
+  Self.Assign(aSource.AsVariant);
 end;
 
 function TNullableValue.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
