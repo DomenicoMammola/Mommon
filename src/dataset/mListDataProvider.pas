@@ -27,14 +27,16 @@ type
 
   TListDatumKey = class(IVDDatumKey)
   strict private
-    FId : integer;
+    FId: integer;
+    FValue : TNullableValue;
   public
-    constructor Create (const aId : integer);
+    constructor Create;
+    destructor Destroy; override;
 
     procedure Assign(aSource : TObject);
     function AsString : string;
 
-    property Id : integer read FId write FId;
+    property Value : TNullableValue read FValue;
   end;
 
   { TListDatum }
@@ -43,13 +45,11 @@ type
   strict private
     FKey : TListDatumKey;
     FDescription : String;
-    FValue : TNullableValue;
   public
-    const FLD_ID = 'ID';
     const FLD_DESCRIPTION = 'DESCRIPTION';
     const FLD_VALUE = 'VALUE';
   public
-    constructor Create(const aId : integer);
+    constructor Create;
     destructor Destroy; override;
 
     function GetDatumKey : IVDDatumKey;
@@ -61,7 +61,6 @@ type
 
     property Key : TListDatumKey read FKey;
     property Description : string read FDescription write FDescription;
-    property Value : TNullableValue read FValue;
   end;
 
 
@@ -122,8 +121,18 @@ begin
 end;
 
 function TListDataProvider.FindDatumByStringKey(const aStringKey: string): IVDDatum;
+var
+  i : integer;
 begin
-  Result := GetDatum(StrToInt(aStringKey));
+  Result := nil;
+  for i := 0 to Count - 1 do
+  begin
+    if TListDatum(FList.Items[i]).Key.Value.AsString = aStringKey then
+    begin
+      Result := TListDatum(FList.Items[i]);
+      exit;
+    end;
+  end;
 end;
 
 procedure TListDataProvider.Clear;
@@ -138,7 +147,7 @@ end;
 
 function TListDataProvider.GetKeyFieldName: String;
 begin
-  Result := TListDatum.FLD_ID;
+  Result := TListDatum.FLD_VALUE;
 end;
 
 procedure TListDataProvider.GetMinimumFields(aFieldsForLookup: TStringList);
@@ -151,26 +160,24 @@ procedure TListDataProvider.AddValue(const aDescription: string; const aValue: v
 var
   newDatum: TListDatum;
 begin
-  newDatum := TListDatum.Create(FList.Count);
-  newDatum.Value.DataType:= FValueDataType;
-  newDatum.Value.Assign(aValue);
+  newDatum := TListDatum.Create();
+  newDatum.Key.Value.DataType:= FValueDataType;
+  newDatum.Key.Value.Assign(aValue);
   newDatum.Description := aDescription;
   FList.Add(newDatum);
 end;
 
 { TListDatum }
 
-constructor TListDatum.Create(const aId : integer);
+constructor TListDatum.Create;
 begin
-  FKey := TListDatumKey.Create(aId);
+  FKey := TListDatumKey.Create;
   FDescription:= '';
-  FValue:= TNullableValue.Create();
 end;
 
 destructor TListDatum.Destroy;
 begin
   FKey.Free;
-  FValue.Free;
   inherited;
 end;
 
@@ -188,11 +195,6 @@ class procedure TListDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; 
 begin
   with aFieldDefs.AddFieldDef do
   begin
-    Name := aPrefix + FLD_ID;
-    DataType:= vftInteger;
-  end;
-  with aFieldDefs.AddFieldDef do
-  begin
     Name := aPrefix + FLD_DESCRIPTION;
     DataType:= vftString;
     Size := 128;
@@ -207,35 +209,38 @@ end;
 
 class function TListDatum.GetKeyField: String;
 begin
-  Result := FLD_ID;
+  Result := FLD_VALUE;
 end;
 
 function TListDatum.GetPropertyByFieldName(const aFieldName: String): Variant;
 begin
   Result := Null;
-  if aFieldName = FLD_ID then
-    Result := FKey.Id
-  else if aFieldName = FLD_DESCRIPTION then
+  if aFieldName = FLD_DESCRIPTION then
     Result := FDescription
   else if aFieldName = FLD_VALUE then
-    Result := FValue.AsVariant;
+    Result := Key.Value.AsVariant;
 end;
 
 { TListDatumKey }
 
-constructor TListDatumKey.Create(const aId: integer);
+constructor TListDatumKey.Create;
 begin
-  FId := aId;
+  FValue := TNullableValue.Create();
+end;
+
+destructor TListDatumKey.Destroy;
+begin
+  FValue.Free;
 end;
 
 procedure TListDatumKey.Assign(aSource: TObject);
 begin
-  FId := (aSource as TListDatumKey).Id;
+  FValue.Assign((aSource as TListDatumKey).Value);
 end;
 
 function TListDatumKey.AsString: string;
 begin
-  Result := IntToStr(FId);
+  Result := FValue.AsString;
 end;
 
 
