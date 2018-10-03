@@ -26,6 +26,7 @@ resourcestring
 // IMO number = International Maritime Organization
 // http://www.imo.org/en/OurWork/MSAS/Pages/IMO-identification-number-scheme.aspx
 // https://gcaptain.com/imo-numbers/
+// http://tarkistusmerkit.teppovuori.fi/coden.htm
 function IsIMONumberValid(const aIMONumber: Integer; out aErrorMessage: String): boolean;
 
 // MMSI = Maritime Mobile Service Identity
