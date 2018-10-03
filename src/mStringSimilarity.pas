@@ -65,7 +65,7 @@ begin
   if aIgnorePunctuation then
   begin
     Result := '';
-    for i := 0 to Length(tmp) do
+    for i := 1 to Length(tmp) do
     begin
       if not (tmp[i] in ['.', ':', '?', '!', '_', '^', '-', '\', '/', ';', ',', '''', '"']) then
         Result := Result + tmp[i];
