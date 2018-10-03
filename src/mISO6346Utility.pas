@@ -40,14 +40,14 @@ resourcestring
 // https://en.wikipedia.org/wiki/ISO_6346
 // https://www.bic-code.org/bic-codes/
 function CalculateContainerCheckDigit (const aContainerCode : String): integer;
-function IsContainerCodeValid(const aContainerCode: String; var aErrorMessage: String): boolean;
+function IsContainerCodeValid(const aContainerCode: String; out aErrorMessage: String): boolean;
 
 // -------------------------------
 // MOVEMENT REFERENCE NUMBER - MRN
 // -------------------------------
 // http://www.tribalgod.nl/brinkster/Berekening_controlecijfer_MRN-GRN.doc
 function CalculateMRNCheckDigit (const aMRNCode : String): integer;
-function IsMRNCodeValid(const aMRNCode: String; var aErrorMessage: String): boolean;
+function IsMRNCodeValid(const aMRNCode: String; out aErrorMessage: String): boolean;
 
 
 implementation
@@ -103,7 +103,7 @@ begin
   Result := (Floor(acc) mod 11) mod 10;
 end;
 
-function IsContainerCodeValid(const aContainerCode: String; var aErrorMessage: String): boolean;
+function IsContainerCodeValid(const aContainerCode: String; out aErrorMessage: String): boolean;
 var
   OwnerCode, CategoryIdentifier, SerialNumberStr, CheckDigitStr : string;
   GoodCheckDigit : integer;
@@ -182,7 +182,7 @@ begin
   Result := (Floor(acc) mod 11) mod 10;
 end;
 
-function IsMRNCodeValid(const aMRNCode: String; var aErrorMessage: String): boolean;
+function IsMRNCodeValid(const aMRNCode: String; out aErrorMessage: String): boolean;
 var
   YearStr, CountryCode, CheckDigitStr: String;
   i, GoodCheckDigit: integer;
