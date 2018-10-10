@@ -17,7 +17,7 @@ unit mXML_oxml;
 interface
 
 uses
-  Classes, Contnrs, BlowFish,
+  Classes, Contnrs, BlowFish, sysutils,
   mXML, OXmlPDOM, mMathUtility, mUtility;
 
 resourcestring
@@ -39,6 +39,7 @@ type
   private
     FNode : PXMLNode;
     FGarbage : TObjectList;
+    FFormatSettings : TFormatSettings;
     procedure RaiseMissingAttributeException(Name: TmXMLString);
     procedure RaiseWrongDateTimeException(Name, Value: TmXMLString);
     procedure RaiseWrongDateException(Name, Value: TmXMLString);
@@ -107,7 +108,7 @@ type
 implementation
 
 uses
-  SysUtils, mISOTime;
+  mISOTime;
 
 { TImpl_oxml_mXmlElement }
 
@@ -115,6 +116,11 @@ constructor TImpl_oxml_mXmlElement.Create;
 begin
   FNode := nil;
   FGarbage := TObjectList.Create(true);
+
+  FFormatSettings := DefaultFormatSettings;
+  FFormatSettings.DecimalSeparator:= '.';
+  FFormatSettings.CurrencyString:= '€';
+  FFormatSettings.ThousandSeparator:= ',';
 end;
 
 destructor TImpl_oxml_mXmlElement.Destroy;
@@ -240,7 +246,7 @@ end;
 
 procedure TImpl_oxml_mXmlElement._SetFloatAttribute(Name: TmXmlString;Value: double);
 begin
-  FNode^.SetAttribute(Name, FloatToStr(Value));
+  FNode^.SetAttribute(Name, FloatToStr(Value, FFormatSettings));
 end;
 
 function TImpl_oxml_mXmlElement._GetFloatAttribute(Name: TmXmlString): double;
