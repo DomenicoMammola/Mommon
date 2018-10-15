@@ -1562,7 +1562,11 @@ begin
   if aSourceField.IsNull then
     Self.IsNull:= true
   else
+  begin
     Self.Assign(TNullableString.StringToVariant(aSourceField.AsString, aAllowBlankValues));
+    if Self.NotNull and (aSourceField.DataType = ftGuid) then
+      Self.Trim();
+  end;
   SetTagChanged(false);
 end;
 
