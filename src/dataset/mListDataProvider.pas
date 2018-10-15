@@ -27,7 +27,6 @@ type
 
   TListDatumKey = class(IVDDatumKey)
   strict private
-    FId: integer;
     FValue : TNullableValue;
   public
     constructor Create;
