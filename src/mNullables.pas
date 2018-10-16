@@ -410,7 +410,7 @@ type
     function GetIsNull : Boolean; override;
     procedure SetIsNull(aValue : Boolean); override;
   public
-    constructor Create(); virtual;
+    constructor Create(); override;
     destructor Destroy; override;
     function AsVariant: Variant; override;
     procedure Assign(const aValue: variant); overload; override;
@@ -486,6 +486,7 @@ end;
 
 constructor TNullableValue.Create();
 begin
+  inherited;
   FActualValue := nil;
   FDataType:= tnString;
 end;
