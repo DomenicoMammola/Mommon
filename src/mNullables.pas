@@ -295,6 +295,10 @@ type
     procedure Add(const aValue : double); overload;
     procedure Add(const aValue : TNullableDouble); overload;
 
+    procedure Subtract(const aValue : double); overload;
+    procedure Subtract(const aValue : TNullableDouble); overload;
+
+
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant; const aDisplayFormat : string): String;
 
@@ -366,6 +370,9 @@ type
 
     procedure Add (const aValue : integer); overload;
     procedure Add (const aValue : TNullableInteger); overload;
+
+    procedure Subtract (const aValue : integer); overload;
+    procedure Subtract (const aValue : TNullableInteger); overload;
 
     class function StringToVariant(const aValue : String) : Variant;
     class function VariantToString(const aValue : Variant) : String;
@@ -1350,6 +1357,20 @@ begin
     Self.Add(aValue.Value);
 end;
 
+procedure TNullableInteger.Subtract(const aValue: integer);
+begin
+  if Self.IsNull then
+    Self.SetValue(-1 * aValue)
+  else
+    Self.SetValue(Self.Value - aValue);
+end;
+
+procedure TNullableInteger.Subtract(const aValue: TNullableInteger);
+begin
+  if aValue.NotNull then
+    Self.Subtract(aValue.Value);
+end;
+
 class function TNullableInteger.StringToVariant(const aValue: String): Variant;
 begin
   if IsNumeric(aValue, false) then
@@ -1769,6 +1790,20 @@ procedure TNullableDouble.Add(const aValue: TNullableDouble);
 begin
   if aValue.NotNull then
     Self.Add(aValue.Value);
+end;
+
+procedure TNullableDouble.Subtract(const aValue: double);
+begin
+  if Self.IsNull then
+    Self.SetValue(-1 * aValue)
+  else
+    Self.SetValue(Self.Value - aValue);
+end;
+
+procedure TNullableDouble.Subtract(const aValue: TNullableDouble);
+begin
+  if aValue.NotNull then
+    Self.Subtract(aValue.Value);
 end;
 
 class function TNullableDouble.StringToVariant(const aValue: String): Variant;
