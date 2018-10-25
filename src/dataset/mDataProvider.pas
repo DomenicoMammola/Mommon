@@ -32,6 +32,7 @@ type
   protected
     FMap : TmStringDictionary;
     procedure InternalAdd(aDatum : TObject);
+    procedure InternalRemove(aDatum : TObject);
     function InternalFindByString (aStringKey : string) : TObject;
     function InternalGetDatum (aIndex : integer) : TObject;
   public
@@ -59,6 +60,12 @@ uses
 procedure TmDataProvider.InternalAdd(aDatum: TObject);
 begin
   FList.Add(aDatum);
+  FMustRebuildIndex:=true;
+end;
+
+procedure TmDataProvider.InternalRemove(aDatum: TObject);
+begin
+  FList.Remove(aDatum);
   FMustRebuildIndex:=true;
 end;
 
