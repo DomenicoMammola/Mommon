@@ -1,16 +1,21 @@
-unit mVirtualDatasetPivoter;
+// This is part of the Mommon Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-{$ifdef fpc}
-  {$mode delphi}
-{$endif}
+unit mPivoter;
 
 interface
 
 uses
   contnrs, db, variants, Classes,
-  mVirtualDataSet,
-  mIntList,
-  StrHashMap;
+  mDataProviderInterfaces,
+  mIntList, mMaps;
 
 type
 
@@ -81,21 +86,18 @@ type
   end;
 
 
-  { TmIndex }
-
   TmKeysIndex = class
   strict private
-    FKeysDictionary : TStringHashMap;
-    FKeysValues : TStringList;
+    FKeysDictionary : TmStringDictionary;
+    // FKeysValues : TStringList;
 
     FLevel : integer;
-    FGarbage : TObjectList;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Clear;
-    function GetSubIndex (aKey : string): TmKeysIndex;
-    function GetValueList (aKey : string): TCardinalList;
+    function GetSubIndex (const aKey : string): TmKeysIndex;
+    function GetValueList (const aKey : string): TCardinalList;
   end;
 
   { TKeyValuesForGroupByDef }
@@ -103,12 +105,31 @@ type
   TKeyValuesForGroupByDef = class
   strict private
     FValues : TStringList;
-    FDictionary : TStringHashMap;
+    FDictionary : TmStringDictionary;
   public
     constructor Create;
     destructor Destroy; override;
-    procedure AddValue (aValue : String);
-    function Contains (const aValue : String): boolean;
+    procedure AddValueIfMissing (aValue : String);
+    function Count : integer;
+    function GetValue(const aIndex: integer) : String;
+  end;
+
+  { TKeyValuesForGroupByDefs }
+
+  TKeyValuesForGroupByDefs = class
+  strict private
+    FList : TObjectList;
+    function GetValue(Index: Integer): TKeyValuesForGroupByDef;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Count : integer;
+    function Get(const aIndex : integer): TKeyValuesForGroupByDef;
+    function Add : TKeyValuesForGroupByDef;
+    procedure Clear;
+
+    property Values[Index: Integer]: TKeyValuesForGroupByDef read GetValue; default;
   end;
 
   { TRecordCoordinates }
@@ -137,27 +158,22 @@ type
   end;
 
 
-  { TmVirtualDatasetPivoter }
+  { TmPivoter }
 
-  TmVirtualDatasetPivoter = class
+  TmPivoter = class
   strict private
-    // dataset
-    FVirtualDataset : TmVirtualDataset;
+    FDataProvider : IVDDataProvider;
     // group by definitions
     FVerticalGroupByDefs : TmGroupByDefs;
     FHorizontalGroupByDefs : TmGroupByDefs;
     // values of keys of group-by sets
-    FVerticalValues: TObjectList;
-    FHorizontalValues: TObjectList;
+    FVerticalValues: TKeyValuesForGroupByDefs;
+    FHorizontalValues: TKeyValuesForGroupByDefs;
     // coordinates of every record of dataset
-    FRecordCoordinates : TStringHashMap;
+    FRecordCoordinates : TmStringDictionary;
     // indexes of keys of vertical and horizontal group-by sets
     FVerticalKeysIndex : TmKeysIndex;
     FHorizontalKeysIndex : TmKeysIndex;
-    // garbage collector
-    FGarbage : TObjectList;
-
-//    procedure CalculateSubIndex(aIndex: TmKeysIndex; const aCurrentRecNo: Cardinal; const aGroupByDefs : TmGroupByDefs; const aCurrentGroupByDefIndex: integer);
     function GetIndexKeyValue(aValue : Variant; aGroupByDef : TmGroupByDef): string;
   strict private
     const KEY_SEPARATOR = '^~';
@@ -166,17 +182,196 @@ type
     destructor Destroy; override;
 
     procedure CalculateHierarchy;
+    function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList;
 
-    property VirtualDataset : TmVirtualDataset read FVirtualDataset write FVirtualDataset;
+    property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
     property VerticalGroupByDefs : TmGroupByDefs read FVerticalGroupByDefs;
     property HorizontalGroupByDefs : TmGroupByDefs read FHorizontalGroupByDefs;
+
+    property VerticalValues: TKeyValuesForGroupByDefs read FVerticalValues;
+    property HorizontalValues: TKeyValuesForGroupByDefs read FHorizontalValues;
   end;
+
 
 
 implementation
 
 uses
   sysutils, dateutils;
+
+{ TKeyValuesForGroupByDefs }
+
+function TKeyValuesForGroupByDefs.GetValue(Index: Integer): TKeyValuesForGroupByDef;
+begin
+  Result := FList.Items[Index] as TKeyValuesForGroupByDef;
+end;
+
+constructor TKeyValuesForGroupByDefs.Create;
+begin
+  FList := TObjectList.Create(true);
+end;
+
+destructor TKeyValuesForGroupByDefs.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+function TKeyValuesForGroupByDefs.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+function TKeyValuesForGroupByDefs.Get(const aIndex: integer): TKeyValuesForGroupByDef;
+begin
+  Result := FList.Items[aIndex] as TKeyValuesForGroupByDef;
+end;
+
+function TKeyValuesForGroupByDefs.Add: TKeyValuesForGroupByDef;
+begin
+  Result := TKeyValuesForGroupByDef.Create;
+  FList.Add(Result);
+end;
+
+procedure TKeyValuesForGroupByDefs.Clear;
+begin
+  FList.Clear;
+end;
+
+{ TmPivoter }
+
+function TmPivoter.GetIndexKeyValue(aValue: Variant; aGroupByDef: TmGroupByDef): string;
+  function TryToConvertToDate (aSource : Variant) : TDateTime;
+  begin
+    try
+      Result := aSource;
+    except
+      Result := 0;
+    end;
+  end;
+
+begin
+  case aGroupByDef.OperationKind of
+    gpoDistinct:
+      Result := VarToStr(aValue);
+    gpoDateYear:
+      Result := IntToStr(YearOf(TryToConvertToDate(aValue)));
+    gpoDateMonth:
+      Result := IntToStr(MonthOf(TryToConvertToDate(aValue)));
+    gpoDateDay:
+      Result := IntToStr(DayOf(TryToConvertToDate(aValue)));
+    gpoFirstLetter:
+      begin
+        Result := VarToStr(aValue);
+        if Length(Result) > 0 then
+          Result := Copy(Result,1,1);
+      end;
+  end;
+end;
+
+constructor TmPivoter.Create;
+begin
+  FDataProvider := nil;
+  FVerticalGroupByDefs := TmGroupByDefs.Create;
+  FHorizontalGroupByDefs := TmGroupByDefs.Create;
+  FVerticalValues := TKeyValuesForGroupByDefs.Create;
+  FHorizontalValues := TKeyValuesForGroupByDefs.Create;
+  FRecordCoordinates := TmStringDictionary.Create(true);
+  FVerticalKeysIndex := TmKeysIndex.Create;
+  FHorizontalKeysIndex := TmKeysIndex.Create;
+end;
+
+destructor TmPivoter.Destroy;
+begin
+  FVerticalGroupByDefs.Free;
+  FHorizontalGroupByDefs.Free;
+  FVerticalValues.Free;
+  FHorizontalValues.Free;
+  FRecordCoordinates.Free;
+  FVerticalKeysIndex.Free;
+  FHorizontalKeysIndex.Free;
+
+  inherited Destroy;
+end;
+
+procedure TmPivoter.CalculateHierarchy;
+var
+  i, k : integer;
+  currentCoord, tmpKeyValue : string;
+  tmpIndex : TmKeysIndex;
+  tmpValue : Variant;
+  tmpList : TCardinalList;
+begin
+  FVerticalValues.Clear;
+  FHorizontalValues.Clear;
+  FRecordCoordinates.Clear;
+
+  for i := 0 to FVerticalGroupByDefs.Count - 1 do
+    FVerticalValues.Add;
+  for i := 0 to FHorizontalGroupByDefs.Count -1 do
+    FHorizontalValues.Add;
+
+
+  for i:= 0 to FDataProvider.Count -1 do
+  begin
+    currentCoord := '';
+    tmpIndex := FVerticalKeysIndex;
+    for k := 0 to FVerticalGroupByDefs.Count -1 do
+    begin
+      tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FVerticalGroupByDefs.Get(k).FieldName);
+      tmpKeyValue := GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(k));
+      FVerticalValues.Get(k).AddValueIfMissing(tmpKeyValue);
+
+      currentCoord := currentCoord + tmpKeyValue + KEY_SEPARATOR;
+      if k < (FVerticalGroupByDefs.Count - 1) then
+        tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
+      else
+        tmpIndex.GetValueList(tmpKeyValue).Add(i);
+    end;
+
+    tmpIndex := FHorizontalKeysIndex;
+    for k := 0 to FHorizontalGroupByDefs.Count -1 do
+    begin
+      tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FHorizontalGroupByDefs.Get(k).FieldName);
+      tmpKeyValue := GetIndexKeyValue(tmpValue, FHorizontalGroupByDefs.Get(k));
+      FHorizontalValues.Get(k).AddValueIfMissing(tmpKeyValue);
+      currentCoord := currentCoord + tmpKeyValue + KEY_SEPARATOR;
+      if k < (FHorizontalGroupByDefs.Count - 1) then
+        tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
+      else
+        tmpIndex.GetValueList(tmpKeyValue).Add(i);
+    end;
+
+    tmpList := FRecordCoordinates.Find(currentCoord) as TCardinalList;
+    if not Assigned(tmpList) then
+    begin
+      tmpList := TCardinalList.Create;
+      FRecordCoordinates.Add(currentCoord, tmpList);
+    end;
+    tmpList.Add(i);
+  end;
+
+end;
+
+function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: TStringList): TCardinalList;
+var
+  tmp : String;
+  i : integer;
+begin
+  tmp := '';
+  if Assigned(aVerticalKeys) then
+  begin
+    for i := 0 to aVerticalKeys.Count - 1 do
+      tmp := tmp + aVerticalKeys.Strings[i] + KEY_SEPARATOR;
+  end;
+  if Assigned(aHorizontalKeys) then
+  begin
+    for i := 0 to aHorizontalKeys.Count - 1 do
+      tmp := tmp + aHorizontalKeys.Strings[i] + KEY_SEPARATOR;
+  end;
+
+  Result := FRecordCoordinates.Find(tmp) as TCardinalList;
+end;
 
 { TRecordsCoordinates }
 
@@ -230,7 +425,7 @@ end;
 constructor TKeyValuesForGroupByDef.Create;
 begin
   FValues:= TStringList.Create;
-  FDictionary:= TStringHashMap.Create;
+  FDictionary:= TmStringDictionary.Create(false);
 end;
 
 destructor TKeyValuesForGroupByDef.Destroy;
@@ -240,211 +435,80 @@ begin
   inherited Destroy;
 end;
 
-procedure TKeyValuesForGroupByDef.AddValue(aValue: String);
+procedure TKeyValuesForGroupByDef.AddValueIfMissing(aValue: String);
 begin
-  FValues.Add(aValue);
-  FDictionary.Add(aValue, Self);
+  if not FDictionary.Contains(aValue) then
+  begin
+    FValues.Add(aValue);
+    FDictionary.Add(aValue, FDictionary);
+  end;
 end;
 
-function TKeyValuesForGroupByDef.Contains(const aValue: String): boolean;
+function TKeyValuesForGroupByDef.Count: integer;
 begin
-  Result := FDictionary.Contains(aValue);
+  Result := FValues.Count;
+end;
+
+function TKeyValuesForGroupByDef.GetValue(const aIndex: integer): String;
+begin
+  Result := FValues.Strings[aIndex];
 end;
 
 { TmIndex }
 
 constructor TmKeysIndex.Create;
 begin
-  FKeysDictionary := TStringHashMap.Create();
-  FKeysValues := TStringList.Create();
+  FKeysDictionary := TmStringDictionary.Create(true);
+  //FKeysValues := TStringList.Create();
   FLevel := 0;
-  FGarbage := TObjectList.Create(true);
 end;
 
 destructor TmKeysIndex.Destroy;
 begin
   FKeysDictionary.Free;
-  FKeysValues.Free;
-  FGarbage.Free;
+//  FKeysValues.Free;
   inherited Destroy;
 end;
 
 procedure TmKeysIndex.Clear;
 begin
   FKeysDictionary.Clear;
-  FKeysValues.Clear;
-  FGarbage.Clear;
+//  FKeysValues.Clear;
 end;
 
-function TmKeysIndex.GetSubIndex(aKey: string): TmKeysIndex;
+function TmKeysIndex.GetSubIndex(const aKey: string): TmKeysIndex;
 var
-  p : pointer;
+  tmpObj : TObject;
 begin
-  if FKeysDictionary.Find(aKey, p) then
-    Result := TmKeysIndex(p)
+  tmpObj := FKeysDictionary.Find(aKey);
+  if Assigned(tmpObj) then
+  begin
+    assert(tmpObj is TmKeysIndex);
+    Result := tmpObj as TmKeysIndex;
+  end
   else
   begin
     Result := TmKeysIndex.Create;
     FKeysDictionary.Add(aKey, Result);
-    FKeysValues.Add(aKey);
-    FGarbage.Add(Result);
+//    FKeysValues.Add(aKey);
   end;
 end;
 
-function TmKeysIndex.GetValueList(aKey: string): TCardinalList;
+function TmKeysIndex.GetValueList(const aKey: string): TCardinalList;
 var
-  p : pointer;
+  tmpObj : TObject;
 begin
-  if FKeysDictionary.Find(aKey, p) then
-    Result := TCardinalList(p)
+  tmpObj := FKeysDictionary.Find(aKey);
+  if Assigned(tmpObj) then
+  begin
+    assert(tmpObj is TCardinalList);
+    Result := tmpObj as TCardinalList;
+  end
   else
   begin
     Result := TCardinalList.Create;
     FKeysDictionary.Add(aKey, Result);
-    FKeysValues.Add(aKey);
-    FGarbage.Add(Result);
-  end;
-end;
-
-{ TmVirtualDatasetPivoter }
-
-function TmVirtualDatasetPivoter.GetIndexKeyValue(aValue : Variant; aGroupByDef: TmGroupByDef): String;
-  function TryToConvertToDate (aSource : Variant) : TDateTime;
-  begin
-    try
-      Result := aSource;
-    except
-      Result := 0;
-    end;
-  end;
-
-begin
-  case aGroupByDef.OperationKind of
-    gpoDistinct:
-      Result := VarToStr(aValue);
-    gpoDateYear:
-      Result := IntToStr(YearOf(TryToConvertToDate(aValue)));
-    gpoDateMonth:
-      Result := IntToStr(MonthOf(TryToConvertToDate(aValue)));
-    gpoDateDay:
-      Result := IntToStr(DayOf(TryToConvertToDate(aValue)));
-    gpoFirstLetter:
-      begin
-        Result := VarToStr(aValue);
-        if Length(Result) > 0 then
-          Result := Copy(Result,1,1);
-      end;
-  end;
-end;
-
-constructor TmVirtualDatasetPivoter.Create;
-begin
-  FVerticalGroupByDefs := TmGroupByDefs.Create;
-  FHorizontalGroupByDefs := TmGroupByDefs.Create;
-  FGarbage := TObjectList.Create(true);
-  FRecordCoordinates:= TStringHashMap.Create;
-  FVerticalKeysIndex := TmKeysIndex.Create;
-  FHorizontalKeysIndex := TmKeysIndex.Create;
-  FVerticalValues := TObjectList.Create(true);
-  FHorizontalValues := TObjectList.Create(true);
-end;
-
-destructor TmVirtualDatasetPivoter.Destroy;
-begin
-  FVerticalGroupByDefs.Free;
-  FHorizontalGroupByDefs.Free;
-  FGarbage.Free;
-  FRecordCoordinates.Free;
-  FVerticalKeysIndex.Free;
-  FHorizontalKeysIndex.Free;
-  FVerticalValues.Free;
-  FHorizontalValues.Free;
-
-  inherited Destroy;
-end;
-
-(*procedure TmVirtualDatasetPivoter.CalculateSubIndex (aIndex : TmKeysIndex; const aCurrentRecNo : Cardinal; const aGroupByDefs : TmGroupByDefs; const aCurrentGroupByDefIndex : integer);
-var
-  tmpValue : variant;
-  tmpStr : String;
-begin
-  FVirtualDataset.DatasetDataProvider.GetFieldValue(aGroupByDefs.Get(aCurrentGroupByDefIndex).FieldName, aCurrentRecNo, tmpValue);
-  if (aGroupByDefs.Count - 1) > aCurrentGroupByDefIndex then
-  begin
-    tmpStr := Self.GetIndexKeyValue(tmpValue, aGroupByDefs.Get(aCurrentGroupByDefIndex));
-    CalculateSubIndex(aIndex.GetSubIndex(tmpStr), aCurrentRecNo, aGroupByDefs, aCurrentGroupByDefIndex + 1);
-  end
-  else
-  begin
-    aIndex.GetValueList(Self.GetIndexKeyValue(tmpValue, aGroupByDefs.Get(aCurrentGroupByDefIndex))).Add(pointer(aCurrentRecNo));
-  end;
-end;*)
-
-procedure TmVirtualDatasetPivoter.CalculateHierarchy;
-var
-  i, recCount : Cardinal;
-  k : integer;
-  tmpValue : Variant;
-  tmpKeyValue : String;
-  currentCoord : String;
-  tmpList : TCardinalList;
-  p : pointer;
-  tmpIndex : TmKeysIndex;
-begin
-  FGarbage.Clear;
-
-  FVerticalValues.Clear;
-  FHorizontalValues.Clear;
-
-  recCount := FVerticalGroupByDefs.Count;
-  for i := 0 to recCount - 1 do
-    FVerticalValues.Add(TKeyValuesForGroupByDef.Create);
-  recCount := FHorizontalGroupByDefs.Count;
-  for k := 0 to recCount -1 do
-    FHorizontalValues.Add(TKeyValuesForGroupByDef.Create);
-
-  FRecordCoordinates.Clear;
-
-  recCount := FVirtualDataset.DatasetDataProvider.GetRecordCount;
-  for i:= 0 to recCount -1 do
-  begin
-    currentCoord := '';
-    tmpIndex := FVerticalKeysIndex;
-    for k := 0 to FVerticalGroupByDefs.Count -1 do
-    begin
-      FVirtualDataset.DatasetDataProvider.GetFieldValue(FVerticalGroupByDefs.Get(k).FieldName, i, tmpValue);
-      tmpKeyValue := GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(k));
-      if not TKeyValuesForGroupByDef(FVerticalValues[k]).Contains(tmpKeyValue) then
-        TKeyValuesForGroupByDef(FVerticalValues[k]).AddValue(tmpKeyValue);
-      currentCoord := currentCoord + tmpKeyValue + KEY_SEPARATOR;
-      if k < (FVerticalGroupByDefs.Count - 1) then
-        tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
-      else
-        tmpIndex.GetValueList(tmpKeyValue).Add(i);
-    end;
-    tmpIndex := FHorizontalKeysIndex;
-    for k := 0 to FHorizontalGroupByDefs.Count -1 do
-    begin
-      FVirtualDataset.DatasetDataProvider.GetFieldValue(FHorizontalGroupByDefs.Get(k).FieldName, i, tmpValue);
-      tmpKeyValue := GetIndexKeyValue(tmpValue, FHorizontalGroupByDefs.Get(k));
-      if not TKeyValuesForGroupByDef(FHorizontalValues[k]).Contains(tmpKeyValue) then
-        TKeyValuesForGroupByDef(FHorizontalValues[k]).AddValue(tmpKeyValue);
-      currentCoord := currentCoord + tmpKeyValue + KEY_SEPARATOR;
-      if k < (FHorizontalGroupByDefs.Count - 1) then
-        tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
-      else
-        tmpIndex.GetValueList(tmpKeyValue).Add(i);
-    end;
-
-    if FRecordCoordinates.Find(currentCoord, p) then
-      tmpList := TCardinalList(p)
-    else
-    begin
-      tmpList := TCardinalList.Create;
-      FRecordCoordinates.Add(currentCoord, tmpList);
-      FGarbage.Add(tmpList);
-    end;
-    tmpList.Add(i);
+//    FKeysValues.Add(aKey);
   end;
 end;
 
@@ -482,7 +546,6 @@ end;
 constructor TmGroupByDefs.Create;
 begin
   FList := TObjectList.Create(true);
-  FList.Clear;
 end;
 
 destructor TmGroupByDefs.Destroy;
