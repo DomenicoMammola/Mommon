@@ -20,9 +20,9 @@ uses
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
-  Forms, DB,
+  Forms, DB, MemDataSet, BufDataset,
   mDataProviderFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
-  mInterfaces, mFilter, mVirtualDataSetJoins, mSummary;
+  mFilter, mSummary;
 
 {$REGION 'Documentation'}
 {
@@ -91,10 +91,6 @@ type
   TmCustomVirtualDataset = class;
   TmVirtualDataset       = class;
 
-{$IFDEF FPC}
-  TValueBuffer = Pointer;
-{$IFEND}
-
   EVirtualDatasetError = class(Exception);
 
   TDeleteRecordEvent = procedure(
@@ -137,7 +133,7 @@ type
 
   PRecordInfo = ^TRecordInfo;
   TRecordInfo = record
-    Bookmark     : Longint; //Integer;
+    Bookmark     : Longint;
     BookmarkFlag : TBookmarkFlag;
   end;
 
@@ -176,11 +172,6 @@ type
     property SummaryValues : TmSummaryValues read FSummaryValues;
   end;
 
-(*  TVirtualMasterDataLink = class(TMasterDataLink)
-  protected
-    procedure ActiveChanged; override;
-  end;*)
-
   TmVirtualDatasetSortableManager = class;
   TmVirtualDatasetFilterManager = class;
   TmVirtualDatasetSummaryManager = class;
@@ -195,7 +186,6 @@ type
     FReadOnly         : Boolean;
     FRecordBufferSize : Integer;      // TRecordInfo
 
-//    FMasterDataLink : TVirtualMasterDataLink;
     FModifiedFields : TList;
     FOldValueBuffer : TRecordBuffer;
     FLastFieldListCheckSum : {$IFDEF FPC}QWord(*PtrUInt*){$ELSE}NativeUInt{$ENDIF};
@@ -220,11 +210,9 @@ type
       ABuffer   : Pointer
     );
 
-//    function GetMasterSource: TDataSource;
     function GetTopIndex: Longint;
     function GetTopRecNo: Longint;
     procedure SetTopIndex(Value: Integer);
-//    procedure SetMasterSource(Value: TDataSource);
     procedure UpdateDisplayFormats;
   protected
     FSorted : boolean;
@@ -243,15 +231,10 @@ type
 
     function InternalGetRecord(ABuffer  : TRecordBuffer; AGetMode : TGetMode; ADoCheck : Boolean): TGetResult; virtual;
 
-//    procedure MasterChanged(Sender: TObject); virtual;
-//    procedure MasterDisabled(Sender: TObject); virtual;
-
     function GetActiveRecBuf(out ARecBuf: TRecordBuffer): Boolean;
 
-    procedure InternalSetFieldData(AField: TField; ABuffer: Pointer; ANativeFormat: Boolean); virtual;
-
-    procedure VariantToBuffer(AField : TField; AVariant : Variant; out ABuffer : Pointer; ANativeFormat : Boolean = True);
-    procedure BufferToVariant(AField : TField; ABuffer : Pointer; out AVariant : Variant; ANativeFormat : Boolean = True);
+    procedure VariantToBuffer(AField : TField; AVariant : Variant; ABuffer : Pointer; ANativeFormat : Boolean = True);
+//    procedure BufferToVariant(AField : TField; ABuffer : Pointer; out AVariant : Variant; ANativeFormat : Boolean = True);
 
     // Standard overrides
     function GetCanModify: Boolean; override;
@@ -304,15 +287,13 @@ type
 
     procedure SetFieldData(
       Field        : TField;
-      Buffer       : TValueBuffer;
+      Buffer       : {$IFDEF FPC}pointer;{$ELSE}TValueBuffer;{$ENDIF}
       NativeFormat : Boolean
     ); overload; override;
 
     { Standard public overrides }
     function BookmarkValid(ABookmark: TBookmark): Boolean; override;
     function CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Longint; override;
-//    function CreateBlobStream(Field: TField; Mode: TBlobStreamMode)
-//      : TStream; override;
     {$IFNDEF FPC}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData) : Integer; override;
     {$ENDIF}
@@ -322,11 +303,7 @@ type
     function FilterManager : IFilterDatasetManager;
     function SummaryManager : ISummaryDatasetManager;
 
-    function GetFieldData(Field: TField; {$IFNDEF FPC}var{$ENDIF} Buffer: TValueBuffer): Boolean; override;
-
-//    property MasterDataLink: TVirtualMasterDataLink read FMasterDataLink;
-
-//    property MasterSource: TDataSource read GetMasterSource write SetMasterSource;
+    function GetFieldData(Field: TField; {$IFNDEF FPC}var Buffer: TValueBuffer{$ELSE}Buffer: Pointer{$ENDIF}): Boolean; override;
 
     property ReadOnly: Boolean read FReadOnly write FReadOnly default False;
 
@@ -353,7 +330,6 @@ type
     property Active;
     property Filtered;
     property ReadOnly;
-//    property MasterSource;
 
     property AfterCancel;
     property AfterClose;
@@ -610,26 +586,6 @@ begin
 end;
 
 
-(*
-procedure TVirtualMasterDataLink.ActiveChanged;
-begin
-  if Dataset = nil then
-    Exit;
-
-  // Fake a field.
-  if Fields.Count = 0 then
-    Fields.Add(TField.Create(Dataset));
-
-  if Dataset.Active and not(csDestroying in Dataset.ComponentState) then
-    if Active then
-    begin
-      if Assigned(OnMasterChange) then
-        OnMasterChange(Self);
-    end
-    else if Assigned(OnMasterDisable) then
-      OnMasterDisable(Self);
-end;*)
-
 procedure TmCustomVirtualDataset.AfterConstruction;
 begin
   inherited;
@@ -637,9 +593,6 @@ begin
   FInternalOpen                  := False;
   FReadOnly                      := False;
   FModifiedFields                := TList.Create;
-//  FMasterDataLink                := TVirtualMasterDataLink.Create(Self);
-//  MasterDataLink.OnMasterChange  := MasterChanged;
-//  MasterDataLink.OnMasterDisable := MasterDisabled;
   FAutomaticInitFieldsFormat := true;
   FSortManager := TmVirtualDatasetSortableManager.Create;
   FSortManager.FVirtualDataset := Self;
@@ -654,7 +607,6 @@ end;
 procedure TmCustomVirtualDataset.BeforeDestruction;
 begin
   FModifiedFields.Free;
-//  FMasterDataLink.Free;
   FSortManager.Free;
   FFilterManager.Free;
   FSummaryManager.Free;
@@ -737,13 +689,6 @@ begin
   end;
 end;
 
-(*procedure TmCustomVirtualDataset.SetMasterSource(Value: TDataSource);
-begin
-  if IsLinkedTo(Value) then
-    DatabaseError(SCircularDataLink, Self);
-  MasterDataLink.DataSource := Value;
-end;*)
-
 procedure TmCustomVirtualDataset.UpdateDisplayFormats;
 var
   i: integer;
@@ -782,16 +727,10 @@ begin
     Result := False;
 end;
 
-procedure TmCustomVirtualDataset.BufferToVariant(AField: TField;
-  ABuffer: Pointer; out AVariant: Variant; ANativeFormat: Boolean);
+(*
+procedure TmCustomVirtualDataset.BufferToVariant(AField: TField; ABuffer: Pointer; out AVariant: Variant; ANativeFormat: Boolean);
 begin
   case AField.DataType of
-    ftInterface:
-      AVariant := IInterface(ABuffer^);
-    ftIDispatch:
-      AVariant := IDispatch(ABuffer^);
-    ftVariant:
-      AVariant := Variant(ABuffer^);
     ftString, ftFixedChar, ftGuid:
       AVariant := AnsiString(PAnsiChar(ABuffer));
     ftWideString, ftFixedWideChar:
@@ -806,8 +745,6 @@ begin
       AVariant := {$IFDEF FPC}(PInteger(ABuffer)^ = 1){$ELSE}WordBool(ABuffer^){$ENDIF};
     ftFloat, ftCurrency:
       AVariant := Double(ABuffer^);
-    ftBlob, ftMemo, ftGraphic, ftWideMemo:
-      AVariant := Variant(ABuffer^);
     ftDate, ftTime, ftDateTime:
       if ANativeFormat then
         DataConvert(AField, ABuffer, @TVarData(AVariant).VDate, False)
@@ -818,33 +755,11 @@ begin
         DataConvert(AField, ABuffer, @TVarData(AVariant).VCurrency, False)
       else
         AVariant := Currency(ABuffer^);
-    ftBytes, ftVarBytes:
-      begin
-      if ANativeFormat then
-        DataConvert(AField, ABuffer, @AVariant, False)
-      else
-        AVariant := Variant(ABuffer^);
-      end;
-    {$IFNDEF CPUX64}
-    ftLargeInt:
-      begin
-        {$IFNDEF FPC}
-        TVarData(AVariant).VType := VT_DECIMAL;
-        Decimal(AVariant).Lo64   := Int64(ABuffer^);
-        {$ENDIF}
-      end;
-    {$ENDIF}
-    {$IFNDEF FPC}
-    ftLongWord:
-      begin
-        AVariant := LongWord(ABuffer^);
-      end;
-    {$ENDIF}
   else
     DatabaseErrorFmt(SUnsupportedFieldType, [FieldTypeNames[AField.DataType],
         AField.DisplayName]);
   end;
-end;
+end;*)
 
 function TmCustomVirtualDataset.CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Longint;
 begin
@@ -991,7 +906,7 @@ begin
   Result := PRecordInfo(Buffer)^.BookmarkFlag;
 end;
 
-procedure TmCustomVirtualDataset.VariantToBuffer(AField: TField; AVariant: Variant; out ABuffer: Pointer; ANativeFormat: Boolean);
+procedure TmCustomVirtualDataset.VariantToBuffer(AField: TField; AVariant: Variant; ABuffer: Pointer; ANativeFormat: Boolean);
 
   procedure CurrToBuffer(const C: Currency);
   begin
@@ -1011,7 +926,6 @@ begin
   case AField.DataType of
     ftGuid, ftFixedChar, ftString:
       begin
-        // PAnsiChar(ABuffer)[AField.Size] := #0;
         if (VarType(AVariant) = varString) or (VarType(AVariant) = varolestr) then
         begin
           Size := Min(Length(AVariant), AField.Size);
@@ -1116,23 +1030,11 @@ begin
       begin
         DateTimeToNative(AField.DataType, AVariant, ABuffer);
       end;
-    ftBytes, ftVarBytes:
+(*    ftBytes, ftVarBytes:
       if ANativeFormat then
         DataConvert(AField, @AVariant, ABuffer, True)
       else
-        OleVariant(ABuffer^) := AVariant;
-    ftInterface:
-      IUnknown(ABuffer^) := AVariant;
-    ftIDispatch:
-      IDispatch(ABuffer^) := AVariant;
-    ftLargeInt: ;
-//  TS: not portable!
-//      if Decimal(AVariant).sign > 0 then
-//        LargeInt(ABuffer^) := -1 * Decimal(AVariant).Lo64
-//      else
-//        LargeInt(ABuffer^) := Decimal(AVariant).Lo64;
-//    ftBlob .. ftTypedBinary, ftVariant, ftWideMemo:
-//      OleVariant(ABuffer^) := AVariant;
+        OleVariant(ABuffer^) := AVariant;*)
   else
     DatabaseErrorFmt(SUnsupportedFieldType, [FieldTypeNames[AField.DataType],
         AField.DisplayName]);
@@ -1496,7 +1398,7 @@ begin
 end;
 
 procedure TmCustomVirtualDataset.SetFieldData(Field: TField;
-  Buffer: TValueBuffer; NativeFormat: Boolean);
+  Buffer: {$IFDEF FPC}pointer;{$ELSE}TValueBuffer;{$ENDIF} NativeFormat: Boolean);
 begin
 end;
 
@@ -1508,58 +1410,8 @@ begin
   inherited DoAfterOpen;
 end;
 
-procedure TmCustomVirtualDataset.InternalSetFieldData(AField: TField;
-  ABuffer: Pointer; ANativeFormat: Boolean);
-(*var
-  Data  : Variant;
-  RecBuf: TRecordBuffer;
-  TempValue : Variant;
-  *)
-begin
-  (*
-//  with AField do
-//  begin
-    if not(State in dsWriteModes) then
-      DatabaseError(SNotEditing, Self);
-    GetActiveRecBuf(RecBuf);
 
-    if aField.FieldNo > 0 then
-    begin
-      if readonly and not(State in [dsSetKey, dsFilter]) then
-        DatabaseErrorFmt(SFieldReadOnly, [aField.DisplayName]);
-
-      aField.Validate(ABuffer);
-
-      if FModifiedFields.IndexOf(AField) = -1 then
-      begin
-        TempValue := AField.Value;
-        if not VarIsEmpty(TempValue) then
-        begin
-          InjectVariantInBuffer(FOldValueBuffer, TempValue, aField.Index);
-//          PVariantList(FOldValueBuffer + SizeOf(TRecordInfo))[AField.Index] := TempValue; //{$IFDEF FPC}[0]{$ENDIF} := TempValue;
-          FModifiedFields.Add(AField);
-        end;
-      end;
-    end;
-
-    if ABuffer = nil then
-      Data := Null
-    else
-      BufferToVariant(AField, ABuffer, Data);
-
-
-//    PVariantList(RecBuf + SizeOf(TRecordInfo))[Field.Index] := Value
-//    PVariantList(RecBuf + SizeOf(TRecordInfo))[AField.Index] := Data; //{$IFDEF FPC}[0]{$ENDIF} := Data;
-    InjectVariantInBuffer(RecBuf, Data, AField.Index);
-
-    if not(State in [dsCalcFields, dsInternalCalc, dsFilter, dsNewValue]) then
-      DataEvent(deFieldChange, Longint(AField));
-//  end;
-*)
-end;
-
-function TmCustomVirtualDataset.GetFieldData(Field: TField;
-   {$IFNDEF FPC}var{$ENDIF} Buffer: TValueBuffer): Boolean;
+function TmCustomVirtualDataset.GetFieldData(Field: TField; {$IFNDEF FPC}var Buffer: TValueBuffer{$ELSE}Buffer: Pointer{$ENDIF}): Boolean;
 var
   RecBuf: TRecordBuffer;
   Data  : variant;
@@ -1601,7 +1453,7 @@ begin
       Value := VarAsType(Data, vtBoolean)
     else
       Value := Data;
-    VariantToBuffer(Field, Value, Pointer(Buffer), False);   {TODO -oTS -cGeneral : take a look at NativeFormat }
+    VariantToBuffer(Field, Value, Buffer, False);   {TODO -oTS -cGeneral : take a look at NativeFormat }
   end;
 end;
 
