@@ -98,7 +98,7 @@ function ISODateTimeToStrCustom(
 // Converts an ISO date TISOTimeString to TDateTime and replaces the date part of Date
 // Valid TISOTimeStrings are
 //   'YYYY-MM-DD' and 'YYYYMMDD'
-function TryISOStrToDate(const Value: TISOTimeString; var Date: TDateTime): Boolean;
+function TryISOStrToDate(const Value: TISOTimeString; out Date: TDateTime): Boolean;
 
 // Converts an ISO time stamp to a TDateTime,
 // date and time are separated with 'T' or ' '
@@ -108,7 +108,7 @@ function TryISOStrToDateTime(const Value: TISOTimeString; out DateTime: TDateTim
 // Valid TISOTimeStrings are
 //   'hh:mm:ss,zzz', 'hh:mm:ss.zzz', 'hhmmss,zzz', 'hhmmss.zzz',
 //   'hh:mm:ss', 'hhmmss', 'hh:mm' and 'hhmm'
-function TryISOStrToTime(const Value: TISOTimeString; var Time: TDateTime): Boolean;
+function TryISOStrToTime(const Value: TISOTimeString; out Time: TDateTime): Boolean;
 
 
 // Converts an ISO date TISOTimeString to TDateTime
@@ -170,7 +170,7 @@ end;
 
 
 // Converts an ISO date TISOTimeString to TDateTime and replace the date part of Date
-function TryISOStrToDate(const Value: TISOTimeString; var Date: TDateTime): Boolean;
+function TryISOStrToDate(const Value: TISOTimeString; out Date: TDateTime): Boolean;
 var
   Offset: Integer;
   Year, Month, Day: Word;
@@ -186,7 +186,7 @@ begin
   Month := Word(StrToIntDef(Copy(Value, 5 + 1 * Offset, 2), 0));
   Day   := Word(StrToIntDef(Copy(Value, 7 + 2 * Offset, 2), 0));
   try
-    Date := EncodeDate(Year, Month, Day) + Frac(Date);
+    Date := EncodeDate(Year, Month, Day); // + Frac(Date);
     Result := True;
   except
     on EConvertError do;
@@ -214,7 +214,7 @@ end;
 
 
 // Converts an ISO time TISOTimeString to TDateTime and replace the time part of Time
-function TryISOStrToTime(const Value: TISOTimeString; var Time: TDateTime): Boolean;
+function TryISOStrToTime(const Value: TISOTimeString; out Time: TDateTime): Boolean;
 var
   s, ms: TISOTimeString;
   i: Integer;
@@ -274,7 +274,7 @@ begin
   end;
 
   try
-    Time := EncodeTime(Hours, Minutes, Seconds, Milliseconds) + Int(Time);
+    Time := EncodeTime(Hours, Minutes, Seconds, Milliseconds); // + Int(Time);
     Result := True;
   except
     on EConvertError do;
