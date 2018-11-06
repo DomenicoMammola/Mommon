@@ -29,12 +29,16 @@ type
   strict private
     FTagChanged: Boolean;
     FIsNull: Boolean;
+    FIsUnassigned: Boolean;
+    procedure SetIsNull(aValue : Boolean);
+    function GetIsUnassigned: Boolean;
+    procedure SetIsUnassigned(AValue: Boolean);
   protected
     function GetNotNull: Boolean;
     function GetTagChanged: Boolean; virtual;
     procedure SetTagChanged (aValue : Boolean); virtual;
     function GetIsNull : Boolean; virtual;
-    procedure SetIsNull(aValue : Boolean); virtual;
+    procedure InternalSetIsNull(aValue : Boolean); virtual;
   public
     constructor Create(); virtual;
     function AsVariant: Variant; virtual; abstract;
@@ -45,6 +49,7 @@ type
 
     property IsNull: Boolean read GetIsNull write SetIsNull;
     property NotNull: Boolean read GetNotNull;
+    property IsUnassigned : Boolean read GetIsUnassigned write SetIsUnassigned;
     property TagChanged: Boolean read GetTagChanged;
   end;
 
@@ -298,7 +303,6 @@ type
     procedure Subtract(const aValue : double); overload;
     procedure Subtract(const aValue : TNullableDouble); overload;
 
-
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant; const aDisplayFormat : string): String;
 
@@ -415,7 +419,7 @@ type
   protected
     function GetTagChanged: Boolean; override;
     function GetIsNull : Boolean; override;
-    procedure SetIsNull(aValue : Boolean); override;
+    procedure InternalSetIsNull(aValue : Boolean); override;
   public
     constructor Create(); override;
     destructor Destroy; override;
@@ -485,10 +489,10 @@ begin
   Result := FActualValue.GetIsNull;
 end;
 
-procedure TNullableValue.SetIsNull(aValue: Boolean);
+procedure TNullableValue.InternalSetIsNull(aValue: Boolean);
 begin
   CheckActualValue;
-  FActualValue.SetIsNull(aValue);
+  FActualValue.InternalSetIsNull(aValue);
 end;
 
 constructor TNullableValue.Create();
@@ -795,7 +799,7 @@ end;
 procedure TNullableTime.InternalSetValue(AValue: TDateTime);
 begin
   FValue:= aValue;
-  SetIsNull(false);
+  InternalSetIsNull(false);
 end;
 
 constructor TNullableTime.Create();
@@ -816,7 +820,6 @@ begin
   else
     Self.IsNull := true;
   SetTagChanged(false);
-
 end;
 
 procedure TNullableTime.Assign(const aSourceField: TField);
@@ -855,7 +858,9 @@ end;
 function TNullableTime.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpTime : TDateTime;
+  SavedIsUnassigned : boolean;
 begin
+  SavedIsUnassigned:= IsUnassigned;
   if VarIsNull(aValue) then
   begin
     Result := Self.NotNull;
@@ -871,7 +876,7 @@ begin
     if Result then
       Self.InternalSetValue(tmpTime);
   end;
-  Self.SetTagChanged(Result or Self.GetTagChanged);
+  Self.SetTagChanged(SavedIsUnassigned or Result or Self.GetTagChanged);
 end;
 
 class function TNullableTime.StringToVariant(const aValue: String): Variant;
@@ -1136,7 +1141,7 @@ end;
 procedure TNullableColor.InternalSetValue(AValue: TColor);
 begin
   FValue:= aValue;
-  SetIsNull(false);
+  InternalSetIsNull(false);
 end;
 
 constructor TNullableColor.Create();
@@ -1189,7 +1194,10 @@ end;
 function TNullableColor.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpValue : TColor;
+  SavedIsUnassigned : boolean;
 begin
+  SavedIsUnassigned:= IsUnassigned;
+
   if VarIsNull(aValue) then
   begin
     Result:= Self.NotNull;
@@ -1205,7 +1213,7 @@ begin
     if Result then
       Self.InternalSetValue(tmpValue);
   end;
-  Self.SetTagChanged(Result or GetTagChanged);
+  Self.SetTagChanged(SavedIsUnassigned or Result or GetTagChanged);
 end;
 
 function TNullableColor.AsVariant: Variant;
@@ -1240,7 +1248,7 @@ end;
 procedure TNullableInteger.InternalSetValue(AValue: Integer);
 begin
   FValue:= aValue;
-  SetIsNull(false);
+  InternalSetIsNull(false);
 end;
 
 constructor TNullableInteger.Create();
@@ -1295,7 +1303,10 @@ end;
 function TNullableInteger.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpInt : integer;
+  SavedIsUnassigned : boolean;
 begin
+  SavedIsUnassigned:= IsUnassigned;
+
   if VarIsNull(aValue) then
   begin
     Result := Self.NotNull;
@@ -1311,7 +1322,7 @@ begin
     if Result then
       Self.InternalSetValue(tmpInt);
   end;
-  Self.SetTagChanged(Result or GetTagChanged);
+  Self.SetTagChanged(SavedIsUnassigned or Result or GetTagChanged);
 end;
 
 function TNullableInteger.AsVariant: Variant;
@@ -1403,7 +1414,7 @@ end;
 procedure TNullableBoolean.InternalSetValue(AValue: Boolean);
 begin
   FValue:= aValue;
-  SetIsNull(false);
+  InternalSetIsNull(false);
 end;
 
 constructor TNullableBoolean.Create();
@@ -1502,7 +1513,9 @@ end;
 function TNullableBoolean.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpBool : boolean;
+  SavedIsUnassigned : boolean;
 begin
+  SavedIsUnassigned:= IsUnassigned;
   if VarIsNull(aValue) then
   begin
     Result := Self.NotNull;
@@ -1518,7 +1531,7 @@ begin
     if Result then
       Self.InternalSetValue(tmpBool);
   end;
-  Self.SetTagChanged(Result or Self.GetTagChanged);
+  Self.SetTagChanged(SavedIsUnassigned or Result or Self.GetTagChanged);
 end;
 
 class function TNullableBoolean.StringToVariant(const aValue: String): Variant;
@@ -1556,7 +1569,7 @@ end;
 procedure TNullableString.InternalSetValue(AValue: String);
 begin
   FValue:= aValue;
-  SetIsNull(False);
+  InternalSetIsNull(False);
 end;
 
 constructor TNullableString.Create();
@@ -1608,11 +1621,14 @@ begin
 end;
 
 function TNullableString.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
+var
+  SavedIsUnassigned : boolean;
 begin
+  SavedIsUnassigned:= IsUnassigned;
   if VarIsNull(aValue) then
   begin
     Result:= Self.NotNull;
-    Self.IsNull:= true
+    Self.IsNull:= true;
   end
   else
   begin
@@ -1623,7 +1639,7 @@ begin
     if Result then
       Self.InternalSetValue(aValue);
   end;
-  SetTagChanged(Result or GetTagChanged);
+  SetTagChanged(SavedIsUnassigned or Result or GetTagChanged);
 end;
 
 function TNullableString.AsVariant: Variant;
@@ -1721,7 +1737,7 @@ begin
     FValue:= RoundToExt(AValue, FRoundingMethod, FFractionalPartDigits)
   else
     FValue:= RoundDoubleToStandardPrecision(aValue);
-  SetIsNull(false);
+  InternalSetIsNull(false);
 end;
 
 constructor TNullableDouble.Create();
@@ -1830,7 +1846,9 @@ end;
 function TNullableDouble.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpDouble : double;
+  SavedIsUnassigned : boolean;
 begin
+  SavedIsUnassigned:= IsUnassigned;
   if VarIsNull(aValue) then
   begin
     Result := Self.NotNull;
@@ -1846,7 +1864,7 @@ begin
     if Result then
       Self.InternalSetValue(tmpDouble);
   end;
-  SetTagChanged(Result or GetTagChanged);
+  SetTagChanged(SavedIsUnassigned or Result or GetTagChanged);
 end;
 
 function TNullableDouble.AsString: String;
@@ -1956,7 +1974,7 @@ end;
 procedure TNullableDateTime.InternalSetValue(AValue: TDateTime);
 begin
   FValue:= aValue;
-  SetIsNull(false);
+  InternalSetIsNull(false);
 end;
 
 constructor TNullableDateTime.Create();
@@ -2022,7 +2040,9 @@ end;
 function TNullableDateTime.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpDate : TDateTime;
+  SavedIsUnassigned : boolean;
 begin
+  SavedIsUnassigned:= IsUnassigned;
   if VarIsNull(aValue) then
   begin
     Result := Self.NotNull;
@@ -2038,7 +2058,7 @@ begin
     if Result then
       Self.InternalSetValue(tmpDate);
   end;
-  SetTagChanged(Result or GetTagChanged);
+  SetTagChanged(SavedIsUnassigned or Result or GetTagChanged);
 end;
 
 class function TNullableDateTime.StringToVariant(const aValue: String): Variant;
@@ -2105,6 +2125,17 @@ end;
 
 { TAbstractNullable }
 
+function TAbstractNullable.GetIsUnassigned: Boolean;
+begin
+  Result := FIsUnassigned;
+end;
+
+procedure TAbstractNullable.SetIsUnassigned(AValue: Boolean);
+begin
+  FIsUnassigned:= aValue;
+  SetTagChanged(false);
+end;
+
 function TAbstractNullable.GetNotNull: Boolean;
 begin
   Result := not GetIsNull;
@@ -2125,14 +2156,22 @@ begin
   Result := FIsNull;
 end;
 
-procedure TAbstractNullable.SetIsNull(aValue: Boolean);
+procedure TAbstractNullable.InternalSetIsNull(aValue: Boolean);
 begin
   FIsNull := aValue;
+  FIsUnassigned:= false;
+end;
+
+procedure TAbstractNullable.SetIsNull(aValue: Boolean);
+begin
+  InternalSetIsNull(aValue);
+  SetTagChanged(false);
 end;
 
 constructor TAbstractNullable.Create();
 begin
   FIsNull:= true;
+  FIsUnassigned:= false;
   SetTagChanged(false);
 end;
 
