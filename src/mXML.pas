@@ -86,6 +86,9 @@ type
     procedure SetBooleanAttribute(Name : TmXmlString; Value : Boolean);
     function GetBooleanAttribute(Name: TmXMLString): boolean; overload;
     function GetBooleanAttribute(Name: TmXMLString; DefaultValue : boolean): boolean; overload;
+
+    procedure SetValue(const aValue: TmXMLString);
+    function GetValue: TmXMLString;
   end;
 
   TmXmlElementCursor = class
@@ -100,6 +103,8 @@ type
   public
     property Elements[I: integer]: TmXmlElement read GetElement; default;
   end;
+
+  { TImpl_mXmlElement }
 
   TImpl_mXmlElement = class
   public
@@ -122,6 +127,17 @@ type
     procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString): integer; overload; virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; virtual; abstract;
+    procedure _SetValue(const aValue: TmXMLString); virtual; abstract;
+    function _GetValue: TmXMLString; virtual; abstract;
+    procedure _SetDateTimeValue(const aValue : TDateTime); virtual; abstract;
+    function _GetDateTimeValue: TDateTime; virtual; abstract;
+    procedure _SetDateValue(const aValue : TDateTime); virtual; abstract;
+    function _GetDateValue: TDateTime; virtual; abstract;
+    procedure _SetFloatValue(const aValue : double); virtual; abstract;
+    function _GetFloatValue: double; virtual; abstract;
+    procedure _SetIntegerValue(const aValue : integer); virtual; abstract;
+    function _GetIntegerValue: integer; virtual; abstract;
+
 
     procedure _SetOwner(aOwner : TObject); virtual; abstract;
   end;
@@ -305,6 +321,16 @@ end;
 function TmXmlElement.GetBooleanAttribute(Name: TmXMLString; DefaultValue: boolean): boolean;
 begin
   Result := StrToBool(Self.GetAttribute(Name, BoolToStr(DefaultValue, true)));
+end;
+
+procedure TmXmlElement.SetValue(const aValue: TmXMLString);
+begin
+  FImpl._SetValue(aValue);
+end;
+
+function TmXmlElement.GetValue: TmXMLString;
+begin
+  Result := FImpl._GetValue;
 end;
 
 function TmXmlElement.GetAttribute(const aName: TmXmlString): TmXmlString;

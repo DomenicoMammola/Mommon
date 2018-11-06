@@ -22,9 +22,16 @@ uses
 
 resourcestring
  mXML_oxml_AttributeNotFound = 'XML attribute %s not found.';
- mXML_oxml_WrongDateTime = 'XML attribute %s has value %s which is not in ISO date-time format.';
- mXML_oxml_WrongDate = 'XML attribute %s has value $s which is not in ISO date format.';
- mXML_oxml_WrongFloat = 'XML attribute %s has value %s that is not a valid float number.';
+ mXML_oxml_WrongDateTimeAttribute = 'XML attribute %s has value %s which is not in ISO date-time format.';
+ mXML_oxml_WrongDateAttribute = 'XML attribute %s has value $s which is not in ISO date format.';
+ mXML_oxml_WrongFloatAttribute = 'XML attribute %s has value %s that is not a valid float number.';
+ mXML_oxml_WrongIntegerAttribute = 'XML attribute %s has value %s that is not a valid integer number.';
+
+ mXML_oxml_ValueNotFound = 'XML element %s has no value.';
+ mXML_oxml_WrongDateTimeValue = 'XML element %s has value %s which is not in ISO date-time format.';
+ mXML_oxml_WrongDateValue = 'XML element %s has value $s which is not in ISO date format.';
+ mXML_oxml_WrongFloatValue = 'XML element %s has value %s that is not a valid float number.';
+ mXML_oxml_WrongIntegerValue = 'XML element %s has value %s that is not a valid integer number.';
 
 type
   Tmxml_oxml_PointerShell = class
@@ -40,10 +47,16 @@ type
     FNode : PXMLNode;
     FGarbage : TObjectList;
     FFormatSettings : TFormatSettings;
-    procedure RaiseMissingAttributeException(Name: TmXMLString);
-    procedure RaiseWrongDateTimeException(Name, Value: TmXMLString);
-    procedure RaiseWrongDateException(Name, Value: TmXMLString);
-    procedure RaiseWrongFloatException(Name, Value: TmXMLString);
+    procedure RaiseMissingAttributeException(const Name: TmXMLString);
+    procedure RaiseWrongDateTimeAttributeException(const Name, Value: TmXMLString);
+    procedure RaiseWrongDateAttributeException(const Name, Value: TmXMLString);
+    procedure RaiseWrongFloatAttributeException(const Name, Value: TmXMLString);
+    procedure RaiseWrongIntegerAttributeException(const Name, Value: TmXMLString);
+    procedure RaiseMissingValueException(const aNodeName : TmXMLString);
+    procedure RaiseWrongDateTimeValueException(const aNodeName, Value: TmXMLString);
+    procedure RaiseWrongDateValueException(const aNodeName, Value: TmXMLString);
+    procedure RaiseWrongFloatValueException(const aNodeName, Value: TmXMLString);
+    procedure RaiseWrongIntegerValueException(const aNodeName, Value: TmXMLString);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -66,6 +79,16 @@ type
     procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); override;
     function _GetIntegerAttribute(Name: TmXmlString): integer; overload; override;
     function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; override;
+    procedure _SetValue(const aValue: TmXMLString); override;
+    function _GetValue: TmXMLString; override;
+    procedure _SetDateTimeValue(const aValue : TDateTime); override;
+    function _GetDateTimeValue: TDateTime; override;
+    procedure _SetDateValue(const aValue : TDateTime); override;
+    function _GetDateValue: TDateTime; override;
+    procedure _SetFloatValue(const aValue : double); override;
+    function _GetFloatValue: double; override;
+    procedure _SetIntegerValue(const aValue : integer); override;
+    function _GetIntegerValue: integer; override;
 
     procedure _SetOwner(aOwner : TObject); override;
   end;
@@ -129,24 +152,54 @@ begin
   inherited Destroy;
 end;
 
-procedure TImpl_oxml_mXmlElement.RaiseMissingAttributeException (Name :TmXMLString);
+procedure TImpl_oxml_mXmlElement.RaiseMissingAttributeException (const Name :TmXMLString);
 begin
   raise EmXmlError.Create(Format(mXML_oxml_AttributeNotFound, [Name]));
 end;
 
-procedure TImpl_oxml_mXmlElement.RaiseWrongDateTimeException (Name, Value :TmXMLString);
+procedure TImpl_oxml_mXmlElement.RaiseWrongDateTimeAttributeException (const Name, Value :TmXMLString);
 begin
-  raise EmXmlError.Create(Format(mXML_oxml_WrongDateTime, [Name, Value]));
+  raise EmXmlError.Create(Format(mXML_oxml_WrongDateAttribute, [Name, Value]));
 end;
 
-procedure TImpl_oxml_mXmlElement.RaiseWrongDateException(Name, Value: TmXMLString);
+procedure TImpl_oxml_mXmlElement.RaiseWrongDateAttributeException(const Name, Value: TmXMLString);
 begin
-  raise EmXmlError.Create(Format(mXML_oxml_WrongDate, [Name, Value]));
+  raise EmXmlError.Create(Format(mXML_oxml_WrongDateAttribute, [Name, Value]));
 end;
 
-procedure TImpl_oxml_mXmlElement.RaiseWrongFloatException(Name, Value: TmXMLString);
+procedure TImpl_oxml_mXmlElement.RaiseWrongFloatAttributeException(const Name, Value: TmXMLString);
 begin
-  raise EmXmlError.Create(Format(mXML_oxml_WrongFloat, [Name, Value]));
+  raise EmXmlError.Create(Format(mXML_oxml_WrongFloatAttribute, [Name, Value]));
+end;
+
+procedure TImpl_oxml_mXmlElement.RaiseWrongIntegerAttributeException(const Name, Value: TmXMLString);
+begin
+  raise EmXmlError.Create(Format(mXML_oxml_WrongIntegerAttribute, [Name, Value]));
+end;
+
+procedure TImpl_oxml_mXmlElement.RaiseMissingValueException(const aNodeName : TmXMLString);
+begin
+  raise EmXmlError.Create(Format(mXML_oxml_ValueNotFound, [aNodeName]));
+end;
+
+procedure TImpl_oxml_mXmlElement.RaiseWrongDateTimeValueException(const aNodeName, Value: TmXMLString);
+begin
+  raise EmXmlError.Create(Format(mXML_oxml_WrongDateTimeValue, [aNodeName, Value]));
+end;
+
+procedure TImpl_oxml_mXmlElement.RaiseWrongDateValueException(const aNodeName, Value: TmXMLString);
+begin
+  raise EmXmlError.Create(Format(mXML_oxml_WrongDateValue, [aNodeName, Value]));
+end;
+
+procedure TImpl_oxml_mXmlElement.RaiseWrongFloatValueException(const aNodeName, Value: TmXMLString);
+begin
+  raise EmXmlError.Create(Format(mXML_oxml_WrongFloatValue, [aNodeName, Value]));
+end;
+
+procedure TImpl_oxml_mXmlElement.RaiseWrongIntegerValueException(const aNodeName, Value: TmXMLString);
+begin
+  raise EmXmlError.Create(Format(mXML_oxml_WrongIntegerAttribute, [aNodeName, Value]));
 end;
 
 function TImpl_oxml_mXmlElement._AddElement(Name: TmXMLString): TmXmlElement;
@@ -179,7 +232,7 @@ begin
     if TryISOStrToDateTime(tmp, tempValue) then
       Result := tempValue
     else
-      RaiseWrongDateTimeException(Name, tmp);
+      RaiseWrongDateTimeAttributeException(Name, tmp);
   end
   else
     RaiseMissingAttributeException(Name);
@@ -197,7 +250,7 @@ begin
     if TryISOStrToDateTime(tmp, tempValue) then
       Result := tempValue
     else
-      RaiseWrongDateTimeException(Name, tmp);
+      RaiseWrongDateTimeAttributeException(Name, tmp);
   end
   else
     Result := Default;
@@ -220,7 +273,7 @@ begin
     if TryISOStrToDate(tmp, tempValue) then
       Result := tempValue
     else
-      RaiseWrongDateException(Name, tmp);
+      RaiseWrongDateAttributeException(Name, tmp);
   end
   else
     RaiseMissingAttributeException(Name);
@@ -238,7 +291,7 @@ begin
     if TryISOStrToDate(tmp, tempValue) then
       Result := tempValue
     else
-      RaiseWrongDateException(Name, tmp);
+      RaiseWrongDateAttributeException(Name, tmp);
   end
   else
     Result := Default;
@@ -261,7 +314,7 @@ begin
     if TryToConvertToDouble(tmp, tempValue) then
       Result := tempValue
     else
-      RaiseWrongFloatException(Name, tmp);
+      RaiseWrongFloatAttributeException(Name, tmp);
   end
   else
     RaiseMissingAttributeException(Name);
@@ -279,22 +332,148 @@ begin
     if TryToConvertToDouble(tmp, tempValue) then
       Result := tempValue
     else
-      RaiseWrongFloatException(Name, tmp);
+      RaiseWrongFloatAttributeException(Name, tmp);
   end
   else
     Result := Default;
 end;
 
 function TImpl_oxml_mXmlElement._GetIntegerAttribute(Name: TmXmlString): integer;
+var
+  tmp : string;
+  tempValue : integer;
 begin
-  if not Self.FNode^.HasAttribute(Name) then
+  Result := 0;
+  if FNode^.HasAttribute(Name) then
+  begin
+    tmp := FNode^.GetAttribute(Name);
+    if TryToConvertToInteger(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongIntegerAttributeException(Name, tmp);
+  end
+  else
     RaiseMissingAttributeException(Name);
-  Result := StrToInt(Self.FNode^.GetAttribute(Name));
 end;
 
 function TImpl_oxml_mXmlElement._GetIntegerAttribute(Name: TmXmlString; Default: integer): integer;
+var
+  tmp : string;
+  tempValue : integer;
 begin
-  Result := StrToIntDef(Self.FNode^.GetAttribute(Name), Default);
+  Result := 0;
+  if FNode^.HasAttribute(Name) then
+  begin
+    tmp := FNode^.GetAttribute(Name);
+    if TryToConvertToInteger(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongIntegerAttributeException(Name, tmp);
+  end
+  else
+    Result := Default;
+end;
+
+procedure TImpl_oxml_mXmlElement._SetValue(const aValue: TmXMLString);
+begin
+  FNode^.NodeValue:= aValue;
+end;
+
+function TImpl_oxml_mXmlElement._GetValue: TmXMLString;
+begin
+  Result := FNode^.NodeValue;
+end;
+
+procedure TImpl_oxml_mXmlElement._SetDateTimeValue(const aValue: TDateTime);
+begin
+  FNode^.NodeValue := mISOTime.ISODateTimeToStr(aValue);
+end;
+
+function TImpl_oxml_mXmlElement._GetDateTimeValue: TDateTime;
+var
+  tmp : string;
+  tempValue : TDateTime;
+begin
+  Result := 0;
+  if FNode^.NodeValue <>'' then
+  begin
+    tmp := FNode^.NodeValue;
+    if TryISOStrToDateTime(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongDateTimeValueException(FNode^.NodeName, tmp);
+  end
+  else
+    RaiseMissingValueException(FNode^.NodeName);
+end;
+
+procedure TImpl_oxml_mXmlElement._SetDateValue(const aValue: TDateTime);
+begin
+  FNode^.NodeValue := mISOTime.ISODateToStr(aValue);
+end;
+
+function TImpl_oxml_mXmlElement._GetDateValue: TDateTime;
+var
+  tmp : string;
+  tempValue : TDateTime;
+begin
+  Result := 0;
+  if FNode^.NodeValue <> '' then
+  begin
+    tmp := FNode^.NodeValue;
+    if TryISOStrToDate(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongDateValueException(FNode^.NodeName, tmp);
+  end
+  else
+    RaiseMissingValueException(FNode^.NodeName);
+end;
+
+procedure TImpl_oxml_mXmlElement._SetFloatValue(const aValue: double);
+begin
+  FNode^.NodeValue := FloatToStr(aValue, FFormatSettings);
+end;
+
+function TImpl_oxml_mXmlElement._GetFloatValue: double;
+var
+  tmp : string;
+  tempValue : double;
+begin
+  Result := 0;
+  if FNode^.NodeValue <> '' then
+  begin
+    tmp := FNode^.NodeValue;
+    if TryToConvertToDouble(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongFloatValueException(FNode^.NodeName, tmp);
+  end
+  else
+    RaiseMissingValueException(FNode^.NodeName);
+end;
+
+procedure TImpl_oxml_mXmlElement._SetIntegerValue(const aValue: integer);
+begin
+  FNode^.NodeValue := IntToStr(aValue);
+end;
+
+function TImpl_oxml_mXmlElement._GetIntegerValue: integer;
+var
+  tmp : string;
+  tempValue : integer;
+begin
+  Result := 0;
+  if FNode^.NodeValue <> '' then
+  begin
+    tmp := FNode^.NodeValue;
+    if TryToConvertToInteger(tmp, tempValue) then
+      Result := tempValue
+    else
+      RaiseWrongIntegerValueException(FNode^.NodeName, tmp);
+  end
+  else
+    RaiseMissingValueException(FNode^.NodeName);
 end;
 
 function TImpl_oxml_mXmlElement._GetAttribute(Name: TmXmlString): TmXmlString;

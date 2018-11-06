@@ -32,6 +32,7 @@ type
     procedure TestSimpleSaveAndLoad;
     procedure TestEncryptedSaveAndLoad;
     procedure TestCursor;
+    procedure TestText;
   end;
 
 implementation
@@ -88,6 +89,34 @@ begin
     begin
       FmXmlDocument.RootElement.AddElement('subitem').SetAttribute('key', IntToStr(i));
     end;
+  finally
+    FmXmlDocument.Free;
+  end;
+
+end;
+
+procedure TestTmXmlDocument.TestText;
+var
+  FmXmlDocument : TmXmlDocument;
+  TempFileName : string;
+begin
+  FmXmlDocument := TmXmlDocument.Create;
+  try
+    FmXmlDocument.CreateRootElement('root_element').SetValue('高大的绿叶树'); //'@@ABC$$');
+    {$IFDEF FPC}
+    TempFileName := SysUtils.GetTempFileName;
+    {$ELSE}
+    TempFileName := TPath.GetTempFileName;
+    {$ENDIF}
+    FmXMLDocument.SaveToFile(TempFileName);
+  finally
+    FmXmlDocument.Free;
+  end;
+  FmXmlDocument := TmXmlDocument.Create;
+  try
+    FmXmlDocument.LoadFromFile(TempFileName);
+    CheckTrue(FmXmlDocument.RootElement <> nil);
+    CheckEquals('高大的绿叶树', FmXmlDocument.RootElement.GetValue); // @@ABC$$
   finally
     FmXmlDocument.Free;
   end;
