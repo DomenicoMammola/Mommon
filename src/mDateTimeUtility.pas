@@ -111,8 +111,8 @@ begin
     ((month = 5) and (day = 1)) or // 1 May International Workers' Day Festa del Lavoro (or Festa dei Lavoratori)
     ((month = 6) and (day = 2)) or // 2 June Republic Day Festa della Repubblica Birth of the Italian Republic, 1946
     ((month = 8) and (day = 15)) or // 15 August Ferragosto/Assumption Day Ferragosto or Assunzione
-    ((month = 11) and ((day = 1) or (day = 8))) or // 1 November All Saints' Day Tutti i santi (or Ognissanti) - 8 December Immaculate Conception Immacolata Concezione (or just Immacolata)
-    ((month = 12) and ((day = 25) or (day = 26))); // 25 December Christmas Day Natale - 26 December St. Stephen's Day Santo Stefano
+    ((month = 11) and ((day = 1))) or // 1 November All Saints' Day Tutti i santi (or Ognissanti)
+    ((month = 12) and ((day = 25) or (day = 26) or (day = 8))); // 25 December Christmas Day Natale - 26 December St. Stephen's Day Santo Stefano - 8 December Immaculate Conception Immacolata Concezione (or just Immacolata)
 
 
   //Monday after Easter or Easter Monday or Lunedì dell'Angelo or Lunedì in Albis or more commonly Pasquetta
