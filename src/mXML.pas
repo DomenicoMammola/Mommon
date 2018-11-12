@@ -58,6 +58,7 @@ type
 
     function AddElement(Name: TmXMLString): TmXmlElement;
     function HasAttribute(const Name: TmXMLString): boolean;
+    procedure DeleteAttribute(const aName : TmXMLString);
     procedure SetAttribute(aName, aValue: TmXmlString); overload;
     procedure SetAttribute(aName: TmXmlString; const aValue: TNullableString); overload;
     function GetAttribute(const aName: TmXmlString): TmXmlString; overload;
@@ -87,7 +88,8 @@ type
     function GetBooleanAttribute(Name: TmXMLString): boolean; overload;
     function GetBooleanAttribute(Name: TmXMLString; DefaultValue : boolean): boolean; overload;
 
-    procedure SetValue(const aValue: TmXMLString);
+    procedure SetValue(const aValue: TmXMLString); overload;
+    procedure SetValue(const aValue: TNullableString); overload;
     function GetValue: TmXMLString;
   end;
 
@@ -112,6 +114,7 @@ type
   public
     function _AddElement(Name: TmXMLString): TmXmlElement; virtual; abstract;
     function _HasAttribute(const Name: TmXMLString): boolean; virtual; abstract;
+    procedure _DeleteAttribute(const aName: TmXMLString); virtual; abstract;
     procedure _SetAttribute(Name, Value: TmXmlString); virtual; abstract;
     function _GetAttribute(Name: TmXmlString): TmXmlString; overload; virtual; abstract;
     function _GetAttribute(Name: TmXmlString; Default: TmXmlString): TmXmlString; overload; virtual; abstract;
@@ -127,7 +130,7 @@ type
     procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString): integer; overload; virtual; abstract;
     function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; virtual; abstract;
-    procedure _SetValue(const aValue: TmXMLString); virtual; abstract;
+    procedure _SetValue(const aValue: TmXMLString); overload; virtual; abstract;
     function _GetValue: TmXMLString; virtual; abstract;
     procedure _SetDateTimeValue(const aValue : TDateTime); virtual; abstract;
     function _GetDateTimeValue: TDateTime; virtual; abstract;
@@ -240,7 +243,9 @@ end;
 procedure TmXmlElement.SetDateAttribute(const aName: TmXmlString; const aValue: TNullableDateTime);
 begin
   if aValue.NotNull then
-    Self.SetDateAttribute(aName, aValue.Value);
+    Self.SetDateAttribute(aName, aValue.Value)
+  else
+    Self.DeleteAttribute(aName);
 end;
 
 function TmXmlElement.GetDateAttribute(const aName: TmXmlString): TDateTime;
@@ -269,7 +274,9 @@ end;
 procedure TmXmlElement.SetFloatAttribute(const aName: TmXmlString; const aValue: TNullableDouble);
 begin
   if aValue.NotNull then
-    Self.SetFloatAttribute(aName, aValue.Value);
+    Self.SetFloatAttribute(aName, aValue.Value)
+  else
+    Self.DeleteAttribute(aName);
 end;
 
 function TmXmlElement.GetFloatAttribute(const aName: TmXmlString): Double;
@@ -328,6 +335,12 @@ begin
   FImpl._SetValue(aValue);
 end;
 
+procedure TmXmlElement.SetValue(const aValue: TNullableString);
+begin
+  if aValue.NotNull then
+    FImpl._SetValue(aValue.AsString);
+end;
+
 function TmXmlElement.GetValue: TmXMLString;
 begin
   Result := FImpl._GetValue;
@@ -343,6 +356,11 @@ begin
   Result := FImpl._HasAttribute(Name);
 end;
 
+procedure TmXmlElement.DeleteAttribute(const aName: TmXMLString);
+begin
+  FImpl._DeleteAttribute(aName);
+end;
+
 
 procedure TmXmlElement.SetAttribute(aName, aValue: TmXmlString);
 begin
@@ -352,7 +370,9 @@ end;
 procedure TmXmlElement.SetAttribute(aName: TmXmlString; const aValue: TNullableString);
 begin
   if aValue.NotNull then
-    Self.SetAttribute(aName, aValue.Value);
+    Self.SetAttribute(aName, aValue.Value)
+  else
+    Self.DeleteAttribute(aName);
 end;
 
 procedure TmXmlElement.SetDateTimeAttribute(const aName: TmXmlString; const aValue: TDateTime);
@@ -363,7 +383,9 @@ end;
 procedure TmXmlElement.SetDateTimeAttribute(const aName: TmXmlString; const aValue: TNullableDateTime);
 begin
   if aValue.NotNull then
-    Self.SetDateTimeAttribute(aName, aValue.Value);
+    Self.SetDateTimeAttribute(aName, aValue.Value)
+  else
+    Self.DeleteAttribute(aName);
 end;
 
 procedure TmXmlElement.SetIntegerAttribute(const aName: TmXmlString; const aValue: integer);
@@ -374,7 +396,9 @@ end;
 procedure TmXmlElement.SetIntegerAttribute(const aName: TmXmlString; const aValue: TNullableInteger);
 begin
   if aValue.NotNull  then
-    Self.SetIntegerAttribute(aName, aValue.Value);
+    Self.SetIntegerAttribute(aName, aValue.Value)
+  else
+    Self.DeleteAttribute(aName);
 end;
 
 { TmXmlDocument }
