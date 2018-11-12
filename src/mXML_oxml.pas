@@ -63,6 +63,7 @@ type
   public
     function _AddElement(Name: TmXMLString): TmXmlElement; override;
     function _HasAttribute(const Name: TmXMLString): boolean; override;
+    procedure _DeleteAttribute(const aName: TmXMLString); override;
     procedure _SetAttribute(Name, Value: TmXmlString); override;
 
     function _GetAttribute(Name: TmXmlString): TmXmlString; overload; override;
@@ -79,6 +80,7 @@ type
     procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); override;
     function _GetIntegerAttribute(Name: TmXmlString): integer; overload; override;
     function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; override;
+
     procedure _SetValue(const aValue: TmXMLString); override;
     function _GetValue: TmXMLString; override;
     procedure _SetDateTimeValue(const aValue : TDateTime); override;
@@ -486,6 +488,12 @@ end;
 function TImpl_oxml_mXmlElement._HasAttribute(const Name: TmXMLString): boolean;
 begin
   Result := Self.FNode^.HasAttribute(Name);
+end;
+
+procedure TImpl_oxml_mXmlElement._DeleteAttribute(const aName: TmXMLString);
+begin
+  if FNode^.HasAttribute(aName) then
+    FNode^.DeleteAttribute(aName);
 end;
 
 
