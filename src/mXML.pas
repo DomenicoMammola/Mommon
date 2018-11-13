@@ -90,7 +90,17 @@ type
 
     procedure SetValue(const aValue: TmXMLString); overload;
     procedure SetValue(const aValue: TNullableString); overload;
+    procedure SetDateValue(const aValue: TDateTime);
+    procedure SetDateTimeValue(const aValue: TDateTime);
+    procedure SetIntegerValue(const aValue: Integer);
+    procedure SetFloatValue(const aValue: Double);
     function GetValue: TmXMLString;
+    function GetDateValue: TDateTime;
+    function GetDateTimeValue: TDateTime;
+    function GetIntegerValue: Integer;
+    function GetFloatValue: Double;
+
+    function HasValue: boolean;
   end;
 
   TmXmlElementCursor = class
@@ -112,24 +122,25 @@ type
   public
     constructor Create; virtual; abstract;
   public
-    function _AddElement(Name: TmXMLString): TmXmlElement; virtual; abstract;
+    function _AddElement(const aName: TmXMLString): TmXmlElement; virtual; abstract;
     function _HasAttribute(const Name: TmXMLString): boolean; virtual; abstract;
     procedure _DeleteAttribute(const aName: TmXMLString); virtual; abstract;
-    procedure _SetAttribute(Name, Value: TmXmlString); virtual; abstract;
-    function _GetAttribute(Name: TmXmlString): TmXmlString; overload; virtual; abstract;
-    function _GetAttribute(Name: TmXmlString; Default: TmXmlString): TmXmlString; overload; virtual; abstract;
-    procedure _SetDateTimeAttribute(Name : TmXmlString; Value : TDateTime); virtual; abstract;
-    function _GetDateTimeAttribute(Name: TmXmlString): TDateTime; overload; virtual; abstract;
-    function _GetDateTimeAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; virtual; abstract;
-    procedure _SetDateAttribute(Name : TmXmlString; Value : TDateTime); virtual; abstract;
-    function _GetDateAttribute(Name: TmXmlString): TDateTime; overload; virtual; abstract;
-    function _GetDateAttribute(Name: TmXmlString; Default : TDateTime): TDateTime; overload; virtual; abstract;
-    procedure _SetFloatAttribute(Name : TmXmlString; Value : double); virtual; abstract;
-    function _GetFloatAttribute(Name: TmXmlString): double; overload; virtual; abstract;
-    function _GetFloatAttribute(Name: TmXmlString; Default : double): double; overload; virtual; abstract;
-    procedure _SetIntegerAttribute(Name : TmXmlString; Value: integer); virtual; abstract;
-    function _GetIntegerAttribute(Name: TmXmlString): integer; overload; virtual; abstract;
-    function _GetIntegerAttribute(Name: TmXmlString; Default : integer): integer; overload; virtual; abstract;
+    procedure _SetAttribute(const aName, aValue: TmXmlString); virtual; abstract;
+    function _GetAttribute(const aName: TmXmlString): TmXmlString; overload; virtual; abstract;
+    function _GetAttribute(const aName: TmXmlString; const aDefault: TmXmlString): TmXmlString; overload; virtual; abstract;
+    procedure _SetDateTimeAttribute(const aName : TmXmlString; const aValue : TDateTime); virtual; abstract;
+    function _GetDateTimeAttribute(const aName: TmXmlString): TDateTime; overload; virtual; abstract;
+    function _GetDateTimeAttribute(const aName: TmXmlString; const aDefault : TDateTime): TDateTime; overload; virtual; abstract;
+    procedure _SetDateAttribute(const aName : TmXmlString; const aValue : TDateTime); virtual; abstract;
+    function _GetDateAttribute(const aName: TmXmlString): TDateTime; overload; virtual; abstract;
+    function _GetDateAttribute(const aName: TmXmlString; const aDefault : TDateTime): TDateTime; overload; virtual; abstract;
+    procedure _SetFloatAttribute(const aName : TmXmlString; const aValue : double); virtual; abstract;
+    function _GetFloatAttribute(const aName: TmXmlString): double; overload; virtual; abstract;
+    function _GetFloatAttribute(const aName: TmXmlString; const aDefault : double): double; overload; virtual; abstract;
+    procedure _SetIntegerAttribute(const aName : TmXmlString; const aValue: integer); virtual; abstract;
+    function _GetIntegerAttribute(const aName: TmXmlString): integer; overload; virtual; abstract;
+    function _GetIntegerAttribute(const aName: TmXmlString; const aDefault : integer): integer; overload; virtual; abstract;
+    function _HasValue: boolean; virtual; abstract;
     procedure _SetValue(const aValue: TmXMLString); overload; virtual; abstract;
     function _GetValue: TmXMLString; virtual; abstract;
     procedure _SetDateTimeValue(const aValue : TDateTime); virtual; abstract;
@@ -140,7 +151,6 @@ type
     function _GetFloatValue: double; virtual; abstract;
     procedure _SetIntegerValue(const aValue : integer); virtual; abstract;
     function _GetIntegerValue: integer; virtual; abstract;
-
 
     procedure _SetOwner(aOwner : TObject); virtual; abstract;
   end;
@@ -341,9 +351,54 @@ begin
     FImpl._SetValue(aValue.AsString);
 end;
 
+procedure TmXmlElement.SetDateValue(const aValue: TDateTime);
+begin
+  FImpl._SetDateValue(aValue);
+end;
+
+procedure TmXmlElement.SetDateTimeValue(const aValue: TDateTime);
+begin
+  FImpl._SetDateTimeValue(aValue);
+end;
+
+procedure TmXmlElement.SetIntegerValue(const aValue: Integer);
+begin
+  FImpl._SetIntegerValue(aValue);
+end;
+
+procedure TmXmlElement.SetFloatValue(const aValue: Double);
+begin
+  FImpl._SetFloatValue(aValue);
+end;
+
 function TmXmlElement.GetValue: TmXMLString;
 begin
   Result := FImpl._GetValue;
+end;
+
+function TmXmlElement.GetDateValue: TDateTime;
+begin
+  Result := FImpl._GetDateValue;
+end;
+
+function TmXmlElement.GetDateTimeValue: TDateTime;
+begin
+  Result := FImpl._GetDateTimeValue;
+end;
+
+function TmXmlElement.GetIntegerValue: Integer;
+begin
+  Result := FImpl._GetIntegerValue;
+end;
+
+function TmXmlElement.GetFloatValue: Double;
+begin
+  Result := FImpl._GetFloatValue;
+end;
+
+function TmXmlElement.HasValue: boolean;
+begin
+  Result := FImpl._HasValue;
 end;
 
 function TmXmlElement.GetAttribute(const aName: TmXmlString): TmXmlString;
