@@ -105,12 +105,16 @@ function EncodeURIComponent(const ASrc: string): UTF8String;
 
 function EncodeSVGString(const aSrc : string): String;
 
+// encode a file to base64
+procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
+procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFile: String);
+
 function IsRunningAsRoot : boolean;
 
 implementation
 
 uses
-  DateUtils,
+  DateUtils, base64,
   {$ifdef windows}shlobj, registry, winutils,{$else}LazUTF8,{$endif}
   {$ifdef linux}initc, ctypes, BaseUnix,{$endif}
   mMathUtility;
@@ -1543,6 +1547,55 @@ begin
   // http://forum.lazarus.freepascal.org/index.php?topic=22454.0
   Result := (fpgeteuid = 0);
 {$ENDIF}
+end;
+
+procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
+var
+  fi: TFileStream;
+  fo: TStringStream;
+  enc: TBase64EncodingStream;
+begin
+  fi := TFileStream.Create(aFullPathInputFile,fmOpenRead);
+  try
+    fo := TStringStream.Create('');
+    try
+      enc := TBase64EncodingStream.Create(fo);
+      try
+        enc.CopyFrom(fi, fi.Size);
+      finally
+        enc.Free;
+      end;
+      aOutputData:= fo.DataString;
+    finally
+      fo.Free;
+    end;
+  finally
+    fi.Free;
+  end;
+end;
+
+procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFile: String);
+var
+  fo: TFileStream;
+  enc: TBase64DecodingStream;
+  s: TStringStream;
+begin
+  fo := TFileStream.Create(aFullPathOutputFile, fmCreate);
+  try
+    s := TStringStream.Create(aInputData);
+    try
+      enc := TBase64DecodingStream.Create(s);
+      try
+        fo.CopyFrom(enc, enc.Size);
+      finally
+        enc.Free;
+      end;
+    finally
+      s.Free;
+    end;
+  finally
+    fo.Free;
+  end;
 end;
 
 initialization
