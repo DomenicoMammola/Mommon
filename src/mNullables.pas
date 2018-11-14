@@ -205,8 +205,9 @@ type
     procedure Trim();
     procedure Uppercase();
     procedure ChangeToBlankIfNull;
-    function IsEqual (const aValue : String) : boolean;
-    function IsEqualCaseInsensitive (const aValue : String): boolean;
+    function ValueIsEqual (const aValue : String) : boolean; overload;
+    function ValueIsEqual (const aValue : TNullableString) : boolean; overload;
+    function ValueIsEqualCaseInsensitive (const aValue : String): boolean;
 
     class function StringToVariant(const aValue: String; const aAllowBlankValues : boolean): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -341,6 +342,8 @@ type
     function AsString: String; override;
     function AsStringUseNumbers : String;
     function AsBoolean: Boolean;
+    function ValueIsEqual (const aValue : Boolean) : boolean; overload;
+    function ValueIsEqual (const aValue : TNullableBoolean) : boolean; overload;
 
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -1510,6 +1513,19 @@ begin
   Result := (Self.NotNull) and (Self.Value);
 end;
 
+function TNullableBoolean.ValueIsEqual(const aValue: Boolean): boolean;
+begin
+  Result := Self.AsBoolean = aValue;
+end;
+
+function TNullableBoolean.ValueIsEqual(const aValue: TNullableBoolean): boolean;
+begin
+  if Self.IsNull then
+    Result := aValue.IsNull
+  else
+    Result := aValue.NotNull and ValueIsEqual(aValue.Value);
+end;
+
 function TNullableBoolean.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
 var
   tmpBool : boolean;
@@ -1668,12 +1684,20 @@ begin
     Self.Value:= '';
 end;
 
-function TNullableString.IsEqual(const aValue: String): boolean;
+function TNullableString.ValueIsEqual(const aValue: String): boolean;
 begin
   Result := Self.AsString = aValue;
 end;
 
-function TNullableString.IsEqualCaseInsensitive(const aValue: String): boolean;
+function TNullableString.ValueIsEqual(const aValue: TNullableString): boolean;
+begin
+  if Self.IsNull then
+    Result := aValue.IsNull
+  else
+    Result := aValue.NotNull and ValueIsEqual(aValue.Value);
+end;
+
+function TNullableString.ValueIsEqualCaseInsensitive(const aValue: String): boolean;
 begin
   Result := (CompareText(Self.AsString, aValue) = 0);
 end;
