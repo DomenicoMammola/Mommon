@@ -30,6 +30,7 @@ function GenerateRandomIdString : string; overload;
 function GenerateRandomIdString(aLength : integer): string; overload;
 function CreateUniqueIdentifier : String; // actually a GUID without parentheses, to be used as unique indentifier in db tables
 function IsUniqueIdentifier (const aUI : String): boolean;
+function CreateHumanReadableUniqueIdentier (const aLanguageCode : String): String; // a random unique identifier which is easy to be remembered, inspired by https://github.com/PerWiklander/IdentifierSentence
 
 function AddZerosFront (const aValue : integer; const aLength : integer) : String; overload;
 function AddZerosFront (const aValue : string; const aLength : integer) : String; overload;
@@ -1295,6 +1296,261 @@ var
 begin
   s := '{' + aUI + '}';
   Result := TryStringToGUID(s, tmpGuid);
+end;
+
+function CreateHumanReadableUniqueIdentier(const aLanguageCode : String): String;
+var
+  nouns : array [1..66] of string  =
+      ('ants',       'badgers',     'bats',     'bees',       'butterflies',
+      'cattle',      'chickens',    'clams',    'cockles',    'crabs',
+      'crows',       'deer',        'dogs',     'donkeys',    'doves',
+      'dragonflies', 'ducks',       'ferrets',  'flies',      'foxes',
+      'frogs',       'geese',       'gorillas',  'goats',      'grasshoppers',
+      'hamsters', 'hares',       'hawks',    'hedgehogs',  'herons',
+      'horses',      'kingfishers', 'lobsters', 'mice',       'moles',
+      'moths',       'mussles',     'newts',    'orcs',       'otters',
+      'owls',        'oysters',     'parrots',  'peafowl',    'pheasants',
+      'pigeons',     'pigs',        'pikes',    'platypuses', 'rabbits',
+      'rats',        'robins',      'rooks',    'salmons',    'sheep',
+      'snails',      'snakes',      'sparrows', 'spiders',    'squirrels',
+      'starlings',   'stoats',      'swans',    'toads',      'trouts',
+      'weasels');
+
+  nouns_male_it : array [1..137] of string =
+     ('tassi', 'pipistrelli', 'buoi', 'polli', 'granchi',
+     'corvi', 'cervi', 'cani', 'asini', 'furetti',
+     'gorilla', 'criceti', 'falchi', 'ricci', 'aironi',
+     'cavalli', 'topi', 'mitili', 'tritoni',
+     'orchi', 'gufi', 'pappagalli', 'pavoni', 'fagiani',
+     'piccioni', 'maiali', 'lucci', 'ornitorinchi', 'conigli',
+     'ratti', 'pettirossi', 'salmoni', 'serpenti', 'passeri',
+     'ragni', 'scoiattoli', 'storni', 'ermellini', 'cigni',
+     'rospi',
+
+     'goblin', 'tonni', 'passeri', 'muli', 'beluga',
+     'squali', 'delfini', 'totani', 'gatti', 'procioni',
+     'armadilli', 'avvoltoi', 'babbuini', 'barracuda', 'bradipi',
+     'branzini', 'bufali', 'cacatua', 'calabroni', 'camaleonti',
+     'cammelli', 'camosci', 'caprioli', 'cardellini', 'castori',
+     'casuari', 'cigni', 'cinghiali', 'coccodrilli', 'condor',
+     'cormorani', 'corvi', 'coyote', 'daini', 'dromedari',
+     'elefanti', 'facoceri', 'fagiani', 'gabbiani', 'fenicotteri',
+     'formichieri', 'furetti', 'fringuelli', 'gechi', 'ghepardi',
+     'giaguari', 'gerbilli', 'grilli', 'ippocampi', 'koala',
+     'leoni', 'leopardi', 'lombrichi', 'lupi', 'mammut',
+     'mandrilli', 'moscardini', 'moscerini', 'mufloni', 'narvali',
+     'naselli', 'nibbi', 'orsi', 'palombi', 'panda',
+     'pangolini', 'parrocchetti', 'pettirossi', 'picchi', 'pipistrelli',
+     'pitoni', 'polpi', 'pony', 'porcellini', 'puma',
+     'ratti', 'rinoceronti', 'rombi', 'rinoceronti', 'rospi',
+     'scarabei', 'sciacalli', 'scoiattoli', 'scorpioni', 'scriccioli',
+     'sgombri', 'sparvieri', 'storioni', 'struzzi', 'tafani',
+     'tarli', 'tassi', 'terranova', 'tonni', 'vombati',
+     'zebu', 'visoni'
+     );
+  nouns_female_it : array [1..91] of string =
+     ('formiche', 'api', 'farfalle', 'vongole', 'telline',
+     'colombe', 'libellule', 'anatre', 'mosche', 'volpi',
+     'rane', 'oche', 'capre', 'cavallette', 'lepri',
+     'aragoste', 'talpe', 'falene', 'lontre', 'ostriche',
+     'cornacchie', 'pecore', 'lumache', 'trote', 'donnole',
+
+     'zebre', 'coccinelle', 'mucche', 'donnole', 'acciughe',
+     'alci', 'anaconde', 'vipere', 'anguille', 'aquile',
+     'aringhe', 'averle', 'balene', 'balenottere', 'vespe',
+     'capinere', 'chiocciole', 'cicogne', 'cimici', 'cinciallegre',
+     'faraone', 'foche', 'focene', 'gallinelle', 'gazze',
+     'gazzelle', 'ghiandaie',  'giraffe', 'iene', 'istrici',
+     'meduse', 'linci', 'lontre', 'lucciole', 'lucertole',
+     'manguste', 'mantidi', 'marmotte', 'megattere', 'murene',
+     'natrici', 'nutrie', 'orate', 'orche', 'platesse',
+     'poiane', 'puzzole', 'raganelle', 'quaglie', 'razze',
+     'rondini', 'sardine', 'scimmie', 'sogliole', 'spatole',
+     'spugne', 'sule', 'tartarughe', 'testuggini', 'tigri',
+     'triglie', 'trote', 'upupe', 'verdesche', 'vipere',
+     'volpi'
+     );
+  adjectives : array [1..128] of string =
+    ('awful',    'bad',      'bashful', 'berserk',  'big',
+    'bizarre',  'black',    'blue',    'boring',   'brawny',
+    'bright',   'bumpy',    'burly',   'cagey',    'cheerful',
+    'chilly',   'chubby',   'classy',  'clumsy',   'cold',
+    'crazy',    'creepy',   'cuddly',  'dashing',  'dirty',
+    'dizzy',    'drunk',    'dry',     'dull',     'dusty',
+    'eager',    'evil',     'fancy',   'fast',     'fat',
+    'faulty',   'fearless', 'filthy',  'foamy',    'friendly',
+    'funny',    'gentle',   'giant',   'glossy',   'good',
+    'goofy',    'great',    'greedy',  'green',    'groovy',
+    'grumpy',   'guilty',   'hairy',   'handsome', 'happy',
+    'healthy',  'heavy',    'helpful', 'high',     'huge',
+    'hungry',   'icky',     'itchy',   'jazzy',    'jealous',
+    'jolly',    'jumpy',    'kind',    'large',    'lazy',
+    'lean',     'little',   'lively',  'lucky',    'macho',
+    'magenta',  'magic',    'massive', 'meek',     'mighty',
+    'mindless', 'nasty',    'needy',   'new',      'nice',
+    'noisy',    'odd',      'old',     'orange',   'pretty',
+    'prickly',  'proud',    'puffy',   'purple',   'quick',
+    'quiet',    'rabid',    'rebel',   'red',      'righteous',
+    'round',    'sad',      'sassy',   'scary',    'sedate',
+    'shallow',  'short',    'silly',   'skillful', 'skinny',
+    'sloppy',   'slow',     'small',   'smelly',   'sneaky',
+    'snobby',   'strange',  'tacky',   'tall',     'tan',
+    'tough',    'tricky',   'ugly',    'wicked',   'wise',
+    'yellow', 'young', 'zany');
+   verbs : array [1..128] of string =
+     (
+     'agree',   'applaud', 'argue',   'arise',   'arrive',
+     'attack',  'awaken',  'bake',    'bathe',   'beg',
+     'behave',  'bite',    'blink',   'blush',   'bounce',
+     'breathe', 'burrow',  'buzz',    'charge',  'chat',
+     'cheer',   'chew',    'chuckle', 'clap',    'cry',
+     'dance',   'dig',     'dive',    'drink',   'eat',
+     'feed',    'fight',   'flap',    'flee',    'float',
+     'fly',     'gather',  'glow',    'grunt',   'hang',
+     'hide',    'howl',    'hunt',    'itch',    'jog',
+     'joke',    'jostle',  'jump',    'kick',    'kneel',
+     'knit',    'krump',   'laugh',   'leap',    'leave',
+     'look',    'lope',    'march',   'mix',     'moan',
+     'nuzzle',  'observe', 'plan',    'play',    'plead',
+     'point',   'pray',    'punch',   'push',    'race',
+     'rejoice', 'relax',   'retire',  'return',  'roar',
+     'rub',     'rumble',  'run',     'rush',    'sail',
+     'scare',   'scrape',  'scratch', 'scream',  'scrub',
+     'search',  'shake',   'shiver',  'shrink',  'shrug',
+     'sigh',    'sing',    'sit',     'skip',    'slap',
+     'sleep',   'slide',   'slip',    'smash',   'snore',
+     'spar',    'speak',   'spit',    'stand',   'stare',
+     'step',    'sting',   'stomp',   'stretch', 'strike',
+     'study',   'stumble', 'swim',    'talk',    'think',
+     'tickle',  'travel',  'trot',    'twist',   'wait',
+     'walk',    'wander',  'watch',   'wave',    'whine',
+     'whisper', 'work', 'wriggle'
+     );
+
+   adjectives_male_it : array [1..154] of string =
+     ('orribili', 'cattivi', 'schivi', 'frenetici', 'grandi',
+     'bizzarri', 'neri', 'blu', 'noiosi', 'muscolosi',
+     'brillanti', 'irregolari', 'corpulenti', 'cauti', 'allegri',
+     'freddi', 'paffuti', 'eleganti', 'goffi', 'freddi',
+     'pazzi', 'raccapriccianti', 'coccoloni', 'sfolgoranti', 'sporchi',
+     'vertiginosi', 'ubriachi', 'secchi', 'noiosi', 'polverosi',
+     'desiderosi', 'cattivi', 'fantasiosi', 'veloci', 'grassi',
+     'difettosi', 'impavidi', 'sudici', 'schiumosi', 'amichevoli',
+     'divertenti', 'gentili', 'giganti', 'lucidi', 'buoni',
+     'goffi', 'favolosi', 'avidi', 'verdi', 'eccitanti',
+     'scontrosi', 'colpevoli', 'pelosi', 'belli', 'felici',
+     'sani', 'pesanti', 'utili', 'alti', 'enormi',
+     'affamati', 'appiccicosi', 'pruriginosi', 'jazzistici', 'gelosi',
+     'gai', 'agitati', 'gentili', 'larghi', 'pigri',
+     'magri', 'piccoli', 'vivaci', 'fortunati', 'macho',
+     'cremisi', 'magici', 'massicci', 'miti', 'potenti',
+     'senza pensieri', 'disgustosi', 'bisognosi', 'nuovi', 'simpatici',
+     'rumorosi', 'strani', 'vecchi', 'arancioni', 'carini',
+     'pungenti', 'fieri', 'gonfi', 'viola', 'veloci',
+     'tranquilli', 'rabbiosi', 'ribelli', 'rossi', 'virtuosi',
+     'tondi', 'tristi', 'impertinenti', 'spaventosi', 'sedati',
+     'superficiali', 'corti', 'sciocchi', 'abili', 'magri',
+     'sciatti', 'lenti', 'piccoli', 'puzzolenti', 'subdoli',
+     'snob', 'strani', 'appiccicosi', 'alti', 'abbronzati',
+     'spessi', 'difficili', 'brutti', 'malvagi', 'saggi',
+     'gialli', 'giovani', 'buffi',
+
+     'impertinenti', 'scontrosi', 'immortali', 'immorali',
+     'garruli', 'meticolosi', 'miseri', 'pietosi', 'ignoranti',
+     'studiosi', 'scivolosi', 'misteriosi', 'puliti',
+     'penosi', 'pietosi', 'lisci', 'ruvidi', 'prepotenti',
+     'pulciosi', 'garruli', 'zebrati', 'leopardati', 'saggi',
+     'succubi', 'sereni', 'marini'
+     );
+   adjectives_female_it : array [1..154] of string =
+     ('orribili', 'cattive', 'schive', 'frenetiche', 'grandi',
+     'bizzarre', 'neri', 'blu', 'noiose', 'muscolose',
+     'brillanti', 'irregolari', 'corpulente', 'caute', 'allegre',
+     'fredde', 'paffute', 'eleganti', 'goffe', 'fredde',
+     'pazze', 'raccapricciante', 'coccolone', 'sfolgoranto', 'sporche',
+     'vertiginose', 'ubriache', 'secche', 'noiose', 'polverose',
+     'desiderose', 'cattive', 'fantasiose', 'veloci', 'grasse',
+     'difettose', 'impavidi', 'sudicie', 'schiumose', 'amichevoli',
+     'divertenti', 'gentili', 'giganti', 'lucide', 'buone',
+     'goffe', 'favolose', 'avide', 'verdi', 'eccitanti',
+     'scontrose', 'colpevoli', 'pelose', 'belle', 'felici',
+     'sane', 'pesanti', 'utili', 'alte', 'enormi',
+     'affamate', 'appiccicose', 'pruriginose', 'jazzistiche', 'gelose',
+     'gaie', 'agitate', 'gentili', 'larghe', 'pigre',
+     'magre', 'piccole', 'vivaci', 'fortunate', 'macho',
+     'cremisi', 'magiche', 'massiccie', 'miti', 'potenti',
+     'senza pensieri', 'disgustose', 'bisognose', 'nuove', 'simpatiche',
+     'rumorose', 'strane', 'vecchie', 'arancioni', 'carine',
+     'pungenti', 'fiere', 'gonfie', 'viola', 'veloci',
+     'tranquille', 'rabbiose', 'ribelli', 'rosse', 'virtuose',
+     'tonde', 'tristi', 'impertinenti', 'spaventose', 'sedate',
+     'superficiali', 'corte', 'sciocche', 'abili', 'magri',
+     'sciatte', 'lente', 'piccole', 'puzzolenti', 'subdole',
+     'snob', 'strane', 'appiccicose', 'alte', 'abbronzate',
+     'spesse', 'difficili', 'brutte', 'malvagie', 'saggie',
+     'gialle', 'giovani', 'buffe',
+     'impertinenti', 'scontrose', 'immortali', 'immorali',
+     'garrule', 'meticolose', 'misere', 'pietose', 'ignoranti',
+     'studiose', 'scivolose', 'misteriose', 'pulite',
+     'penose', 'pietose', 'liscie', 'ruvide', 'prepotenti',
+     'pulciose', 'garrule', 'zebrate', 'leopardate', 'saggi',
+     'succubi', 'serene', 'marine'
+     );
+   verbs_it : array [1..128] of string =
+     (
+     'concordano', 'applaudono', 'argomentano', 'sorgono', 'arrivano',
+     'attaccano', 'risvegliano', 'cuociono', 'puliscono', 'mendicano',
+     'girano', 'mordono', 'lampeggiano', 'arrossiscono', 'rimbalzano',
+     'respirano', 'burrow', 'fischiettano', 'caricano', 'dialogano',
+     'rallegrano', 'masticano', 'ridono', 'saltano', 'piangono',
+     'danzano', 'scavano', 'nuotano', 'bevono', 'mangiano',
+     'nutrono', 'combattono', 'ondeggiano', 'galleggiano', 'osservano',
+     'volano', 'raccolgono', 'brillano', 'grugniscono', 'appendono',
+     'nascondono', 'ululano', 'cacciano', 'prudono', 'mescolano',
+     'scherzano', 'scaldano', 'pelano', 'calciano', 'pregano',
+     'cuciono', 'ridono', 'rallentano', 'scavalcano', 'mollano',
+     'guardano', 'amano', 'marciano', 'mescolano', 'mugolano',
+     'pigolano', 'muggiscono', 'trasportano', 'giocano', 'supplicare',
+     'pungono', 'chiedono', 'impegnano', 'spingono', 'corrono',
+     'rallegrano', 'rilassano', 'ritirano', 'ritornano', 'ruggiscono',
+     'strofinano', 'rimbombano', 'saltellano', 'intorpiscono', 'navigano',
+     'spaventano', 'graffiano', 'feriscono', 'urlano', 'macchiano',
+     'cercano', 'agitano', 'tremano', 'rimpiccioliscono', 'scrollano',
+     'sospirano', 'cantano', 'seggono', 'saltano', 'schiaffeggiano',
+     'dormono', 'aprono', 'scivolano', 'colpiscono', 'russare',
+     'sparpagliano', 'parlano', 'sputano', 'stanno', 'fissano',
+     'salgono', 'indovinano', 'chiedono', 'allungano', 'centrano',
+     'studiano', 'inciampano', 'galleggiano', 'meditano', 'pensano',
+     'solleticano', 'viaggiano', 'trottano', 'torcono', 'attendono',
+     'camminano', 'vagano', 'vogano', 'ondeggiano', 'protestano',
+     'sussurrano', 'lavorano', 'guizzano'
+    );
+begin
+  Result := IntToStr(Random(100));
+
+  if CompareText(aLanguageCode, 'EN') = 0 then
+  begin
+    Result := Result + '-' + adjectives[Random(High(adjectives)) + 1];
+    Result := Result + '-' + nouns[Random(High(nouns)) + 1];
+    Result := Result + '-' + verbs[Random(High(verbs)) + 1];
+  end
+  else if CompareText(aLanguageCode, 'IT') = 0 then
+  begin
+    if Random(2) = 0 then
+    begin
+      Result := Result + '-' + nouns_female_it[Random(High(nouns_female_it)) + 1];
+      Result := Result + '-' + adjectives_female_it[Random(High(adjectives_female_it)) + 1];
+    end
+    else
+    begin
+      Result := Result + '-' + nouns_male_it[Random(High(nouns_male_it)) + 1];
+      Result := Result + '-' + adjectives_male_it[Random(High(adjectives_male_it)) + 1];
+    end;
+    Result := Result + '-' + verbs_it[Random(High(verbs_it)) + 1];
+  end
+  else
+    raise Exception.Create('Language ' + aLanguageCode + ' is not supported');
+
 end;
 
 // This function converts the integer value of file size into human readable form

@@ -18,6 +18,7 @@ type
     procedure TestGetCPUCores;
     procedure TestISO6346Containers;
     procedure TestISO6346MRNs;
+    procedure TestHumanReadableUniqueIdentifiers;
   end;
 
 implementation
@@ -221,6 +222,41 @@ begin
   CheckFalse(IsMRNCodeValid('162TQFC1T0024237E0', error));
   CheckFalse(IsMRNCodeValid('16ITQ_C1T0024237E0', error));
   CheckFalse(IsMRNCodeValid('16ITQFC1T002423E0', error));
+end;
+
+procedure TTestCaseUtility.TestHumanReadableUniqueIdentifiers;
+var
+  list : TStringList;
+  tmp : String;
+  i : integer;
+begin
+  list := TStringList.Create;
+  try
+    for i := 0 to 1000 do
+    begin
+      tmp := CreateHumanReadableUniqueIdentier('EN');
+      // WriteLn(tmp);
+      CheckTrue(list.IndexOf(tmp) < 0, 'Duplicated EN id:' + tmp + ' #'+ IntToStr(i));
+      list.Add(tmp);
+    end;
+  finally
+    list.Free;
+  end;
+
+  list := TStringList.Create;
+  try
+    for i := 1 to 1000 do
+    begin
+      tmp := CreateHumanReadableUniqueIdentier('IT');
+      // WriteLn(tmp);
+      CheckTrue(list.IndexOf(tmp) < 0, 'Duplicated IT id:' + tmp + ' #'+ IntToStr(i));
+      list.Add(tmp);
+    end;
+  finally
+    list.Free;
+  end;
+
+
 end;
 
 
