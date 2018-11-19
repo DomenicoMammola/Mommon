@@ -1459,7 +1459,7 @@ var
      'garruli', 'meticolosi', 'miseri', 'pietosi', 'ignoranti',
      'studiosi', 'scivolosi', 'misteriosi', 'puliti',
      'penosi', 'pietosi', 'lisci', 'ruvidi', 'prepotenti',
-     'pulciosi', 'garruli', 'zebrati', 'leopardati', 'saggi',
+     'pulciosi', 'garruli', 'zebrati', 'leopardati', 'mosci',
      'succubi', 'sereni', 'marini'
      );
    adjectives_female_it : array [1..154] of string =
@@ -1487,13 +1487,13 @@ var
      'superficiali', 'corte', 'sciocche', 'abili', 'magri',
      'sciatte', 'lente', 'piccole', 'puzzolenti', 'subdole',
      'snob', 'strane', 'appiccicose', 'alte', 'abbronzate',
-     'spesse', 'difficili', 'brutte', 'malvagie', 'saggie',
+     'spesse', 'difficili', 'brutte', 'malvagie', 'sagge',
      'gialle', 'giovani', 'buffe',
      'impertinenti', 'scontrose', 'immortali', 'immorali',
      'garrule', 'meticolose', 'misere', 'pietose', 'ignoranti',
      'studiose', 'scivolose', 'misteriose', 'pulite',
      'penose', 'pietose', 'liscie', 'ruvide', 'prepotenti',
-     'pulciose', 'garrule', 'zebrate', 'leopardate', 'saggi',
+     'pulciose', 'garrule', 'zebrate', 'leopardate', 'moscie',
      'succubi', 'serene', 'marine'
      );
    verbs_it : array [1..128] of string =
