@@ -276,7 +276,7 @@ end;
 
 function TryToUnderstandDateString(const aInputString : String; out aValue : TDateTime) : boolean;
 var
-  l, idx : integer;
+  l, idx, i : integer;
   tmp,  sep : string;
   dString, mString, yString : string;
   day, month, year : integer;
@@ -355,23 +355,38 @@ begin
   begin
     if IsNumeric(dString, false) and IsNumeric(mString, false) and IsNumeric(yString, false) then
     begin
-      day := StrToInt(dString);
-      month := StrToInt(mString);
-      year := StrToInt(yString);
-
-      if (month >=1) and (month <= 12) and (year >= 0) and (day >= 1) and (day <= 31) then
+      for i := 1 to 2 do
       begin
-        if year < 100 then
-          year := 2000 + year;
-        if day <= DaysInAMonth(year, month) then
+        if i = 1 then
         begin
-          aValue := EncodeDate(year, month, day);
-          Result := true;
-          exit;
+          day := StrToInt(dString);
+          month := StrToInt(mString);
+          year := StrToInt(yString);
+        end
+        else
+        begin
+          // yyyy-mm-dd
+          day := StrToInt(yString);
+          month := StrToInt(mString);
+          year := StrToInt(dString);
+        end;
+
+        if (month >=1) and (month <= 12) and (year >= 0) and (day >= 1) and (day <= 31) then
+        begin
+          if year < 100 then
+            year := 2000 + year;
+          if day <= DaysInAMonth(year, month) then
+          begin
+            aValue := EncodeDate(year, month, day);
+            Result := true;
+            exit;
+          end;
         end;
       end;
     end;
   end;
+
+
 end;
 
 function TryToUnderstandTimeString(const aInputString: String; out aValue: TDateTime): boolean;
