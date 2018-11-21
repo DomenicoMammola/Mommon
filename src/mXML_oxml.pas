@@ -379,22 +379,22 @@ end;
 
 function TImpl_oxml_mXmlElement._HasValue: boolean;
 begin
-  Result := (FNode^.NodeValue <> '');
+  Result := (FNode^.Text <> '');
 end;
 
 procedure TImpl_oxml_mXmlElement._SetValue(const aValue: TmXMLString);
 begin
-  FNode^.NodeValue:= aValue;
+  FNode^.Text:= aValue;
 end;
 
 function TImpl_oxml_mXmlElement._GetValue: TmXMLString;
 begin
-  Result := FNode^.NodeValue;
+  Result := FNode^.Text;
 end;
 
 procedure TImpl_oxml_mXmlElement._SetDateTimeValue(const aValue: TDateTime);
 begin
-  FNode^.NodeValue := mISOTime.ISODateTimeToStr(aValue);
+  FNode^.Text := mISOTime.ISODateTimeToStr(aValue);
 end;
 
 function TImpl_oxml_mXmlElement._GetDateTimeValue: TDateTime;
@@ -403,9 +403,9 @@ var
   tempValue : TDateTime;
 begin
   Result := 0;
-  if FNode^.NodeValue <>'' then
+  if FNode^.Text <>'' then
   begin
-    tmp := FNode^.NodeValue;
+    tmp := FNode^.Text;
     if TryISOStrToDateTime(tmp, tempValue) then
       Result := tempValue
     else
@@ -417,7 +417,7 @@ end;
 
 procedure TImpl_oxml_mXmlElement._SetDateValue(const aValue: TDateTime);
 begin
-  FNode^.NodeValue := mISOTime.ISODateToStr(aValue);
+  FNode^.Text := mISOTime.ISODateToStr(aValue);
 end;
 
 function TImpl_oxml_mXmlElement._GetDateValue: TDateTime;
@@ -426,9 +426,9 @@ var
   tempValue : TDateTime;
 begin
   Result := 0;
-  if FNode^.NodeValue <> '' then
+  if FNode^.Text <> '' then
   begin
-    tmp := FNode^.NodeValue;
+    tmp := FNode^.Text;
     if TryISOStrToDate(tmp, tempValue) then
       Result := tempValue
     else
@@ -440,7 +440,7 @@ end;
 
 procedure TImpl_oxml_mXmlElement._SetFloatValue(const aValue: double);
 begin
-  FNode^.NodeValue := FloatToStr(aValue, FFormatSettings);
+  FNode^.Text := FloatToStr(aValue, FFormatSettings);
 end;
 
 function TImpl_oxml_mXmlElement._GetFloatValue: double;
@@ -449,9 +449,9 @@ var
   tempValue : double;
 begin
   Result := 0;
-  if FNode^.NodeValue <> '' then
+  if FNode^.Text <> '' then
   begin
-    tmp := FNode^.NodeValue;
+    tmp := FNode^.Text;
     if TryToConvertToDouble(tmp, tempValue) then
       Result := tempValue
     else
@@ -463,7 +463,7 @@ end;
 
 procedure TImpl_oxml_mXmlElement._SetIntegerValue(const aValue: integer);
 begin
-  FNode^.NodeValue := IntToStr(aValue);
+  FNode^.Text := IntToStr(aValue);
 end;
 
 function TImpl_oxml_mXmlElement._GetIntegerValue: integer;
@@ -472,9 +472,9 @@ var
   tempValue : integer;
 begin
   Result := 0;
-  if FNode^.NodeValue <> '' then
+  if FNode^.Text <> '' then
   begin
-    tmp := FNode^.NodeValue;
+    tmp := FNode^.Text;
     if TryToConvertToInteger(tmp, tempValue) then
       Result := tempValue
     else
