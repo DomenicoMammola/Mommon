@@ -24,36 +24,27 @@ uses
 type
   { TmDatabaseConnection }
 
-  TmDatabaseConnection = class
+  TmDatabaseConnection = class (TmDataManagerTransaction)
   private
     FConnectionInfo : TmDatabaseConnectionInfo;
+    FOwnsConnectionInfo : boolean;
 
     FImplementation : TmDatabaseConnectionImpl;
     procedure CreateImplementation;
   public
     constructor Create; overload;
-    constructor Create(const aConnectionInfo : TmDatabaseConnectionInfo); overload;
+    constructor Create(aConnectionInfo : TmDatabaseConnectionInfo; const aOwnsConnectionInfo: boolean = false); overload;
     destructor Destroy; override;
 
-    procedure Connect;
-    procedure Close;
+    procedure Connect; override;
+    procedure Close; override;
 
-    procedure StartTransaction;
-    procedure Commit;
-    procedure Rollback;
+    procedure StartTransaction; override;
+    procedure Commit; override;
+    procedure Rollback; override;
 
     property ConnectionInfo : TmDatabaseConnectionInfo read FConnectionInfo write FConnectionInfo;
-  end;
-
-  { TmDatabaseTransaction }
-
-  TmDatabaseTransaction = class(TmDataManagerTransaction)
-  strict private
-    FDatabaseConnection : TmDatabaseConnection;
-  public
-    constructor Create;
-
-    property DatabaseConnection : TmDatabaseConnection read FDatabaseConnection write FDatabaseConnection;
+    property OwnsConnectionInfo : boolean read FOwnsConnectionInfo write FOwnsConnectionInfo;
   end;
 
   { TmDatabaseConnectionsTandem }
@@ -63,11 +54,10 @@ type
     FOwnedConnection : TmDatabaseConnection;
     FSharedConnection : TmDatabaseConnection;
     FConnectionInfo : TmDatabaseConnectionInfo;
-    FDatabaseTransaction : TmDatabaseTransaction;
     procedure SetSharedConnection (aConnection : TmDatabaseConnection);
     procedure CreateOwnedConnectionIfNeeded;
   public
-    constructor Create(const aConnectionInfo : TmDatabaseConnectionInfo; aSharedTransaction : TmDatabaseTransaction);
+    constructor Create(const aConnectionInfo : TmDatabaseConnectionInfo; aSharedTransaction : TmDataManagerTransaction);
 
     destructor Destroy; override;
 
@@ -79,7 +69,6 @@ type
     procedure RollbackIfOwned;
 
     function Connection : TmDatabaseConnection;
-    function Transaction : TmDatabaseTransaction;
   end;
 
   { TmAbstractDatabaseCommand }
@@ -165,23 +154,22 @@ begin
   Result := _LastSQLScript;
 end;
 
-{ TmDatabaseTransaction }
-
-constructor TmDatabaseTransaction.Create;
-begin
-  FDatabaseConnection := nil;
-end;
 
 { TmDatabaseConnectionsTandem }
 
-constructor TmDatabaseConnectionsTandem.Create(const aConnectionInfo: TmDatabaseConnectionInfo; aSharedTransaction : TmDatabaseTransaction);
+constructor TmDatabaseConnectionsTandem.Create(const aConnectionInfo: TmDatabaseConnectionInfo; aSharedTransaction : TmDataManagerTransaction);
 begin
   FOwnedConnection := nil;
   FSharedConnection := nil;
-  FDatabaseTransaction := nil;
+
   FConnectionInfo := aConnectionInfo;
-  if Assigned(aSharedTransaction) and Assigned(aSharedTransaction.DatabaseConnection) then
-    Self.SetSharedConnection(aSharedTransaction.DatabaseConnection);
+  if Assigned(aSharedTransaction) then
+  begin
+    if  not (aSharedTransaction is TmDatabaseConnection) then
+      raise Exception.Create('Shared transaction is not a TmDatabaseConnection. Don''t know how to handle it.');
+
+    Self.SetSharedConnection(aSharedTransaction as TmDatabaseConnection);
+  end;
 end;
 
 procedure TmDatabaseConnectionsTandem.SetSharedConnection(aConnection: TmDatabaseConnection);
@@ -207,7 +195,6 @@ end;
 destructor TmDatabaseConnectionsTandem.Destroy;
 begin
   FreeAndNil(FOwnedConnection);
-  FreeAndNil(FDatabaseTransaction);
   inherited Destroy;
 end;
 
@@ -266,16 +253,6 @@ begin
     CreateOwnedConnectionIfNeeded;
     Result := FOwnedConnection;
   end;
-end;
-
-function TmDatabaseConnectionsTandem.Transaction: TmDatabaseTransaction;
-begin
-  if not Assigned(FDatabaseTransaction) then
-  begin
-    FDatabaseTransaction := TmDatabaseTransaction.Create;
-    FDatabaseTransaction.DatabaseConnection := Self.Connection;
-  end;
-  Result := FDatabaseTransaction;
 end;
 
 { TmAbstractDatabaseCommand }
@@ -498,18 +475,22 @@ end;
 constructor TmDatabaseConnection.Create;
 begin
   FImplementation := nil;
+  FOwnsConnectionInfo:= false;
 end;
 
-constructor TmDatabaseConnection.Create(const aConnectionInfo: TmDatabaseConnectionInfo);
+constructor TmDatabaseConnection.Create(aConnectionInfo: TmDatabaseConnectionInfo; const aOwnsConnectionInfo: boolean);
 begin
   Self.Create;
   FConnectionInfo := aConnectionInfo;
+  FOwnsConnectionInfo:= aOwnsConnectionInfo;
 end;
 
 destructor TmDatabaseConnection.Destroy;
 begin
   if Assigned(FImplementation) then
     FreeAndNil(FImplementation);
+  if FOwnsConnectionInfo then
+    FreeAndNil(FConnectionInfo);
   inherited Destroy;
 end;
 

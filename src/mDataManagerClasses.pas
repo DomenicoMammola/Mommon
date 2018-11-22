@@ -19,6 +19,12 @@ type
 
   TmDataManagerTransaction = class abstract
   public
+    procedure Connect; virtual; abstract;
+    procedure Close; virtual; abstract;
+
+    procedure StartTransaction; virtual; abstract;
+    procedure Commit; virtual; abstract;
+    procedure Rollback; virtual; abstract;
   end;
 
 implementation
