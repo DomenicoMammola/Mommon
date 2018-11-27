@@ -26,6 +26,7 @@ type
     procedure AddError (const aMessage: String);
     procedure AddWarning (const aMessage: String);
     procedure AddInfo (const aMessage: String);
+    procedure GetResultsAsStrings(aResults : TStringList);
   end;
 
 
@@ -43,6 +44,7 @@ type
     procedure AddError (const aMessage: String);
     procedure AddWarning (const aMessage: String);
     procedure AddInfo (const aMessage: String);
+    procedure GetResultsAsStrings(aResults : TStringList);
 
     property Messages : TStrings read GetMessages;
   end;
@@ -80,6 +82,12 @@ end;
 procedure TPerformedOperationResultsAsLog.AddInfo(const aMessage: String);
 begin
   FList.Append ('[INFO] ' + aMessage);
+end;
+
+procedure TPerformedOperationResultsAsLog.GetResultsAsStrings(aResults: TStringList);
+begin
+  aResults.Clear;
+  aResults.AddStrings(FList);
 end;
 
 end.

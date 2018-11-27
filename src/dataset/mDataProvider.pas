@@ -32,9 +32,10 @@ type
   protected
     FMap : TmStringDictionary;
     procedure InternalAdd(aDatum : TObject);
-    procedure InternalRemove(aDatum : TObject);
+    procedure InternalRemove(aDatum : TObject); overload;
+    procedure InternalRemove(const aIndex: integer); overload;
     function InternalFindByString (aStringKey : string) : TObject;
-    function InternalGetDatum (aIndex : integer) : TObject;
+    function InternalGetDatum (const aIndex : integer) : TObject;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -66,7 +67,13 @@ end;
 procedure TmDataProvider.InternalRemove(aDatum: TObject);
 begin
   FList.Remove(aDatum);
-  FMustRebuildIndex:=true;
+  FMustRebuildIndex:= true;
+end;
+
+procedure TmDataProvider.InternalRemove(const aIndex: integer);
+begin
+  FList.Delete(aIndex);
+  FMustRebuildIndex:= true;
 end;
 
 function TmDataProvider.InternalFindByString(aStringKey: string): TObject;
@@ -77,7 +84,7 @@ begin
   FMustRebuildIndex:=false;
 end;
 
-function TmDataProvider.InternalGetDatum(aIndex: integer): TObject;
+function TmDataProvider.InternalGetDatum(const aIndex: integer): TObject;
 begin
   Result := nil;
   if aIndex < FList.Count then
