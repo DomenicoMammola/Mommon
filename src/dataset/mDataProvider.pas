@@ -32,8 +32,8 @@ type
   protected
     FMap : TmStringDictionary;
     procedure InternalAdd(aDatum : TObject);
-    procedure InternalRemove(aDatum : TObject); overload;
-    procedure InternalRemove(const aIndex: integer); overload;
+    procedure InternalRemove(aDatum : TObject);
+    procedure InternalDelete(const aIndex: integer);
     function InternalFindByString (aStringKey : string) : TObject;
     function InternalGetDatum (const aIndex : integer) : TObject;
   public
@@ -70,7 +70,7 @@ begin
   FMustRebuildIndex:= true;
 end;
 
-procedure TmDataProvider.InternalRemove(const aIndex: integer);
+procedure TmDataProvider.InternalDelete(const aIndex: integer);
 begin
   FList.Delete(aIndex);
   FMustRebuildIndex:= true;
