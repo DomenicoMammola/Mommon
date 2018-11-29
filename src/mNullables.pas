@@ -237,6 +237,7 @@ type
       procedure Assign (const aSource : TNullableDateTimeRecord); overload;
       function AsVariant: Variant; override;
       function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
+      function YearOf: variant;
 
       class function StringToVariant(const aValue : String): Variant;
       class function VariantToString(const aValue: Variant; const aShowTime: boolean): String;
@@ -442,7 +443,7 @@ type
 implementation
 
 uses
-  SysUtils {$IFDEF FPC}, LazUtf8{$ENDIF};
+  sysutils, dateutils {$IFDEF FPC}, LazUtf8{$ENDIF};
 
 { TNullableValue }
 
@@ -2083,6 +2084,14 @@ begin
       Self.InternalSetValue(tmpDate);
   end;
   SetTagChanged(SavedIsUnassigned or Result or GetTagChanged);
+end;
+
+function TNullableDateTime.YearOf: variant;
+begin
+  if Self.NotNull then
+    Result := dateutils.YearOf(Self.Value)
+  else
+    Result := null;
 end;
 
 class function TNullableDateTime.StringToVariant(const aValue: String): Variant;
