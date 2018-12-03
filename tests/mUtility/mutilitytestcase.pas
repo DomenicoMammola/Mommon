@@ -183,6 +183,9 @@ begin
   CheckFalse(IsContainerCodeValid('CSU3054383', error));
   CheckFalse(IsContainerCodeValid('CS2U3054383', error));
   CheckFalse(IsContainerCodeValid('CSQU30A4383', error));
+  CheckFalse(IsContainerCodeValid('CSQU 30A438', error));
+  CheckFalse(IsContainerCodeValid('CSQU30A438 ', error));
+  CheckFalse(IsContainerCodeValid('CSQU30A4.38', error));
 end;
 
 procedure TTestCaseUtility.TestISO6346MRNs;

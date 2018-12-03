@@ -53,7 +53,7 @@ function IsMRNCodeValid(const aMRNCode: String; out aErrorMessage: String): bool
 implementation
 
 uses
-  math, sysutils;
+  math, sysutils, character;
 
 var
   dictionary: Array['A'..'Z'] of Integer;
@@ -105,7 +105,7 @@ end;
 
 function IsContainerCodeValid(const aContainerCode: String; out aErrorMessage: String): boolean;
 var
-  OwnerCode, CategoryIdentifier, SerialNumberStr, CheckDigitStr : string;
+  OwnerCode, CategoryIdentifier : string;
   GoodCheckDigit : integer;
   i : integer;
 begin
@@ -134,22 +134,23 @@ begin
     exit;
   end;
 
-  SerialNumberStr:= Copy(aContainerCode, 5, 6);
-  if not IsNumeric(SerialNumberStr, false) then
+  for i := 5 to 10 do
   begin
-    aErrorMessage:= SErrorContainerWrongSerialNumber;
-    exit;
+    if not IsDigit(aContainerCode[i]) then
+    begin
+      aErrorMessage:= SErrorContainerWrongSerialNumber;
+      exit;
+    end;
   end;
 
-  CheckDigitStr:= Copy(aContainerCode, 11, 1);
-  if not IsNumeric(CheckDigitStr, false) then
+  if not IsDigit(aContainerCode[11]) then
   begin
     aErrorMessage:= SErrorContainerCheckDigitNotANumber;
     exit;
   end;
 
   GoodCheckDigit:= CalculateContainerCheckDigit(aContainerCode);
-  if StrToInt(CheckDigitStr) <> GoodCheckDigit then
+  if StrToInt(aContainerCode[11]) <> GoodCheckDigit then
   begin
     aErrorMessage:= SErrorContainerWrongCheckDigit + IntToStr(GoodCheckDigit) + '.';
     exit;
