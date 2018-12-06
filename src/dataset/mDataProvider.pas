@@ -37,7 +37,7 @@ type
     function InternalFindByString (aStringKey : string) : TObject;
     function InternalGetDatum (const aIndex : integer) : TObject;
   public
-    constructor Create; virtual;
+    constructor Create(const aOwnsObject : boolean = true); virtual;
     destructor Destroy; override;
     procedure Clear;
     function Count : integer;
@@ -113,9 +113,9 @@ begin
   aFieldsForLookup.Clear;
 end;
 
-constructor TmDataProvider.Create;
+constructor TmDataProvider.Create(const aOwnsObject : boolean = true);
 begin
-  FList := TObjectList.Create(true);
+  FList := TObjectList.Create(aOwnsObject);
   FMap := TmStringDictionary.Create;
   FMustRebuildIndex:= true;
 end;

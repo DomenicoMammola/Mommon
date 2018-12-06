@@ -84,7 +84,7 @@ type
     FTrueValue : TBooleanDatum;
     FFalseValue : TBooleanDatum;
   public
-    constructor Create; override;
+    constructor Create(const aOwnsObject : boolean = true); override;
     destructor Destroy; override;
     procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String); override;
     function GetKeyFieldName : String; override;
@@ -114,9 +114,9 @@ end;
 
 { TBooleanDatasetDataProvider }
 
-constructor TBooleanDatasetDataProvider.Create;
+constructor TBooleanDatasetDataProvider.Create(const aOwnsObject : boolean = true);
 begin
-  inherited;
+  inherited Create(aOwnsObject);
   FTrueValue := TBooleanDatum.Create(true);
   FFalseValue := TBooleanDatum.Create(false);
   Self.InternalAdd(FTrueValue);
