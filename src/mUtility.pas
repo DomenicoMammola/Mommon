@@ -17,7 +17,7 @@ interface
 {$ENDIF}
 
 uses
-  Classes, SysUtils, Variants, {$ifdef windows}Windows, {$ifdef fpc}InterfaceBase,{$endif} Forms,{$endif}
+  Classes, SysUtils, Variants, {$ifdef windows}Windows, {$ifdef fpc}InterfaceBase,{$endif} {$ifndef console}Forms,{$endif}{$endif}
   mIntList, mDoubleList;
 
 const
@@ -86,7 +86,9 @@ function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
 function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
 function GetOSUser : string;
+{$ifndef console}
 procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
+{$endif}
 // http://forum.codecall.net/topic/69184-solved-file-association-and-the-registry/
 function RegisterDefaultApplication(const aFullPathExe : string; const aFileExtension : string; var aError : string): boolean;
 
@@ -1189,6 +1191,7 @@ begin
     Result := SysUtils.GetEnvironmentVariable('USER');
 end;
 
+{$ifndef console}
 procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
 begin
   {$ifdef windows}
@@ -1197,6 +1200,7 @@ begin
     FlashWindow({$ifdef fpc}WidgetSet.AppHandle{$else}Application.Handle{$endif}, True);
   {$endif}
 end;
+{$endif}
 
 function RegisterDefaultApplication(const aFullPathExe: string; const aFileExtension: string; var aError : string) : boolean;
 {$ifdef windows}

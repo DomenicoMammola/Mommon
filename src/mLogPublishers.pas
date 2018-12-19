@@ -17,13 +17,15 @@ unit mLogPublishers;
 interface
 
 uses
-  Forms, StdCtrls, Controls, SysUtils,
+  {$ifndef console}Forms,{$endif}
+  StdCtrls, Controls, SysUtils,
   mLog;
 
 const
   SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER = 'showlog';
 
 type
+  {$ifndef console}
   TmMemoPublisher = class (TmLogPublisher)
   strict private
     FCurrentLevel : TmLogMessageLevel;
@@ -39,6 +41,7 @@ type
 
     property CurrentLevel : TmLogMessageLevel read FCurrentLevel write FCurrentLevel;
   end;
+  {$endif}
 
   TmFilePublisher = class (TmLogPublisher)
   strict private
@@ -60,7 +63,7 @@ type
 
 implementation
 
-{ TmMemoPublishe }
+{$ifndef console}
 
 function TmMemoPublisher.ActInsideMainThread: boolean;
 begin
@@ -98,6 +101,7 @@ begin
   if (FForm <> nil) and (FMemo <> nil) then
     FMemo.Lines.Append(Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
 end;
+{$endif}
 
 { TmFilePublisher }
 

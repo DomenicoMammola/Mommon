@@ -15,12 +15,11 @@ unit mVirtualDataSet;
 interface
 
 uses
-  Dialogs,
-  Classes, SysUtils, Variants, contnrs,
+  Classes, SysUtils, Variants, contnrs, Forms,
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
-  Forms, DB, MemDataSet, BufDataset,
+  DB, MemDataSet, BufDataset,
   mDataProviderFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
   mFilter, mSummary;
 

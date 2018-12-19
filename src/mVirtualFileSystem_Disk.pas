@@ -16,7 +16,7 @@ unit mVirtualFileSystem_Disk;
 interface
 
 uses
-  Classes, Forms, Controls,
+  Classes,
   mVirtualFileSystem, mUtility;
 
 type

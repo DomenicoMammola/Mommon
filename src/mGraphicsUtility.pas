@@ -17,7 +17,7 @@ unit mGraphicsUtility;
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows,{$ELSE}LCLIntf, LCLType,{$ENDIF}  Graphics, Types, Controls;
+  {$IFDEF WINDOWS}Windows,{$ELSE}LCLIntf, LCLType,{$ENDIF} {$IFNDEF CONSOLE} Forms,{$ENDIF} Graphics, Types, Controls;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
@@ -38,7 +38,7 @@ type
 implementation
 
 uses
-  SysUtils, Math, Forms {$IFDEF FPC},graphutil{$ENDIF};
+  SysUtils, Math {$IFDEF FPC},graphutil{$ENDIF};
 
 {$IFDEF FPC}
 const

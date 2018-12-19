@@ -46,7 +46,9 @@ implementation
 
 uses
   {$IFDEF WINDOWS}windows,{$ENDIF} Dos, contnrs,
+  {$IFNDEF CONSOLE}
   mExceptionLogForm,
+  {$ENDIF}
   mUtility, mLazarusVersionInfo, mThreadsBaseClasses;
 
 type
@@ -166,7 +168,9 @@ end;
 procedure DumpExceptionCallStack(Sender: TObject; E: Exception; out aWantsToShutDown : boolean);
 var
   Report: string;
+  {$IFNDEF CONSOLE}
   Dlg : TExceptionLogForm;
+  {$ENDIF}
   i : integer;
   tmpTitle, tmpTrace: string;
 begin
@@ -209,6 +213,8 @@ begin
     end;
   end;
 
+  {$IFDEF CONSOLE}
+  {$ELSE}
   Dlg := TExceptionLogForm.Create(nil);
   try
     Dlg.Init(Report);
@@ -217,6 +223,7 @@ begin
   finally
     Dlg.Free;
   end;
+  {$ENDIF}
 end;
 
 function ExceptionLogConfiguration: TExceptionLogConfiguration;

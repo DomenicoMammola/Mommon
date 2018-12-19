@@ -16,7 +16,7 @@ unit mVirtualFileSystem_FTP;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls,
+  Classes, SysUtils, {$IFNDEF CONSOLE}Controls, Forms, {$ENDIF}
 
   IdTCPClient, IdFTP, IdFTPCommon,
 
@@ -100,12 +100,16 @@ var
   tmpFile : TmFile;
   tmpFileType : TFTPFileType;
   tmpFileName : string;
+  {$IFNDEF CONSOLE}
   tmpCursor : TCursor;
+  {$ENDIF}
 begin
   if aIsGUIApplication then
   begin
+    {$IFNDEF CONSOLE}
     tmpCursor := Screen.Cursor;
     Screen.Cursor:= crHourGlass;
+    {$ENDIF}
   end;
   try
     FRoots.Clear;
@@ -154,8 +158,10 @@ begin
       FTPClient.Free;
     end;
   finally
+    {$IFNDEF CONSOLE}
     if aIsGUIApplication then
       Screen.Cursor:= tmpCursor;
+    {$ENDIF}
   end;
 end;
 

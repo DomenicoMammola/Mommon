@@ -17,7 +17,7 @@ unit mDataProvider;
 interface
 
 uses
-  Contnrs, Dialogs, Classes,
+  Contnrs, Classes,
   mDataProviderInterfaces, mDataProviderFieldDefs, mMaps;
 
 type
