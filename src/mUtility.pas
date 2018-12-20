@@ -17,7 +17,7 @@ interface
 {$ENDIF}
 
 uses
-  Classes, SysUtils, Variants, {$ifdef windows}Windows, {$ifdef fpc}InterfaceBase,{$endif} {$ifndef console}Forms,{$endif}{$endif}
+  Classes, SysUtils, Variants, {$ifdef windows}Windows, {$ifdef fpc}{$ifndef console}InterfaceBase,{$endif}{$endif} {$ifndef console}Forms,{$endif}{$endif}
   mIntList, mDoubleList;
 
 const

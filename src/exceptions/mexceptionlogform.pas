@@ -13,6 +13,10 @@ unit mExceptionLogForm;
 
 interface
 
+{$IFDEF CONSOLE}
+** this unit should not be compiled in a console application **
+{$ENDIF}
+
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
   StdCtrls, LCLIntf, ExtCtrls, Clipbrd;

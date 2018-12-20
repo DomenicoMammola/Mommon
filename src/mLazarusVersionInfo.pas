@@ -47,8 +47,10 @@ Function GetCompilerInfo: String;
 Function GetTargetInfo: String;
 Function GetOS: String;
 Function GetCPU: String;
+{$IFNDEF CONSOLE}
 Function GetLCLVersion: String;
 Function GetWidgetSet: String;
+{$ENDIF}
 
 // Exposing resource and version info compiled into exe
 Function GetResourceStrings(oStringList : TStringList) : Boolean;
@@ -59,6 +61,7 @@ Function GetProductVersion: String;
 
 function CompareFileVersion (const aVer1, aVer2: TFileProductVersion): integer;
 
+{$IFNDEF CONSOLE}
 Const
   WIDGETSET_GTK        = 'GTK widget set';
   WIDGETSET_GTK2       = 'GTK 2 widget set';
@@ -68,12 +71,16 @@ Const
   WIDGETSET_QT         = 'QT widget set';
   WIDGETSET_fpGUI      = 'fpGUI widget set';
   WIDGETSET_OTHER      = 'Other gui';
+{$ENDIF}
 
 Implementation
 
 Uses
-  resource, versionresource, LCLVersion, InterfaceBase, LCLPlatformDef;
+  resource, versionresource
+  {$IFNDEF CONSOLE}, LCLVersion, InterfaceBase, LCLPlatformDef{$ENDIF}
+  ;
 
+{$IFNDEF CONSOLE}
 function GetWidgetSet: String;
 Begin
   Case WidgetSet.LCLPlatform Of
@@ -88,6 +95,7 @@ Begin
     Result:=WIDGETSET_OTHER;
   End;
 End;
+{$ENDIF}
 
 function GetCompilerInfo: String;
 begin
@@ -109,10 +117,12 @@ begin
   Result := {$I %FPCTARGETCPU%};
 end;
 
+{$IFNDEF CONSOLE}
 function GetLCLVersion: String;
 Begin
   Result := 'LCL '+lcl_version;
 End;
+{$ENDIF}
 
 function GetCompiledDate: String;
 Var

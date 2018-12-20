@@ -14,10 +14,15 @@ unit mGraphicsUtility;
   {$MODE DELPHI}
 {$ENDIF}
 
+{$IFDEF CONSOLE}
+** This unit should not be compiled in a console application **
+{$ENDIF}
+
+
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows,{$ELSE}LCLIntf, LCLType,{$ENDIF} {$IFNDEF CONSOLE} Forms,{$ENDIF} Graphics, Types, Controls;
+  {$IFDEF WINDOWS}Windows,{$ELSE} LCLIntf, LCLType,{$ENDIF} Forms, Controls, Graphics, Types;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);

@@ -15,7 +15,7 @@ interface
 
 uses
   Classes, contnrs, syncobjs, SysUtils,
-  {$ifdef lcl}{$ifndef console}Forms, {$endif}Controls,{$endif}
+  {$ifdef lcl}{$ifndef console}Forms, Controls, {$endif}{$endif}
   mUtility, mProgress, mThreadsBaseClasses;
 
 type

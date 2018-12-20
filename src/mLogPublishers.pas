@@ -17,8 +17,8 @@ unit mLogPublishers;
 interface
 
 uses
-  {$ifndef console}Forms,{$endif}
-  StdCtrls, Controls, SysUtils,
+  {$ifndef console}Forms, StdCtrls, Controls,{$endif}
+  SysUtils,
   mLog;
 
 const
