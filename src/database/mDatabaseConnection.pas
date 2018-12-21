@@ -91,6 +91,7 @@ type
     function Prepared : boolean;
     function ParamByName(const aValue: string): TmQueryParameter;
     procedure SetSQL(const aValue : string);
+    procedure SaveSQLToFile(const aFileName : String);
 
     property DatabaseConnection : TmDatabaseConnection read FDatabaseConnection write FDatabaseConnection;
     // property SQL : TStringList read FSQL;
@@ -338,6 +339,11 @@ procedure TmAbstractDatabaseCommand.SetSQL(const aValue: string);
 begin
   Self.FSQL.Clear;
   Self.FSQL.Append(aValue);
+end;
+
+procedure TmAbstractDatabaseCommand.SaveSQLToFile(const aFileName: String);
+begin
+  FSQL.SaveToFile(aFileName);
 end;
 
 { TmDatabaseCommand }
