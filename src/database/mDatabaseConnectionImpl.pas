@@ -71,6 +71,8 @@ type
     procedure Next; virtual; abstract;
     function Eof : boolean; virtual; abstract;
     function AsDataset : TDataset; virtual; abstract;
+    function GetUnidirectional : boolean; virtual; abstract;
+    procedure SetUnidirectional(const aValue : boolean); virtual; abstract;
   end;
 
   TmDatabaseQueryImplClass = class of TmDatabaseQueryImpl;

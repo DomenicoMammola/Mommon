@@ -82,6 +82,8 @@ type
     procedure SetParamValue(aParam : TmQueryParameter); override;
     function GetParam (aIndex : integer) : TParam; override;
     function Prepared : boolean; override;
+    function GetUnidirectional : boolean; override;
+    procedure SetUnidirectional(const aValue : boolean); override;
   end;
 
   { TSdacDatabaseCommandImpl }
@@ -245,6 +247,7 @@ end;
 constructor TSqldbDatabaseQueryImpl.Create;
 begin
   FQuery := TSQLQuery.Create(nil);
+  FQuery.UniDirectional:= true;
   FPrepared := false;
 end;
 
@@ -357,6 +360,16 @@ end;
 function TSqldbDatabaseQueryImpl.Prepared: boolean;
 begin
   Result := FPrepared;
+end;
+
+function TSqldbDatabaseQueryImpl.GetUnidirectional: boolean;
+begin
+  Result := FQuery.UniDirectional;
+end;
+
+procedure TSqldbDatabaseQueryImpl.SetUnidirectional(const aValue: boolean);
+begin
+  FQuery.UniDirectional:= aValue;
 end;
 
 { TSqldbDatabaseConnectionImpl }

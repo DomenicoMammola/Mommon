@@ -18,7 +18,7 @@ unit mDatabaseConnection;
 interface
 
 uses
-  Classes, DB,
+  Classes, DB, sysutils,
   mDatabaseConnectionClasses, mDatabaseConnectionImpl, mDataManagerClasses;
 
 type
@@ -101,6 +101,9 @@ type
   { TmDatabaseQuery }
 
   TmDatabaseQuery = class (TmAbstractDatabaseCommand)
+  strict private
+    function GetUnidirectional: boolean;
+    procedure SetUnidirectional(const AValue: boolean);
   protected
     procedure CreateImplementation; override;
   public
@@ -113,6 +116,7 @@ type
     procedure Next;
     function Eof : boolean;
     function AsDataset : TDataset;
+    property Unidirectional : boolean read GetUnidirectional write SetUnidirectional;
   end;
 
   { TmDatabaseCommand }
@@ -132,7 +136,7 @@ function GetLastSQLScript (var aTitle: string) : string;
 implementation
 
 uses
-  SysUtils, syncobjs,
+  syncobjs,
   mDatabaseConnectionImplRegister, mExceptionLog;
 
 var
@@ -167,7 +171,7 @@ begin
   if Assigned(aSharedTransaction) then
   begin
     if  not (aSharedTransaction is TmDatabaseConnection) then
-      raise Exception.Create('Shared transaction is not a TmDatabaseConnection. Don''t know how to handle it.');
+      raise TmDataConnectionException.Create('Shared transaction is not a TmDatabaseConnection. Don''t know how to handle it.');
 
     Self.SetSharedConnection(aSharedTransaction as TmDatabaseConnection);
   end;
@@ -178,7 +182,7 @@ begin
   if Assigned(aConnection) then
   begin
     if Assigned(FOwnedConnection) then
-      raise Exception.Create('Owned connection already created!');
+      raise TmDataConnectionException.Create('Owned connection already created!');
     FSharedConnection := aConnection;
   end;
 end;
@@ -353,7 +357,7 @@ begin
   if not Assigned(FImplementation) then
   begin
     if not Assigned(FDatabaseConnection) then
-      raise Exception.Create('No database connection was associated to the TmDatabaseCommand');
+      raise TmDataConnectionException.Create('No database connection was associated to the TmDatabaseCommand');
     FImplementation := GetDataConnectionClassesRegister.GetCommandImpl(FDatabaseConnection.FImplementation.GetName);
     FImplementation.DatabaseConnectionImpl := FDatabaseConnection.FImplementation;
   end;
@@ -389,12 +393,29 @@ end;
 
 { TmDatabaseQuery }
 
+function TmDatabaseQuery.GetUnidirectional: boolean;
+begin
+  CreateImplementation;
+  Result := (FImplementation as TmDatabaseQueryImpl).GetUnidirectional;
+end;
+
+procedure TmDatabaseQuery.SetUnidirectional(const AValue: boolean);
+begin
+  CreateImplementation;
+  (FImplementation as TmDatabaseQueryImpl).SetUnidirectional(aValue);
+end;
+
 procedure TmDatabaseQuery.CreateImplementation;
 begin
-  if not Assigned(FImplementation) then
+  if not Assigned(FImplementation)  then
   begin
-    FImplementation := GetDataConnectionClassesRegister.GetQueryImpl(FDatabaseConnection.FImplementation.GetName);
-    FImplementation.DatabaseConnectionImpl := FDatabaseConnection.FImplementation;
+    if Assigned(FDatabaseConnection) then
+    begin
+      FImplementation := GetDataConnectionClassesRegister.GetQueryImpl(FDatabaseConnection.FImplementation.GetName);
+      FImplementation.DatabaseConnectionImpl := FDatabaseConnection.FImplementation;
+    end
+    else
+      raise TmDataConnectionException.Create('Cannot create an implementation for TmDatabaseQuery if no connection is associated to the query');
   end;
 end;
 
