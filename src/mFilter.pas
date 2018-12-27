@@ -18,7 +18,7 @@ interface
 
 uses
   Contnrs, Classes, Variants, SysUtils,
-  mUtility, mFilterOperators, StrHashMap;
+  mUtility, mFilterOperators, mMaps;
 
 type
   TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtTime, fdtInteger, fdtFloat);
@@ -51,7 +51,7 @@ type
   TmFilterEvaluator = class
   strict private
     FValuesAsStrings : TStringList;
-    FValuesDictionary: TStringHashMap;
+    FValuesDictionary: TmStringDictionary;
     FCurrentFilter : TmFilter;
     FMinStrValue, FMaxStrValue : String;
     FMinDoubleValue, FMaxDoubleValue : double;
@@ -169,7 +169,7 @@ begin
   if FCurrentFilter.FilterOperator = foIn then
   begin
     FValuesAsStrings := TStringList.Create;
-    FValuesDictionary := TStringHashMap.Create();
+    FValuesDictionary := TmStringDictionary.Create();
     ConvertVariantToStringList(FCurrentFilter.Value, FValuesAsStrings);
     for i := 0 to FValuesAsStrings.Count - 1 do
     begin
@@ -193,9 +193,9 @@ begin
     end else if aFilter.DataType = fdtDate then
     begin
       tmpDouble := VarAsType(FCurrentFilter.Value[start], vardate);
-      FMinDoubleValue:= round(tmpDouble);
+      FMinDoubleValue:= trunc(tmpDouble);
       tmpDouble := VarAsType(FCurrentFilter.Value[stop], vardate);
-      FMaxDoubleValue:= round(tmpDouble);
+      FMaxDoubleValue:= trunc(tmpDouble);
     end else if aFilter.DataType = fdtTime then
     begin
       tmpDouble := VarAsType(FCurrentFilter.Value[start], vardate);
