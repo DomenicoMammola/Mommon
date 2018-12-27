@@ -858,13 +858,13 @@ begin
     for i := VarArrayLowBound(aValue, 1) to VarArrayHighBound(aValue, 1) do
     begin
       tmpDate := VarAsType(aValue[i], vardate);
-      aList.Add(round(tmpDate));
+      aList.Add(trunc(tmpDate));
     end;
   end
   else
   begin
     tmpDate := VarAsType(aValue, vardate);
-    aList.Add(round(tmpDate));
+    aList.Add(trunc(tmpDate));
   end;
 end;
 
