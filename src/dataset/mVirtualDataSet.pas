@@ -19,7 +19,7 @@ uses
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
-  DB, MemDataSet, BufDataset,
+  DB, BufDataset,
   mDataProviderFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
   mFilter, mSummary;
 
