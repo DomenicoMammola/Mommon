@@ -173,7 +173,8 @@ begin
     if  not (aSharedTransaction is TmDatabaseConnection) then
       raise TmDataConnectionException.Create('Shared transaction is not a TmDatabaseConnection. Don''t know how to handle it.');
 
-    Self.SetSharedConnection(aSharedTransaction as TmDatabaseConnection);
+    if (aSharedTransaction as TmDatabaseConnection).ConnectionInfo.DatabaseName = FConnectionInfo.DatabaseName then
+      Self.SetSharedConnection(aSharedTransaction as TmDatabaseConnection);
   end;
 end;
 
