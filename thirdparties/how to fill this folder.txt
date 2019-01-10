@@ -18,11 +18,20 @@ in folder:
 Indy10
 
 http://www.indyproject.org/Sockets/Download/svn.EN.aspx
-rev.5446
+rev.5480
 
 https://indy.fulgan.com/ZIP/
 
 to remove "voluntary" memory leaks : http://forum.lazarus.freepascal.org/index.php?topic=14556.0
+Set:
+{$DEFINE FREE_ON_FINAL}
+{.$UNDEF FREE_ON_FINAL}
+in:
+Indy10\Core\IdCompilerDefines.inc
+Indy10\FCL\IdCompilerDefines.inc
+Indy10\Protocols\IdCompilerDefines.inc
+Indy10\SuperCore\IdCompilerDefines.inc
+Indy10\System\IdCompilerDefines.inc
 
 
 -----------------------------------------------------------
