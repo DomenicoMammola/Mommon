@@ -55,6 +55,12 @@
 {.$DEFINE USE_MADEXCEPT}
 {$UNDEF USE_MADEXCEPT}
 
+// $DEFINE the following if LeakCheck has been installed manually in
+// BDS 2005 or earlier (System.RegisterExpectedMemoryLeak() was introduced
+// in BDS 2006)
+{.$DEFINE USE_LEAKCHECK}
+{$UNDEF USE_LEAKCHECK}
+
 // Make sure the following are $DEFINE'd only for Delphi/C++Builder 2009 onwards
 // as specified further below.  The VCL is fully Unicode, where the 'String'
 // type maps to System.UnicodeString, not System.AnsiString anymore
@@ -71,6 +77,10 @@
 {$DEFINE HAS_PAnsiChar}
 {$UNDEF HAS_PPAnsiChar}
 {$UNDEF NO_ANSI_TYPES}
+
+// Make sure the following are $DEFINE'd only for suitable environments
+// as specified further below.  Delphi/C++Builder Mobile/NextGen compilers
+// use ARC for TObject life time management.
 {$UNDEF USE_MARSHALLED_PTRS}
 {$UNDEF HAS_MarshaledAString}
 {$UNDEF USE_OBJECT_ARC}
@@ -348,31 +358,41 @@
 
   //Delphi & CBuilder 10.0 Seattle (Aitana)
   {$IFDEF VER300}
-    {$DEFINE VCL_10_0_SEATTLE}
+    {$DEFINE VCL_10_0}
     {$IFDEF CBUILDER}
-      {$DEFINE CBUILDER_VCL_10_0_SEATTLE}
+      {$DEFINE CBUILDER_VCL_10_0}
     {$ELSE}
-      {$DEFINE DELPHI_VCL_10_0_SEATTLE}
+      {$DEFINE DELPHI_VCL_10_0}
     {$ENDIF}
   {$ENDIF}
 
   //Delphi & CBuilder 10.1 Berlin (BigBen)
   {$IFDEF VER310}
-    {$DEFINE VCL_10_1_BERLIN}
+    {$DEFINE VCL_10_1}
     {$IFDEF CBUILDER}
-      {$DEFINE CBUILDER_10_1_BERLIN}
+      {$DEFINE CBUILDER_10_1}
     {$ELSE}
-      {$DEFINE DELPHI_10_1_BERLIN}
+      {$DEFINE DELPHI_10_1}
     {$ENDIF}
   {$ENDIF}
 
   //Delphi & CBuilder 10.2 Tokyo (Godzilla)
   {$IFDEF VER320}
-    {$DEFINE VCL_10_2_TOKYO}
+    {$DEFINE VCL_10_2}
     {$IFDEF CBUILDER}
-      {$DEFINE CBUILDER_10_2_TOKYO}
+      {$DEFINE CBUILDER_10_2}
     {$ELSE}
-      {$DEFINE DELPHI_10_2_TOKYO}
+      {$DEFINE DELPHI_10_2}
+    {$ENDIF}
+  {$ENDIF}
+
+  //Delphi & CBuilder 10.3 Rio (Carnival)
+  {$IFDEF VER330}
+    {$DEFINE VCL_10_3}
+    {$IFDEF CBUILDER}
+      {$DEFINE CBUILDER_10_3}
+    {$ELSE}
+      {$DEFINE DELPHI_10_3}
     {$ENDIF}
   {$ENDIF}
 
@@ -674,27 +694,35 @@
 
 // end FPC
 
-{$IFDEF VCL_10_2_TOKYO}
-  {$DEFINE VCL_10_2_TOKYO_OR_ABOVE}
+{$IFDEF VCL_10_3}
+  {$DEFINE VCL_10_3_OR_ABOVE}
 {$ENDIF}
 
-{$IFDEF VCL_10_2_TOKYO_OR_ABOVE}
-  {$DEFINE VCL_10_1_BERLIN_OR_ABOVE}
+{$IFDEF VCL_10_3_OR_ABOVE}
+  {$DEFINE VCL_10_2_OR_ABOVE}
 {$ELSE}
-  {$IFDEF VCL_10_1_BERLIN}
-    {$DEFINE VCL_10_1_BERLIN_OR_ABOVE}
+  {$IFDEF VCL_10_2}
+    {$DEFINE VCL_10_2_OR_ABOVE}
   {$ENDIF}
 {$ENDIF}
 
-{$IFDEF VCL_10_1_BERLIN_OR_ABOVE}
-  {$DEFINE VCL_10_0_SEATTLE_OR_ABOVE}
+{$IFDEF VCL_10_2_OR_ABOVE}
+  {$DEFINE VCL_10_1_OR_ABOVE}
 {$ELSE}
-  {$IFDEF VCL_10_0_SEATTLE}
-    {$DEFINE VCL_10_0_SEATTLE_OR_ABOVE}
+  {$IFDEF VCL_10_1}
+    {$DEFINE VCL_10_1_OR_ABOVE}
   {$ENDIF}
 {$ENDIF}
 
-{$IFDEF VCL_10_0_SEATTLE_OR_ABOVE}
+{$IFDEF VCL_10_1_OR_ABOVE}
+  {$DEFINE VCL_10_0_OR_ABOVE}
+{$ELSE}
+  {$IFDEF VCL_10_0}
+    {$DEFINE VCL_10_0_OR_ABOVE}
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF VCL_10_0_OR_ABOVE}
   {$DEFINE VCL_XE8_OR_ABOVE}
 {$ELSE}
   {$IFDEF VCL_XE8}
@@ -1080,7 +1108,6 @@
     {$DEFINE HAS_TCharacter}
     {$DEFINE HAS_InterlockedCompareExchangePointer}
     {$DEFINE HAS_WIDE_TCharArray}
-    {$DEFINE HAS_UNIT_AnsiStrings}
     {$DEFINE HAS_PUInt64}
     {$IFDEF VCL_2009}
       // TODO: need to differentiate between RTM and Update 1
@@ -1129,6 +1156,7 @@
   {$DEFINE HAS_TFormatSettings_Object}
   {$DEFINE HAS_LocaleCharsFromUnicode}
   {$DEFINE HAS_UnicodeFromLocaleChars}
+  {$DEFINE HAS_PLongBool}
   {$DEFINE HAS_PVOID}
   {$DEFINE HAS_ULONG64}
   {$DEFINE HAS_TEncoding_GetEncoding_ByEncodingName}
@@ -1198,22 +1226,27 @@
   {.$DEFINE HAS_ComponentPlatformsAttribute_WinIoT32}
 {$ENDIF}
 
-{$IFDEF VCL_10_0_SEATTLE_OR_ABOVE}
+{$IFDEF VCL_10_0_OR_ABOVE}
   {$IFDEF ANDROID}
     {$DEFINE HAS_TAndroidHelper}
   {$ENDIF}
 {$ENDIF}
 
-{$IFDEF VCL_10_1_BERLIN_OR_ABOVE}
+{$IFDEF VCL_10_1_OR_ABOVE}
   {$DEFINE HAS_DIRECTIVE_HPPEMIT_LEGACYHPP}
   {$DEFINE HAS_TStrings_AddPair}
 {$ENDIF}
 
-{$IFDEF VCL_10_2_TOKYO_OR_ABOVE}
+{$IFDEF VCL_10_2_OR_ABOVE}
   {.$WARN IMPLICIT_INTEGER_CAST_LOSS OFF}
   {.$WARN IMPLICIT_CONVERSION_LOSS OFF}
   {.$WARN COMBINING_SIGNED_UNSIGNED64 OFF}
   {$DEFINE HAS_STATIC_TThread_ForceQueue}
+  // In Delphi 10.2 Tokyo, TThread.ForceQueue() is broken on Android, the
+  // passed in procedure is called immediately instead of being delayed!
+  {$IFDEF ANDROID}
+    {$DEFINE BROKEN_TThread_ForceQueue}
+  {$ENDIF}
 {$ENDIF}
 
 // Delphi XE+ cross-compiling
@@ -1405,8 +1438,8 @@
   {$UNDEF HAS_AnsiChar}
   {$UNDEF HAS_PAnsiChar}
   {$UNDEF HAS_PPAnsiChar}
-  {$UNDEF HAS_UNIT_AnsiStrings}
   {$UNDEF HAS_AnsiStrings_StrPLCopy}
+  {$UNDEF HAS_AnsiStrings_StrLen}
 {$ENDIF}
 
 {$IFDEF WIN32}
@@ -1417,9 +1450,9 @@
 {$ENDIF}
 
 {$IFDEF WIN32_OR_WIN64}
-  {$DEFINE USE_OPENSSL}
   {$DEFINE USE_ZLIB_UNIT}
   {$IFNDEF DCC_NEXTGEN}
+    {$DEFINE USE_OPENSSL} // !!!·MOVED·HERE·BY·EMBT
     {$DEFINE USE_SSPI}
     {$IFDEF STRING_IS_UNICODE}
       {$DEFINE SSPI_UNICODE}
@@ -1453,7 +1486,7 @@
   {$DEFINE HAS_getifaddrs}
 {$ENDIF}
 
-{$IFDEF LINUX64}
+{$IFDEF LINUX}
   {$DEFINE HAS_getifaddrs}
 {$ENDIF}
 
@@ -1520,7 +1553,7 @@
 //This also must go before the THandle size calculations.
 {$IFDEF VCL_CROSS_COMPILE}
   {$IFDEF POSIX}
-    {$IFNDEF LINUX64}
+    {$IFNDEF LINUX}
       {$DEFINE BSD}
     {$ENDIF}
     {$DEFINE USE_SAFELOADLIBRARY}
@@ -1704,6 +1737,9 @@ word to an 8 bit byte and an 8 bit byte field named sa_len was added.
     {$IFDEF USE_MADEXCEPT}
       {$DEFINE REGISTER_EXPECTED_MEMORY_LEAK}
     {$ENDIF}
+    {$IFDEF USE_LEAKCHECK}
+      {$DEFINE REGISTER_EXPECTED_MEMORY_LEAK}
+    {$ENDIF}
   {$ENDIF}
 {$ENDIF}
 
@@ -1712,8 +1748,13 @@ word to an 8 bit byte and an 8 bit byte field named sa_len was added.
     {$UNDEF REGISTER_EXPECTED_MEMORY_LEAK}
   {$ENDIF}
   {$IFDEF VCL_CROSS_COMPILE}
-    // RLebeau: should this be enabled for Windows, at least?
-    {$UNDEF REGISTER_EXPECTED_MEMORY_LEAK}
+    // RLebeau: this should be enabled for Windows, at least...
+    {$IFNDEF MSWINDOWS}
+      // RLebeau: LeakCheck has leak reporting on other platforms...
+      {$IFNDEF USE_LEAKCHECK}
+        {$UNDEF REGISTER_EXPECTED_MEMORY_LEAK}
+      {$ENDIF}
+    {$ENDIF}
   {$ENDIF}
 {$ENDIF}
 

@@ -959,6 +959,8 @@ begin
   if SessionState then begin
     LSessionList := FSessionList;
     if Assigned(LSessionList) then begin
+      // TODO: pass the RemoteIP to the OnCreateSession event handler, or even
+      // better the entire HTTPRequest object...
       DoOnCreateSession(AContext, Result);
       if not Assigned(Result) then begin
         Result := LSessionList.CreateUniqueSession(HTTPRequest.RemoteIP);
@@ -1047,8 +1049,9 @@ end;
 
 function TIdCustomHTTPServer.DoQuerySSLPort(APort: TIdPort): Boolean;
 begin
-  Result := not Assigned(FOnQuerySSLPort);
-  if not Result then begin
+  // check for the default HTTPS port, but let the user override that if desired...
+  Result := (APort = IdPORT_https);
+  if Assigned(FOnQuerySSLPort) then begin
     FOnQuerySSLPort(APort, Result);
   end;
 end;
@@ -1146,9 +1149,10 @@ var
       LResponseInfo.WriteHeader;
       Exit;
     end;
-    
+
     // if the client has already sent some or all of the request
     // body then don't bother checking for a v1.1 'Expect' header
+    // TODO: call IOHandler.CheckForDataOnSource(0)...
     if not AContext.Connection.IOHandler.InputBufferIsEmpty then begin
       Exit;
     end;
@@ -1201,6 +1205,9 @@ var
       if LRequestInfo.FPostStream = nil then begin
         LRequestInfo.FPostStream := TMemoryStream.Create;
       end;
+      // TODO: do not seek here.  Leave the Position where CreatePostStream()
+      // left it, in case the user decides to use a custom stream that does
+      // not start at Position 0.
       LRequestInfo.PostStream.Position := 0;
       repeat
         S := InternalReadLn(LIOHandler);
@@ -1217,6 +1224,8 @@ var
       until False;
       // skip trailer headers
       repeat until InternalReadLn(LIOHandler) = '';
+      // TODO: seek back to the original Position where CreatePostStream()
+      // left it, not all the way back to Position 0.
       LRequestInfo.PostStream.Position := 0;
     end
     else if LRequestInfo.HasContentLength then
@@ -1225,9 +1234,14 @@ var
       if LRequestInfo.FPostStream = nil then begin
         LRequestInfo.FPostStream := TMemoryStream.Create;
       end;
+      // TODO: do not seek here.  Leave the Position where CreatePostStream()
+      // left it, in case the user decides to use a custom stream that does
+      // not start at Position 0.
       LRequestInfo.PostStream.Position := 0;
       if LRequestInfo.ContentLength > 0 then begin
         LIOHandler.ReadStream(LRequestInfo.PostStream, LRequestInfo.ContentLength);
+        // TODO: seek back to the original Position where CreatePostStream()
+        // left it, not all the way back to Position 0.
         LRequestInfo.PostStream.Position := 0;
       end;
     end
@@ -1272,6 +1286,9 @@ begin
         if i = 0 then begin
           raise EIdHTTPErrorParsingCommand.Create(RSHTTPErrorParsingCommand);
         end;
+        // TODO: don't recreate the Request and Response objects on each loop
+        // iteration. Just create them once before entering the loop, and then
+        // reset them as needed on each iteration...
         LRequestInfo := TIdHTTPRequestInfo.Create(Self);
         try
           LResponseInfo := TIdHTTPResponseInfo.Create(Self, LRequestInfo, LConn);
@@ -1374,6 +1391,7 @@ begin
             // Grab Params so we can parse them
             // POSTed data - may exist with GETs also. With GETs, the action
             // params from the form element will be posted
+
             // TODO: Rune this is the area that needs fixed. Ive hacked it for now
             // Get data can exists with POSTs, but can POST data exist with GETs?
             // If only the first, the solution is easy. If both - need more
@@ -1782,7 +1800,11 @@ begin
 
   FSessionID := SessionID;
   FRemoteHost := RemoteIP;
+
+  // TODO: use a timer to signal when the session becomes stale, instead of
+  // pooling for stale sessions every second...
   FLastTimeStamp := Now;
+
   FLock := TIdCriticalSection.Create;
   FContent := TStringList.Create;
   FOwner := AOwner;
@@ -1822,6 +1844,8 @@ var
 begin
   LOwner := FOwner;
   if Assigned(LOwner) then begin
+    // TODO: use ticks to keep track of the session's duration instead of using
+    // a date/time. Or, at least use a UTC date/time instead of a local date/time...
     Result := TimeStampInterval(FLastTimeStamp, Now) > Integer(LOwner.SessionTimeout);
   end else begin
     Result := True;
@@ -2160,7 +2184,9 @@ begin
 
       // TODO: apply this rule to ContentText as well...
 
-      // TODO: stop resetting Position to 0, send from the current Position...
+      // TODO: do not seek here.  Leave the Position where the user left it,
+      // in case the user decides to use a custom stream that does not start
+      // at Position 0.  Send from the current Position onwards.
 
       if HasContentLength then begin
         if ContentLength > 0 then begin
@@ -2241,6 +2267,9 @@ begin
         ContentLength := CharsetToEncoding(CharSet).GetByteCount(ContentText);
       end
       else if Assigned(ContentStream) then begin
+        // TODO: take the current Position into account, in case the user decides
+        // to use a custom stream that does not start at Position 0.  Send data
+        // from the current Position onwards.
         ContentLength := ContentStream.Size;
       end else begin
         ContentType := 'text/html; charset=utf-8';    {Do not Localize}
@@ -2342,11 +2371,18 @@ var
   SessionID: String;
 begin
   SessionID := GetRandomString(15);
-  while GetSession(SessionID, RemoteIP) <> nil do
-  begin
-    SessionID := GetRandomString(15);
-  end;    // while
-  Result := CreateSession(RemoteIP, SessionID);
+  // TODO: shouldn't this lock the SessionList before entering the
+  // loop to prevent race conditions across multiple threads?
+  {SessionList.LockList;
+  try}
+    while GetSession(SessionID, RemoteIP) <> nil do
+    begin
+      SessionID := GetRandomString(15);
+    end;    // while
+    Result := CreateSession(RemoteIP, SessionID);
+  {finally
+    SessionList.UnlockList;
+  end;}
 end;
 
 destructor TIdHTTPDefaultSessionList.Destroy;
@@ -2373,6 +2409,8 @@ begin
       if Assigned(LSession) and TextIsSame(LSession.FSessionID, SessionID) and ((Length(RemoteIP) = 0) or TextIsSame(LSession.RemoteHost, RemoteIP)) then
       begin
         // Session found
+        // TODO: use a timer to signal when the session becomes stale, instead of
+        // pooling for stale sessions every second...
         LSession.FLastTimeStamp := Now;
         Result := LSession;
         Break;
@@ -2483,6 +2521,8 @@ var
   // under ARC, convert a weak reference to a strong reference before working with it
   LSessionList: TIdHTTPCustomSessionList;
 begin
+  // TODO: use a timer to signal when sessions becomes stale, instead of
+  // pooling for stale sessions every second...
   IndySleep(1000);
   LSessionList := FSessionList;
   if Assigned(LSessionList) then begin
