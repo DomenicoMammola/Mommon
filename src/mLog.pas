@@ -324,7 +324,10 @@ begin
         end;
 
         if not Self.Terminated then
+        begin
           FStartEvent.WaitFor(INFINITE);
+          FStartEvent.ResetEvent;
+        end;
       end;
     except
       on e: Exception do
