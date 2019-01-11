@@ -21,7 +21,8 @@ type
 // https://en.wikipedia.org/wiki/Rounding
 // http://www.eetimes.com/document.asp?doc_id=1274485
 // http://ec.europa.eu/economy_finance/publications/pages/publication1224_en.pdf
-function RoundToExt (aValue : double; aRoundingMethod : TRoundingMethod; const Digits: integer) : double;
+function RoundToExt (const aValue : double; const aRoundingMethod : TRoundingMethod; const Digits: integer) : double;
+function GetFractionalPartDigits(const aValue: double): integer;
 
 function TryToConvertToDouble(aValue: string; out aOutValue: Double): boolean;
 function TryToConvertToInteger(aValue: string; out aOutValue: integer): boolean;
@@ -140,7 +141,7 @@ begin
     Result := TryStrToInt(aValue, tmpInt);
 end;
 
-function RoundToExt(aValue: double; aRoundingMethod: TRoundingMethod; const Digits: integer): double;
+function RoundToExt(const aValue: double; const aRoundingMethod: TRoundingMethod; const Digits: integer): double;
 var
   i1, i2, factor : Int64;
   tmpInt, tmpInt2 : Int64;
@@ -218,6 +219,25 @@ begin
     end
     else
       raise Exception.Create ('Unsupported rounding method');
+  end;
+end;
+
+function GetFractionalPartDigits(const aValue: double): integer;
+var
+  str : string;
+  i : integer;
+begin
+  Result := 0;
+
+  str := FloatToStr(aValue);
+
+  for i := Length(str) downto 1 do
+  begin
+    if (str[i]= '.') or (str[i]=',') then
+    begin
+      Result := Length(str) - i;
+      exit;
+    end;
   end;
 end;
 

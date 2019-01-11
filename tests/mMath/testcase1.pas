@@ -16,9 +16,12 @@ uses
 
 type
 
+  { TTestCase1 }
+
   TTestCase1= class(TTestCase)
   published
     procedure TestRounding;
+    procedure TestGetFractionalPartDigits;
   end;
 
 implementation
@@ -83,6 +86,25 @@ begin
   CheckEquals(1.4, RoundToExt(1.42, rmHalfRoundToOdd, 1));
   CheckEquals(-1.4, RoundToExt(-1.36, rmHalfRoundToOdd, 1));
   CheckEquals(-1.4, RoundToExt(-1.42, rmHalfRoundToOdd, 1));
+end;
+
+procedure TTestCase1.TestGetFractionalPartDigits;
+begin
+  CheckEquals(0, GetFractionalPartDigits(5));
+  CheckEquals(0, GetFractionalPartDigits(1002));
+  CheckEquals(0, GetFractionalPartDigits(-23));
+  CheckEquals(1, GetFractionalPartDigits(5.7));
+  CheckEquals(1, GetFractionalPartDigits(145.1));
+  CheckEquals(1, GetFractionalPartDigits(-9.9));
+  CheckEquals(2, GetFractionalPartDigits(8.71));
+  CheckEquals(2, GetFractionalPartDigits(8.98));
+  CheckEquals(2, GetFractionalPartDigits(5480.01));
+  CheckEquals(2, GetFractionalPartDigits(-54.99));
+  CheckEquals(3, GetFractionalPartDigits(4.578));
+  CheckEquals(3, GetFractionalPartDigits(587.001));
+  CheckEquals(3, GetFractionalPartDigits(-99.123));
+  CheckEquals(5, GetFractionalPartDigits(58.00001));
+  CheckEquals(5, GetFractionalPartDigits(58.99999));
 end;
 
 
