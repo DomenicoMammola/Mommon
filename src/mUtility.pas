@@ -104,9 +104,12 @@ function ValidEmail(const email: string): boolean;
 
 // https://marc.durdin.net/2012/07/indy-tiduri-pathencode-urlencode-and-paramsencode-and-more/
 // Author: Marc Durdin
-function EncodeURIComponent(const ASrc: string): UTF8String;
+function EncodeURIComponent(const aSrc: String): UTF8String;
 
-function EncodeSVGString(const aSrc : string): String;
+function EncodeSVGString(const aSrc : String): String;
+
+// https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
+function SanitizeFileName(const aSrc: String) : String;
 
 // encode a file to base64
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
@@ -1700,7 +1703,7 @@ begin
     Result := (State = STATE_SUBDOMAIN) and (subdomains >= 2);
 end;
 
-function EncodeURIComponent(const ASrc: string): UTF8String;
+function EncodeURIComponent(const aSrc: String): UTF8String;
 const
   HexMap: UTF8String = '0123456789ABCDEF';
 
@@ -1722,7 +1725,7 @@ var
 begin
   Result := '';    {Do not Localize}
 
-  ASrcUTF8 := UTF8Encode(ASrc);
+  ASrcUTF8 := UTF8Encode(aSrc);
   // UTF8Encode call not strictly necessary but
   // prevents implicit conversion warning
 
@@ -1811,6 +1814,61 @@ begin
     else
       Result := Result + aSrc[i];
   end;
+end;
+
+
+(*
+    https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
+
+    Use almost any character in the current code page for a name, including Unicode characters and characters in the extended character set (128–255), except for the following:
+        The following reserved characters are not allowed:
+        < > : " / \ | ? *
+        Characters whose integer representations are in the range from zero through 31 are not allowed.
+        Any other character that the target file system does not allow.
+
+    Do not use the following reserved device names for the name of a file: CON, PRN, AUX, NUL, COM1..COM9, LPT1..LPT9.
+    Also avoid these names followed immediately by an extension; for example, NUL.txt is not recommended.
+
+*)
+function SanitizeFileName(const aSrc: String): String;
+var
+  i : integer;
+  tmp : String;
+begin
+  Result := '';
+  tmp := ChangeFileExt(ExtractFileName(aSrc), '');
+  for i := 1 to Length(tmp) do
+  begin
+    if tmp[i] = '<' then
+      Result := Result + '_'
+    else if tmp[i] = '>' then
+      Result := Result + '_'
+    else if tmp[i] = ':' then
+      Result := Result + '_'
+    else if tmp[i] = '"' then
+      Result := Result + '_'
+    else if tmp[i] = '/' then
+      Result := Result + '_'
+    else if tmp[i] = '\' then
+      Result := Result + '_'
+    else if tmp[i] = '|' then
+      Result := Result + '_'
+    else if tmp[i] = '?' then
+      Result := Result + '_'
+    else if tmp[i] = '*' then
+      Result := Result + '_'
+    else if tmp[i] = '.' then
+      Result := Result + '_'
+    else if Ord(tmp[i]) <= 31 then
+      Result := Result + '_'
+    else
+      Result := Result + tmp[i];
+  end;
+  tmp := ExtractFileDir(aSrc);
+  if tmp <> '' then
+    Result := IncludeTrailingPathDelimiter(tmp) + ChangeFileExt(Result, ExtractFileExt(aSrc))
+  else
+    Result := ChangeFileExt(Result, ExtractFileExt(aSrc));
 end;
 
 function IsRunningAsRoot: boolean;
