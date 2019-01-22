@@ -199,6 +199,7 @@ function TryISOStrToDateTime(const Value: TISOTimeString; out DateTime: TDateTim
 var
   DatePart, TimePart : TISOTimeString;
   i : Integer;
+  tmpDate, tmpTime : TDateTime;
 begin
   Result := False;
   DateTime := 0;
@@ -208,7 +209,10 @@ begin
   if i > 0 then begin
     DatePart := Copy(Value, 1, i-1);
     TimePart := Copy(Value, i+1, MaxInt);
-    Result := TryISOStrToDate(DatePart, DateTime) and TryISOStrToTime(TimePart, DateTime);
+    Result := TryISOStrToDate(DatePart, tmpDate);
+    Result :=  Result and TryISOStrToTime(TimePart, tmpTime);
+    if Result then
+      DateTime := tmpDate + tmpTime;
   end;
 end;
 
