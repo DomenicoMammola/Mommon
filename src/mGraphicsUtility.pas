@@ -14,8 +14,10 @@ unit mGraphicsUtility;
   {$MODE DELPHI}
 {$ENDIF}
 
-{$IFDEF CONSOLE}
+{$IFDEF FPC}
+{$IFNDEF LCL}
 ** This unit should not be compiled in a console application **
+{$ENDIF}
 {$ENDIF}
 
 
