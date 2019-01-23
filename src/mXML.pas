@@ -284,7 +284,7 @@ end;
 procedure TmXmlElement.SetFloatAttribute(const aName: TmXmlString; const aValue: TNullableDouble);
 begin
   if aValue.NotNull then
-    Self.SetFloatAttribute(aName, aValue.Value)
+    Self.SetFloatAttribute(aName, aValue.AsFloat)
   else
     Self.DeleteAttribute(aName);
 end;
@@ -451,7 +451,7 @@ end;
 procedure TmXmlElement.SetIntegerAttribute(const aName: TmXmlString; const aValue: TNullableInteger);
 begin
   if aValue.NotNull  then
-    Self.SetIntegerAttribute(aName, aValue.Value)
+    Self.SetIntegerAttribute(aName, aValue.AsInteger)
   else
     Self.DeleteAttribute(aName);
 end;

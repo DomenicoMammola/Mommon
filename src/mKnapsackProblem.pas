@@ -55,6 +55,9 @@ procedure OptimizeKnapsack (const aKnapsackWeight : integer; const aEquipmentLis
 
 implementation
 
+uses
+  Math;
+
 
 procedure OptimizeKnapsack(const aKnapsackWeight : integer; const aEquipmentList: TEquipmentList; aOptimizedEquipmentList: TList);
 var
@@ -73,7 +76,7 @@ begin
       if aEquipmentList.Get(i).Weight > j then
         maxArray[i + 1, j] := maxArray[i, j]
       else
-        maxArray[i + 1, j] := max(maxArray[i, j], M[i, j- aEquipmentList.Get(i).Weight] + aEquipmentList.Get(i).Value);
+        maxArray[i + 1, j] := max(maxArray[i, j], maxArray[i, j- aEquipmentList.Get(i).Weight] + aEquipmentList.Get(i).Value);
     end;
   end;
 
