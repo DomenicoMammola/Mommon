@@ -86,6 +86,9 @@ begin
   CheckEquals(1.4, RoundToExt(1.42, rmHalfRoundToOdd, 1));
   CheckEquals(-1.4, RoundToExt(-1.36, rmHalfRoundToOdd, 1));
   CheckEquals(-1.4, RoundToExt(-1.42, rmHalfRoundToOdd, 1));
+
+  CheckEquals(788938.59, RoundToExt(788938.59000154, rmHalfRoundAwayFromZero, 2));
+
 end;
 
 procedure TTestCase1.TestGetFractionalPartDigits;
