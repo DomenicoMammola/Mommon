@@ -12,7 +12,7 @@ unit mSendMail;
 interface
 
 uses
-  Classes;
+  Classes, contnrs;
 
 type
   { TSendMail }
@@ -27,8 +27,8 @@ type
     FSenderMailAddress: String;
     FRecipients: String;
     FSubject: String;
-    FImageFiles : TStringList;
-    FImageReferences : TStringList;
+    FHTMLImages : TObjectList;
+    FAttachments : TObjectList;
     FHTML: TStringList;
   public
     constructor Create;
@@ -42,7 +42,21 @@ type
     function SetSenderMailAddress(const aMailAddress: String): TSendMail;
     function SetRecipients(const aRecipients: String): TSendMail;
     function SetSubject(const aSubject: String): TSendMail;
-    function AddImageFile(const aFileName, aReferenceName: String): TSendMail;
+
+    function AddHTMLImageFile(const aFileName, aReferenceName: String): TSendMail;
+    function AddHTMLImage(const aData : TStream; const aMIMEType: String; const aReferenceName : String): TSendMail;
+    function AddHTMLJPEGImage(const aData : TStream; const aReferenceName : String): TSendMail;
+    function AddHTMLPNGImage(const aData : TStream; const aReferenceName: String): TSendMail;
+
+    function AttachFile(const aFileName : String; const aReferenceName : String = ''): TSendMail;
+    function AttachData(const aData : TStream; const aMIMEType: String; const aReferenceName: String = ''): TSendMail;
+    function AttachExcelData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
+    function AttachPDFData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
+    function AttachTXTData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
+    function AttachXMLData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
+    function AttachZIPData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
+    function AttachWordData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
+
     function AddHTML(const aStrings: TStrings): TSendMail;
     function ClearHTML: TSendMail;
     function Send(out aErrorMessage: String): boolean;
@@ -55,7 +69,34 @@ uses
   sysutils,
   IdSMTP, IdMessage, IdMessageBuilder;
 
+type
+  TAttachedFileType = (ftFile, ftStream);
+
+  TAttachedFile = class
+  private
+    FileType : TAttachedFileType;
+    MIMEType : String;
+    FileName : String;
+    Reference : String;
+    Data : TStream;
+  end;
+
+
+
 { TSendMail }
+
+function TSendMail.AddHTMLImage(const aData: TStream; const aMIMEType: String; const aReferenceName: String): TSendMail;
+var
+  tmp : TAttachedFile;
+begin
+  tmp := TAttachedFile.Create;
+  FHTMLImages.Add(tmp);
+  tmp.FileType:= ftStream;
+  tmp.Data:= aData;
+  tmp.Reference:= aReferenceName;
+  tmp.MIMEType:= aMIMEType;
+  Result:= Self;
+end;
 
 constructor TSendMail.Create;
 begin
@@ -67,15 +108,15 @@ begin
   FSubject:= '';
   FUserName:= '';
   FPassword:= '';
-  FImageFiles:= TStringList.Create;
-  FImageReferences:= TStringList.Create;
+  FHTMLImages:= TObjectList.Create(true);
+  FAttachments:= TObjectList.Create(true);
   FHTML:= TStringList.Create;
 end;
 
 destructor TSendMail.Destroy;
 begin
-  FImageFiles.Free;
-  FImageReferences.Free;
+  FHTMLImages.Free;
+  FAttachments.Free;
   FHTML.Free;
   inherited Destroy;
 end;
@@ -128,12 +169,86 @@ begin
   Result:= Self;
 end;
 
-function TSendMail.AddImageFile(const aFileName, aReferenceName: String): TSendMail;
+
+function TSendMail.AddHTMLImageFile(const aFileName, aReferenceName: String): TSendMail;
+var
+  tmp : TAttachedFile;
 begin
   if not FileExists(aFileName) then
     raise Exception.Create('File ' + aFileName + ' not found');
-  FImageFiles.Add(aFileName);
-  FImageReferences.Add(aReferenceName);
+  tmp := TAttachedFile.Create;
+  FHTMLImages.Add(tmp);
+  tmp.FileType:= ftFile;
+  tmp.FileName:= aFileName;
+  tmp.Reference:= aReferenceName;
+  Result:= Self;
+end;
+
+function TSendMail.AddHTMLJPEGImage(const aData: TStream;
+  const aReferenceName: String): TSendMail;
+begin
+  Result := Self.AddHTMLImage(aData, 'image/jpeg', aReferenceName);
+end;
+
+function TSendMail.AddHTMLPNGImage(const aData: TStream; const aReferenceName: String): TSendMail;
+begin
+  Result := Self.AddHTMLImage(aData, 'image/x-png', aReferenceName);
+end;
+
+function TSendMail.AttachFile(const aFileName: String; const aReferenceName: String): TSendMail;
+var
+  tmp : TAttachedFile;
+begin
+  if not FileExists(aFileName) then
+    raise Exception.Create('File ' + aFileName + ' not found');
+  tmp := TAttachedFile.Create;
+  FAttachments.Add(tmp);
+  tmp.FileType:= ftFile;
+  tmp.FileName:= aFileName;
+  tmp.Reference:= aReferenceName;
+  Result:= Self;
+end;
+
+function TSendMail.AttachExcelData(const aData: TStream; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'application/x-msexcel', aReferenceName);
+end;
+
+function TSendMail.AttachPDFData(const aData: TStream; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'application/pdf', aReferenceName);
+end;
+
+function TSendMail.AttachTXTData(const aData: TStream; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'text/plain', aReferenceName);
+end;
+
+function TSendMail.AttachXMLData(const aData: TStream; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'text/xml', aReferenceName);
+end;
+
+function TSendMail.AttachZIPData(const aData: TStream; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'application/x-zip-compressed', aReferenceName);
+end;
+
+function TSendMail.AttachWordData(const aData: TStream; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'application/msword', aReferenceName);
+end;
+
+function TSendMail.AttachData(const aData: TStream; const aMIMEType: String; const aReferenceName: String = ''): TSendMail;
+var
+  tmp : TAttachedFile;
+begin
+  tmp := TAttachedFile.Create;
+  FAttachments.Add(tmp);
+  tmp.FileType:= ftStream;
+  tmp.Data:= aData;
+  tmp.Reference:= aReferenceName;
+  tmp.MIMEType:= aMIMEType;
   Result:= Self;
 end;
 
@@ -156,6 +271,7 @@ var
   error: Boolean;
   htmlMessageBuilder : TIdMessageBuilderHtml;
   i : integer;
+  f : TAttachedFile;
 begin
   // https://www.indyproject.org/2008/01/16/new-html-message-builder-class/
   // https://www.indyproject.org/2005/08/17/html-messages/
@@ -169,8 +285,22 @@ begin
     tmpMessage.Subject:= FSubject;
 
     htmlMessageBuilder.Html.AddStrings(FHTML);
-    for i := 0 to FImageFiles.Count - 1 do
-      htmlMessageBuilder.HtmlFiles.Add(FImageFiles.Strings[i], FImageReferences.Strings[i]);
+    for i := 0 to FHTMLImages.Count - 1 do
+    begin
+      f := FHTMLImages.Items[i] as TAttachedFile;
+      if f.FileType = ftFile then
+        htmlMessageBuilder.HtmlFiles.Add(f.FileName, f.Reference)
+      else if f.FileType = ftStream then
+        htmlMessageBuilder.HtmlFiles.Add(f.Data, f.MIMEType, f.Reference);
+    end;
+    for i := 0 to FAttachments.Count - 1 do
+    begin
+      f := FAttachments.Items[i] as TAttachedFile;
+      if f.FileType = ftFile then
+        htmlMessageBuilder.Attachments.Add(f.FileName, f.Reference)
+      else if f.FileType = ftStream then
+        htmlMessageBuilder.Attachments.Add(f.Data, f.MIMEType, f.Reference);
+    end;
     htmlMessageBuilder.FillMessage(tmpMessage);
 
     tmpSMTP := TIdSMTP.Create(nil);
