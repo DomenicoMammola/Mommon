@@ -26,10 +26,13 @@ type
     FSenderName: String;
     FSenderMailAddress: String;
     FRecipients: String;
+    FCCRecipients : String;
+    FBCCRecipients : String;
     FSubject: String;
     FHTMLImages : TObjectList;
     FAttachments : TObjectList;
     FHTML: TStringList;
+    FPlainText : TStringList;
   public
     constructor Create;
     destructor Destroy; override;
@@ -41,6 +44,8 @@ type
     function SetSenderName(const aSenderName: String): TSendMail;
     function SetSenderMailAddress(const aMailAddress: String): TSendMail;
     function SetRecipients(const aRecipients: String): TSendMail;
+    function SetCCRecipients(const aRecipients: String): TSendMail;
+    function SetBCCRecipients(const aRecipients: String): TSendMail;
     function SetSubject(const aSubject: String): TSendMail;
 
     function AddHTMLImageFile(const aFileName, aReferenceName: String): TSendMail;
@@ -58,7 +63,9 @@ type
     function AttachWordData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
 
     function AddHTML(const aStrings: TStrings): TSendMail;
+    function AddPlainText (const aStrings : TStrings) : TSendMail;
     function ClearHTML: TSendMail;
+    function ClearPlainText : TSendMail;
     function Send(out aErrorMessage: String): boolean;
   end;
 
@@ -105,12 +112,15 @@ begin
   FSenderName:= '';
   FSenderMailAddress:= '@noreply';
   FRecipients:= '';
+  FCCRecipients:= '';
+  FBCCRecipients:= '';
   FSubject:= '';
   FUserName:= '';
   FPassword:= '';
   FHTMLImages:= TObjectList.Create(true);
   FAttachments:= TObjectList.Create(true);
   FHTML:= TStringList.Create;
+  FPlainText:= TStringList.Create;
 end;
 
 destructor TSendMail.Destroy;
@@ -118,6 +128,7 @@ begin
   FHTMLImages.Free;
   FAttachments.Free;
   FHTML.Free;
+  FPlainText.Free;
   inherited Destroy;
 end;
 
@@ -160,6 +171,18 @@ end;
 function TSendMail.SetRecipients(const aRecipients: String): TSendMail;
 begin
   FRecipients:= aRecipients;
+  Result:= Self;
+end;
+
+function TSendMail.SetCCRecipients(const aRecipients: String): TSendMail;
+begin
+  FCCRecipients:= aRecipients;
+  Result:= Self;
+end;
+
+function TSendMail.SetBCCRecipients(const aRecipients: String): TSendMail;
+begin
+  FBCCRecipients:= aRecipients;
   Result:= Self;
 end;
 
@@ -258,10 +281,22 @@ begin
   Result:= Self;
 end;
 
+function TSendMail.AddPlainText(const aStrings: TStrings): TSendMail;
+begin
+  FPlainText.AddStrings(aStrings);
+  Result := Self;
+end;
+
 function TSendMail.ClearHTML: TSendMail;
 begin
   FHTML.Clear;
   Result:= Self;
+end;
+
+function TSendMail.ClearPlainText: TSendMail;
+begin
+  FPlainText.Clear;
+  Result := Self;
 end;
 
 function TSendMail.Send(out aErrorMessage: String): boolean;
@@ -275,6 +310,7 @@ var
 begin
   // https://www.indyproject.org/2008/01/16/new-html-message-builder-class/
   // https://www.indyproject.org/2005/08/17/html-messages/
+  // https://stackoverflow.com/questions/18541577/using-indy-10-with-exchange-smtp-server
 
   htmlMessageBuilder := TIdMessageBuilderHtml.Create;
   tmpMessage := TIdMessage.Create(nil);
@@ -282,9 +318,17 @@ begin
     tmpMessage.From.Name:= FSenderName;
     tmpMessage.From.Address:= FSenderMailAddress;
     tmpMessage.Recipients.EMailAddresses:= FRecipients;
+    if FCCRecipients <> '' then
+      tmpMessage.CCList.EMailAddresses:= FCCRecipients;
+    if FBCCRecipients <> '' then
+      tmpMessage.BccList.EMailAddresses:= FBCCRecipients;
     tmpMessage.Subject:= FSubject;
 
-    htmlMessageBuilder.Html.AddStrings(FHTML);
+    if FHTML.Count > 0 then
+      htmlMessageBuilder.Html.AddStrings(FHTML);
+    if FPlainText.Count > 0 then
+      htmlMessageBuilder.PlainText.AddStrings(FPlainText);
+
     for i := 0 to FHTMLImages.Count - 1 do
     begin
       f := FHTMLImages.Items[i] as TAttachedFile;
