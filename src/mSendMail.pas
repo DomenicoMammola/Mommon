@@ -315,6 +315,8 @@ begin
   htmlMessageBuilder := TIdMessageBuilderHtml.Create;
   tmpMessage := TIdMessage.Create(nil);
   try
+    htmlMessageBuilder.PlainTextCharSet:= 'utf-8';
+    htmlMessageBuilder.HtmlCharSet:= 'utf-8';
     tmpMessage.From.Name:= FSenderName;
     tmpMessage.From.Address:= FSenderMailAddress;
     tmpMessage.Recipients.EMailAddresses:= FRecipients;
@@ -360,6 +362,7 @@ begin
       try
         tmpSMTP.Connect;
         tmpSMTP.Send(tmpMessage);
+        tmpSMTP.Disconnect(true);
       except
         on e:Exception do
         begin
