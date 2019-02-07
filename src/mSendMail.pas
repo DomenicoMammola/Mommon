@@ -54,13 +54,15 @@ type
     function AddHTMLPNGImage(const aData : TStream; const aReferenceName: String): TSendMail;
 
     function AttachFile(const aFileName : String; const aReferenceName : String = ''): TSendMail;
-    function AttachData(const aData : TStream; const aMIMEType: String; const aReferenceName: String = ''): TSendMail;
-    function AttachExcelData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
-    function AttachPDFData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
-    function AttachTXTData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
-    function AttachXMLData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
-    function AttachZIPData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
-    function AttachWordData(const aData : TStream; const aReferenceName: String = ''): TSendMail;
+    function AttachData(const aData : TStream; const aMIMEType: String; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachExcelData(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachExcelOOXML(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachExcelXLSX(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachPDFData(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachTXTData(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachXMLData(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachZIPData(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
+    function AttachWordData(const aData : TStream; const aFileName: String; const aReferenceName: String = ''): TSendMail;
 
     function AddHTML(const aStrings: TStrings): TSendMail;
     function AddPlainText (const aStrings : TStrings) : TSendMail;
@@ -232,42 +234,53 @@ begin
   Result:= Self;
 end;
 
-function TSendMail.AttachExcelData(const aData: TStream; const aReferenceName: String): TSendMail;
+function TSendMail.AttachExcelData(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
 begin
-  Result:= Self.AttachData(aData, 'application/x-msexcel', aReferenceName);
+  Result:= Self.AttachData(aData, 'application/x-msexcel', aFileName, aReferenceName);
 end;
 
-function TSendMail.AttachPDFData(const aData: TStream; const aReferenceName: String): TSendMail;
+function TSendMail.AttachExcelOOXML(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
 begin
-  Result:= Self.AttachData(aData, 'application/pdf', aReferenceName);
+  Result:= Self.AttachData(aData, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', aFileName, aReferenceName);
 end;
 
-function TSendMail.AttachTXTData(const aData: TStream; const aReferenceName: String): TSendMail;
+function TSendMail.AttachExcelXLSX(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
 begin
-  Result:= Self.AttachData(aData, 'text/plain', aReferenceName);
+  Result:= Self.AttachData(aData, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', aFileName, aReferenceName);
 end;
 
-function TSendMail.AttachXMLData(const aData: TStream; const aReferenceName: String): TSendMail;
+function TSendMail.AttachPDFData(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
 begin
-  Result:= Self.AttachData(aData, 'text/xml', aReferenceName);
+  Result:= Self.AttachData(aData, 'application/pdf', aFileName, aReferenceName);
 end;
 
-function TSendMail.AttachZIPData(const aData: TStream; const aReferenceName: String): TSendMail;
+function TSendMail.AttachTXTData(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
 begin
-  Result:= Self.AttachData(aData, 'application/x-zip-compressed', aReferenceName);
+  Result:= Self.AttachData(aData, 'text/plain', aFileName, aReferenceName);
 end;
 
-function TSendMail.AttachWordData(const aData: TStream; const aReferenceName: String): TSendMail;
+function TSendMail.AttachXMLData(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
 begin
-  Result:= Self.AttachData(aData, 'application/msword', aReferenceName);
+  Result:= Self.AttachData(aData, 'text/xml', aFileName, aReferenceName);
 end;
 
-function TSendMail.AttachData(const aData: TStream; const aMIMEType: String; const aReferenceName: String = ''): TSendMail;
+function TSendMail.AttachZIPData(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'application/x-zip-compressed', aFileName, aReferenceName);
+end;
+
+function TSendMail.AttachWordData(const aData: TStream; const aFileName: String; const aReferenceName: String): TSendMail;
+begin
+  Result:= Self.AttachData(aData, 'application/msword', aFileName, aReferenceName);
+end;
+
+function TSendMail.AttachData(const aData: TStream; const aMIMEType: String; const aFileName: String; const aReferenceName: String = ''): TSendMail;
 var
   tmp : TAttachedFile;
 begin
   tmp := TAttachedFile.Create;
   FAttachments.Add(tmp);
+  tmp.FileName:= aFileName;
   tmp.FileType:= ftStream;
   tmp.Data:= aData;
   tmp.Reference:= aReferenceName;
@@ -307,6 +320,7 @@ var
   htmlMessageBuilder : TIdMessageBuilderHtml;
   i : integer;
   f : TAttachedFile;
+  tmpAttachment : TIdMessageBuilderAttachment;
 begin
   // https://www.indyproject.org/2008/01/16/new-html-message-builder-class/
   // https://www.indyproject.org/2005/08/17/html-messages/
@@ -345,7 +359,11 @@ begin
       if f.FileType = ftFile then
         htmlMessageBuilder.Attachments.Add(f.FileName, f.Reference)
       else if f.FileType = ftStream then
-        htmlMessageBuilder.Attachments.Add(f.Data, f.MIMEType, f.Reference);
+      begin
+        tmpAttachment := htmlMessageBuilder.Attachments.Add(f.Data, f.MIMEType, f.Reference);
+        if f.FileName <> '' then
+          tmpAttachment.FileName:= f.FileName;
+      end;
     end;
     htmlMessageBuilder.FillMessage(tmpMessage);
 
