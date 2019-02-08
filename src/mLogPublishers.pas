@@ -17,7 +17,7 @@ unit mLogPublishers;
 interface
 
 uses
-  {$ifndef console}Forms, StdCtrls, Controls,{$endif}
+  {$ifdef lcl}Forms, StdCtrls, Controls,{$endif}
   SysUtils,
   mLog;
 
@@ -25,7 +25,7 @@ const
   SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER = 'showlog';
 
 type
-  {$ifndef console}
+  {$ifdef lcl}
   TmMemoPublisher = class (TmLogPublisher)
   strict private
     FCurrentLevel : TmLogMessageLevel;
@@ -63,7 +63,7 @@ type
 
 implementation
 
-{$ifndef console}
+{$ifdef lcl}
 
 function TmMemoPublisher.ActInsideMainThread: boolean;
 begin
