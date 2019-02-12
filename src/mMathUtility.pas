@@ -16,7 +16,7 @@ uses
   Math, strutils;
 
 type
-  TRoundingMethod = (rmHalfRoundDown, rmHalfRoundUp, rmHalfRoundTowardsZero, rmHalfRoundAwayFromZero, rmHalfRoundToEven, rmBankerRounding, rmHalfRoundToOdd);
+  TRoundingMethod = (rmHalfRoundDown, rmHalfRoundUp, rmHalfRoundTowardsZero, rmHalfRoundAwayFromZero, rmHalfRoundToEven, rmBankerRounding, rmHalfRoundToOdd, rmCeil);
 
 // https://en.wikipedia.org/wiki/Rounding
 // http://www.eetimes.com/document.asp?doc_id=1274485
@@ -169,6 +169,11 @@ begin
       Result:= RoundToExt(AValue, rmHalfRoundAwayFromZero, Digits)
     else
       Result := RoundToExt(AValue, rmHalfRoundTowardsZero, Digits);
+  end
+  else if (aRoundingMethod = rmCeil) then
+  begin
+    factor := round(power(10, Digits));
+    Result := Ceil(AValue * factor) / factor;
   end
   else
   begin
