@@ -266,6 +266,8 @@ var
   tmpJobResult : TJobResult;
   tmpCanDiedEvent : TSimpleEvent;
 begin
+  runningJobs := 0;
+
   while not Terminated do
   begin
     FCanStartEvent.WaitFor(INFINITE);
@@ -412,6 +414,7 @@ end;
 
 function TmBatchExecutor.QueueJob : TmJob;
 begin
+  Result := nil;
   if GetControlThread(Self).Running then
     exit;
   Result := TmJob.Create;
