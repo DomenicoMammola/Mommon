@@ -111,6 +111,8 @@ function EncodeSVGString(const aSrc : String): String;
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
 
+function GetTimeStampForFileName(const aInstant : TDateTime): string;
+
 // encode a file to base64
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
 procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFile: String);
@@ -1880,6 +1882,17 @@ begin
   // http://forum.lazarus.freepascal.org/index.php?topic=22454.0
   Result := (fpgeteuid = 0);
 {$ENDIF}
+end;
+
+function GetTimeStampForFileName(const aInstant: TDateTime): string;
+var
+  year, month, day : word;
+  hour, minute, second, millisecond : word;
+begin
+  DecodeDate(aInstant, year, month, day);
+  DecodeTime(aInstant, hour, minute, second, millisecond);
+  Result := AddZerosFront(year, 4) + AddZerosFront(month, 2) + AddZerosFront(day, 2) + '-';
+  Result := Result + AddZerosFront(hour, 2) + AddZerosFront(minute, 2) + AddZerosFront(second, 2);
 end;
 
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
