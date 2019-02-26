@@ -586,7 +586,7 @@ begin
         if (tmpLimits.Count > currentLimitIndex[k] + 1) then
         begin
           tmpEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k] + 1]);
-          while Assigned(tmpEvent) and (tmpEvent.GetValue(k).NotNull) and DoubleIsLessThan(tmpEvent.EventDate, tmpDatum.FEvent.EventDate) do
+          while Assigned(tmpEvent) and (tmpEvent.GetValue(k).NotNull) and (DoubleIsLessThan(tmpEvent.EventDate, tmpDatum.FEvent.EventDate) or (DoublesAreEqual(tmpEvent.EventDate, tmpDatum.FEvent.EventDate))) do
           begin
             inc(currentLimitIndex[k]);
             if (tmpLimits.Count > currentLimitIndex[k] + 1) then
