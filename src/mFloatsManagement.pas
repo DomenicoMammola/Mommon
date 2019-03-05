@@ -18,6 +18,9 @@ function DoublesAreEqual(const aValue1, aValue2 : double): boolean; overload;
 function DoubleIsLessThan(const aValue1, aValue2 : double) : boolean; overload;
 function DoubleIsLessThan(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
 
+function DoubleIsLessOrEqual(const aValue1, aValue2 : double) : boolean; overload;
+function DoubleIsLessOrEqual(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
+
 function SafeDiv (numer, denom: double): double;
 
 procedure SetDefaultDecimalNumbers (aDecimalNumbers : integer);
@@ -70,6 +73,16 @@ end;
 function DoubleIsLessThan(const aValue1, aValue2: double; const aDecimalNumbers: integer): boolean;
 begin
   Result := (not DoublesAreEqual(aValue1, aValue2, aDecimalNumbers)) and (aValue1 < aValue2);
+end;
+
+function DoubleIsLessOrEqual(const aValue1, aValue2: double): boolean;
+begin
+  Result := DoublesAreEqual(aValue1, aValue2) or (aValue1 < aValue2);
+end;
+
+function DoubleIsLessOrEqual(const aValue1, aValue2: double; const aDecimalNumbers: integer): boolean;
+begin
+  Result := DoublesAreEqual(aValue1, aValue2, aDecimalNumbers) or (aValue1 < aValue2);
 end;
 
 function SafeDiv (numer, denom: double): double;
