@@ -18,7 +18,7 @@ interface
 
 uses
   {$ifdef lcl}Forms, StdCtrls, Controls,{$endif}
-  SysUtils,
+  sysutils, Classes,
   mLog;
 
 const
@@ -47,8 +47,8 @@ type
   strict private
     FCurrentLevel : TmLogMessageLevel;
     FFileName : TFileName;
-    FLogFile: Text;
-    FFileAssigned : boolean;
+    FFileStream : TFileStream;
+    FMaxFileSizeInMb : integer;
   public
     procedure AfterCreate; override;
     destructor Destroy; override;
@@ -59,9 +59,59 @@ type
 
     property CurrentLevel : TmLogMessageLevel read FCurrentLevel write FCurrentLevel;
     property FileName : TFileName read FFileName write FFileName;
+    property MaxFileSizeInMb : integer read FMaxFileSizeInMb write FMaxFileSizeInMb;
+  end;
+
+  { TmConsolePublisher }
+
+  TmConsolePublisher = class (TmLogPublisher)
+  strict private
+    FCurrentLevel: TmLogMessageLevel;
+  public
+    procedure AfterCreate; override;
+    destructor Destroy; override;
+
+    function ActInsideMainThread : boolean; override;
+    procedure Publish (aContext, aLevel, aMessage : string; aDate : TDateTime); override;
+    function Level : TmLogMessageLevel; override;
+
+    property CurrentLevel : TmLogMessageLevel read FCurrentLevel write FCurrentLevel;
   end;
 
 implementation
+
+uses
+  FileUtil;
+
+var
+  UTF8BOM : array[0..2] of byte = ($EF, $BB, $BF);
+
+{ TmConsolePublisher }
+
+procedure TmConsolePublisher.AfterCreate;
+begin
+
+end;
+
+destructor TmConsolePublisher.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TmConsolePublisher.ActInsideMainThread: boolean;
+begin
+  Result := false;
+end;
+
+procedure TmConsolePublisher.Publish(aContext, aLevel, aMessage: string; aDate: TDateTime);
+begin
+  WriteLn(Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
+end;
+
+function TmConsolePublisher.Level: TmLogMessageLevel;
+begin
+  Result := FCurrentLevel;
+end;
 
 {$ifdef lcl}
 
@@ -113,13 +163,16 @@ end;
 procedure TmFilePublisher.AfterCreate;
 begin
   FFileName := '';
-  FFileAssigned := false;
+  FFileStream := nil;
+  FMaxFileSizeInMb:= 0;
 end;
 
 destructor TmFilePublisher.Destroy;
 begin
-  if FFileAssigned then
-    Flush(FLogFile);
+  if Assigned(FFileStream) then
+    FFileStream.WriteByte(10);
+
+  FreeAndNil(FFileStream);
   inherited;
 end;
 
@@ -129,20 +182,33 @@ begin
 end;
 
 procedure TmFilePublisher.Publish(aContext, aLevel, aMessage: string; aDate: TDateTime);
+var
+  s: RawByteString;
+  i : integer;
 begin
   if FFileName <> '' then
   begin
-    if not FFileAssigned then
+    if not Assigned(FFileStream) then
     begin
-      Assign(FLogFile, FFileName);
       if FileExists(FFileName) then
-        Append(FLogFile)
+      begin
+        (*
+        if (FMaxFileSizeInMb > 0) and ((FileUtil.FileSize(FFileName) div 1024) > FMaxFileSizeInMb) then
+        begin
+          RenameFile(FFileName, FFileName + '.bak');
+        end;
+        *)
+        FFileStream := TFileStream.Create(FFileName, fmOpenWrite);
+        FFileStream.Seek(0, soFromEnd);
+      end
       else
-        Rewrite(FLogFile);
-      FFileAssigned := true;
+      begin
+        FFileStream := TFileStream.Create(FFileName, fmCreate);
+        FFileStream.Write(UTF8BOM[0],3);
+      end;
     end;
-    WriteLn(FLogFile, Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
-    Flush(FLogFile);
+    s := UTF8Encode(Self.GetFormattedString(aContext, aLevel, aMessage, aDate) + sLineBreak);
+    FFileStream.Write(s[1], Length(s));
   end;
 end;
 
