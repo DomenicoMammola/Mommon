@@ -39,6 +39,8 @@ type
     property DateTime : TDateTime read FDateTime;
   end;
 
+  { TmLogMessageList }
+
   TmLogMessageList = class
   strict private
     FList : TObjectList;
@@ -48,6 +50,7 @@ type
     destructor Destroy; override;
     procedure PushMessage (aLevel : TmLogMessageLevel; aContext, aMessage : string);
     function PullMessage: TmLogMessage;
+    function Empty : boolean;
   end;
 
   TmLogManager = class;
@@ -82,6 +85,8 @@ type
 
   TmLogPublisherClass = class of TmLogPublisher;
 
+  { TmLogManager }
+
   TmLogManager = class
   strict private
     FThread : TThread;
@@ -91,14 +96,18 @@ type
     FVCLEndThreadEvent : TEvent;
     FLogs : TObjectList;
   private
+    function GetTrashMessagesOnQuit: boolean;
     procedure PushMessage (aLevel : TmLogMessageLevel; aContext, aMessage : string);
+    procedure SetTrashMessagesOnQuit(AValue: boolean);
   public
     function AddLog (loggerContext : string): TmLog;
-    procedure AddPublisher(aPublisher:TmLogPublisher);
+    procedure AddPublisher(aPublisher:TmLogPublisher; aOwned : boolean);
     procedure RemovePublisher(aPublisher:TmLogPublisher);
 
     constructor Create;
     destructor Destroy; override;
+
+    property TrashMessagesOnQuit : boolean read GetTrashMessagesOnQuit write SetTrashMessagesOnQuit;
   end;
 
   function logManager : TmLogManager;
@@ -121,9 +130,11 @@ type
     FMessages : TmLogMessageList;
     FPublishersCriticalSection : TCriticalSection;
     FPublishers : TObjectList;
+    FOwnedPublishers : TList;
 
     FCurrentPublisher : TmLogPublisher;
     FCurrentMsg : TmLogMessage;
+    FTrashMessagesOnQuit : boolean;
 
     procedure PublishOnMainThread;
     function LevelsAreCompatible(levelOfMessage, levelOfPublisher : TmLogMessageLevel) : boolean;
@@ -132,12 +143,13 @@ type
   public
     constructor Create (aEndEvent : TEvent; aLogManager : TmLogManager);
     destructor Destroy; override;
-    procedure AddPublisher (aPublisher : TmLogPublisher);
+    procedure AddPublisher (aPublisher : TmLogPublisher; aOwned : boolean);
     procedure RemovePublisher(aPublisher : TmLogPublisher);
 
     property StartEvent : TEvent read FStartEvent;
     property EndEvent : TEvent read FEndEvent;
     property Messages : TmLogMessageList read FMessages;
+    property TrashMessagesOnQuit : boolean read FTrashMessagesOnQuit write FTrashMessagesOnQuit;
   end;
 
   TmDeleteLogPublisherThread = class (TThread)
@@ -152,6 +164,10 @@ type
 
 { TmLogManager }
 
+function TmLogManager.GetTrashMessagesOnQuit: boolean;
+begin
+  Result := (FThread as TmLogPublisherThread).TrashMessagesOnQuit;
+end;
 
 procedure TmLogManager.PushMessage(aLevel : TmLogMessageLevel; aContext, aMessage : string);
 begin
@@ -160,6 +176,12 @@ begin
 
   (FVCLThread as TmLogPublisherThread).Messages.PushMessage(aLevel, aContext, aMessage);
   (FVCLThread as TmLogPublisherThread).StartEvent.SetEvent;
+end;
+
+procedure TmLogManager.SetTrashMessagesOnQuit(AValue: boolean);
+begin
+  (FThread as TmLogPublisherThread).TrashMessagesOnQuit:= AValue;
+  (FVCLThread as TmLogPublisherThread).TrashMessagesOnQuit:= AValue;
 end;
 
 
@@ -183,12 +205,12 @@ begin
   FLogs := TObjectList.Create(true);
 end;
 
-procedure TmLogManager.AddPublisher(aPublisher:TmLogPublisher);
+procedure TmLogManager.AddPublisher(aPublisher:TmLogPublisher; aOwned : boolean);
 begin
   if aPublisher.ActInsideMainThread then
-    (FVCLThread as TmLogPublisherThread).AddPublisher(aPublisher)
+    (FVCLThread as TmLogPublisherThread).AddPublisher(aPublisher, aOwned)
   else
-    (FThread as TmLogPublisherThread).AddPublisher(aPublisher);
+    (FThread as TmLogPublisherThread).AddPublisher(aPublisher, aOwned);
 end;
 
 function TmLogManager.AddLog(loggerContext: string): TmLog;
@@ -245,11 +267,16 @@ end;
 
 { TmLogPublisherThread }
 
-procedure TmLogPublisherThread.AddPublisher(aPublisher: TmLogPublisher);
+procedure TmLogPublisherThread.AddPublisher(aPublisher: TmLogPublisher; aOwned : boolean);
 begin
   FPublishersCriticalSection.Acquire;
   try
-    FPublishers.Add(aPublisher);
+    if FPublishers.IndexOf(aPublisher) < 0 then
+    begin
+      FPublishers.Add(aPublisher);
+      if aOwned then
+        FOwnedPublishers.Add(aPublisher);
+    end;
   finally
     FPublishersCriticalSection.Leave;
   end;
@@ -260,14 +287,19 @@ begin
   inherited Create(false);
   Self.FreeOnTerminate:= false;
   FStartEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, ''){$ENDIF};
+  FStartEvent.ResetEvent;
   FEndEvent := aEndEvent;
   FLogManager := aLogManager;
   FMessages := TmLogMessageList.Create;
   FPublishers := TObjectList.Create(false);
+  FOwnedPublishers := TList.Create;
   FPublishersCriticalSection := TCriticalSection.Create;
+  FTrashMessagesOnQuit := false;
 end;
 
 destructor TmLogPublisherThread.Destroy;
+var
+  i : integer;
 begin
   FStartEvent.Free;
   FMessages.Free;
@@ -275,6 +307,14 @@ begin
   FPublishersCriticalSection.Free;
   if Assigned(FCurrentMsg) then
     FCurrentMsg.Free;
+  try
+    for i:= 0 to FOwnedPublishers.Count-1 do
+      TmLogPublisher(FOwnedPublishers.Items[i]).Free;
+  except
+    //
+  end;
+  FOwnedPublishers.Free;
+
   inherited;
 end;
 
@@ -283,18 +323,17 @@ var
   i : integer;
 begin
   FStartEvent.WaitFor(INFINITE);
-  FStartEvent.ResetEvent;
 
   if not Self.Terminated then
   begin
     try
-      while not Self.Terminated do
+      while (not Self.Terminated) or ((not FTrashMessagesOnQuit) and (not FMessages.Empty)) do
       begin
         FreeAndNil(FCurrentMsg);
         FCurrentMsg := FMessages.PullMessage;
         while (FCurrentMsg <> nil) do
         begin
-          if not Self.Terminated then
+          if (not FTrashMessagesOnQuit) or (not Self.Terminated) then
           begin
             FPublishersCriticalSection.Acquire;
             try
@@ -325,8 +364,8 @@ begin
 
         if not Self.Terminated then
         begin
-          FStartEvent.WaitFor(INFINITE);
           FStartEvent.ResetEvent;
+          FStartEvent.WaitFor(INFINITE);
         end;
       end;
     except
@@ -357,6 +396,7 @@ begin
   FPublishersCriticalSection.Acquire;
   try
     FPublishers.Remove(aPublisher);
+    FOwnedPublishers.Remove(aPublisher);
   finally
     FPublishersCriticalSection.Leave;
   end;
@@ -474,6 +514,16 @@ begin
     end
     else
       Result := nil;
+  finally
+    FCriticalSection.Leave;
+  end;
+end;
+
+function TmLogMessageList.Empty: boolean;
+begin
+  FCriticalSection.Acquire;
+  try
+    Result := (FList.Count = 0);
   finally
     FCriticalSection.Leave;
   end;
