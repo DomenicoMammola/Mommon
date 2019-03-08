@@ -12,7 +12,17 @@ unit mSendMail;
 interface
 
 uses
-  Classes, contnrs;
+  Classes, contnrs,
+  IdSMTP;
+
+//
+// helpful info taken from:
+//
+// https://mikejustin.wordpress.com/2014/07/27/send-secured-smtp-email-from-delphi-applications/
+//
+
+const
+  SMTP_PORT_EXPLICIT_TLS = 587;
 
 type
   { TSendMail }
@@ -33,6 +43,10 @@ type
     FAttachments : TObjectList;
     FHTML: TStringList;
     FPlainText : TStringList;
+    FSSLConnection : boolean;
+  strict private
+    procedure AddSSLHandler(aSMTP : TIdSMTP);
+    procedure InitSASL(aSMTP : TIdSMTP; const aUserName, aPassword : String);
   public
     constructor Create;
     destructor Destroy; override;
@@ -47,6 +61,7 @@ type
     function SetCCRecipients(const aRecipients: String): TSendMail;
     function SetBCCRecipients(const aRecipients: String): TSendMail;
     function SetSubject(const aSubject: String): TSendMail;
+    function SetSSLConnection : TSendMail;
 
     function AddHTMLImageFile(const aFileName, aReferenceName: String): TSendMail;
     function AddHTMLImage(const aData : TStream; const aMIMEType: String; const aReferenceName : String): TSendMail;
@@ -76,7 +91,14 @@ implementation
 
 uses
   sysutils,
-  IdSMTP, IdMessage, IdMessageBuilder;
+  IdMessage, IdMessageBuilder,
+  IdComponent, IdTCPConnection, IdTCPClient, IdExplicitTLSClientServerBase,
+  IdMessageClient, IdSMTPBase, IdBaseComponent, IdIOHandler,
+  IdIOHandlerSocket, IdIOHandlerStack, IdSSL, IdSSLOpenSSL, IdSASLLogin,
+  IdSASL_CRAM_SHA1, IdSASL, IdSASLUserPass, IdSASL_CRAMBase, IdSASL_CRAM_MD5,
+  IdSASLSKey, IdSASLPlain, IdSASLOTP, IdSASLExternal, IdSASLDigest,
+  IdSASLAnonymous, IdUserPassProvider;
+
 
 type
   TAttachedFileType = (ftFile, ftStream);
@@ -105,6 +127,60 @@ begin
   tmp.Reference:= aReferenceName;
   tmp.MIMEType:= aMIMEType;
   Result:= Self;
+end;
+
+procedure TSendMail.AddSSLHandler(aSMTP : TIdSMTP);
+var
+  SSLHandler: TIdSSLIOHandlerSocketOpenSSL;
+begin
+  SSLHandler := TIdSSLIOHandlerSocketOpenSSL.Create(aSMTP);
+  // SSL/TLS handshake determines the highest available SSL/TLS version dynamically
+  SSLHandler.SSLOptions.Method := sslvSSLv23;
+  SSLHandler.SSLOptions.Mode := sslmClient;
+  SSLHandler.SSLOptions.VerifyMode := [];
+  SSLHandler.SSLOptions.VerifyDepth := 0;
+  aSMTP.IOHandler := SSLHandler;
+end;
+
+procedure TSendMail.InitSASL(aSMTP : TIdSMTP; const aUserName, aPassword : String);
+var
+  IdUserPassProvider: TIdUserPassProvider;
+  IdSASLCRAMMD5: TIdSASLCRAMMD5;
+  IdSASLCRAMSHA1: TIdSASLCRAMSHA1;
+  IdSASLPlain: TIdSASLPlain;
+  IdSASLLogin: TIdSASLLogin;
+  IdSASLSKey: TIdSASLSKey;
+  IdSASLOTP: TIdSASLOTP;
+  IdSASLAnonymous: TIdSASLAnonymous;
+  IdSASLExternal: TIdSASLExternal;
+begin
+  IdUserPassProvider := TIdUserPassProvider.Create(aSMTP);
+  IdUserPassProvider.Username := aUserName;
+  IdUserPassProvider.Password:= aPassword;
+
+  IdSASLCRAMSHA1 := TIdSASLCRAMSHA1.Create(aSMTP);
+  IdSASLCRAMSHA1.UserPassProvider := IdUserPassProvider;
+  IdSASLCRAMMD5 := TIdSASLCRAMMD5.Create(aSMTP);
+  IdSASLCRAMMD5.UserPassProvider := IdUserPassProvider;
+  IdSASLSKey := TIdSASLSKey.Create(aSMTP);
+  IdSASLSKey.UserPassProvider := IdUserPassProvider;
+  IdSASLOTP := TIdSASLOTP.Create(aSMTP);
+  IdSASLOTP.UserPassProvider := IdUserPassProvider;
+  IdSASLAnonymous := TIdSASLAnonymous.Create(aSMTP);
+  IdSASLExternal := TIdSASLExternal.Create(aSMTP);
+  IdSASLLogin := TIdSASLLogin.Create(aSMTP);
+  IdSASLLogin.UserPassProvider := IdUserPassProvider;
+  IdSASLPlain := TIdSASLPlain.Create(aSMTP);
+  IdSASLPlain.UserPassProvider := IdUserPassProvider;
+
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLCRAMSHA1;
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLCRAMMD5;
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLSKey;
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLOTP;
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLAnonymous;
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLExternal;
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLLogin;
+  aSMTP.SASLMechanisms.Add.SASL := IdSASLPlain;
 end;
 
 constructor TSendMail.Create;
@@ -192,6 +268,12 @@ function TSendMail.SetSubject(const aSubject: String): TSendMail;
 begin
   FSubject:= aSubject;
   Result:= Self;
+end;
+
+function TSendMail.SetSSLConnection: TSendMail;
+begin
+  FSSLConnection:= true;
+  Result := Self;
 end;
 
 
@@ -371,11 +453,32 @@ begin
     try
       tmpSMTP.Host:= FHost;
       tmpSMTP.Port:= FPort;
+
+      if FSSLConnection then
+      begin
+        AddSSLHandler(tmpSMTP);
+
+        if tmpSMTP.Port = SMTP_PORT_EXPLICIT_TLS then
+          tmpSMTP.UseTLS := utUseExplicitTLS
+        else
+          tmpSMTP.UseTLS := utUseImplicitTLS;
+      end;
+
       tmpSMTP.ConnectTimeout:= 5000;
-      if FUserName <> '' then
-        tmpSMTP.Username:= FUserName;
-      if FPassword <> '' then
-        tmpSMTP.Password:= FPassword;
+      if (FUserName<>'') or (FPassword<>'') then
+      begin
+        tmpSMTP.AuthType := satSASL;
+        InitSASL(tmpSMTP, FUserName, FPassword);
+        if FUserName <> '' then
+          tmpSMTP.Username:= FUserName;
+        if FPassword <> '' then
+          tmpSMTP.Password:= FPassword;
+      end
+      else
+        tmpSMTP.AuthType := satNone;
+
+      tmpSMTP.UseEHLO := true;
+
       error:= false;
       try
         tmpSMTP.Connect;
