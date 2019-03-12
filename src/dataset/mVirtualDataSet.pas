@@ -175,6 +175,8 @@ type
   TmVirtualDatasetFilterManager = class;
   TmVirtualDatasetSummaryManager = class;
 
+  TmOnFilterVirtualDataset = procedure (Sender : TObject) of object;
+
   { TmCustomVirtualDataset }
 
   TmCustomVirtualDataset = class(TDataSet)
@@ -216,6 +218,7 @@ type
   protected
     FSorted : boolean;
     FFiltered : boolean;
+    FOnFilter : TmOnFilterVirtualDataset;
 
     function DoSort : boolean;
     procedure ClearSort;
@@ -322,6 +325,7 @@ type
     property AutomaticInitFieldsFormat : boolean read FAutomaticInitFieldsFormat write FAutomaticInitFieldsFormat;
 
     property DatasetDataProvider : TmVirtualDatasetDataProvider read FVirtualDatasetProvider write FVirtualDatasetProvider;
+    property OnFilter : TmOnFilterVirtualDataset read FOnFilter write FOnFilter;
   end;
 
   TmVirtualDataset = class(TmCustomVirtualDataset)
@@ -374,6 +378,7 @@ type
     function Sort : boolean;
     procedure ClearSort;
   end;
+
 
   { TmVirtualDatasetFilterManager }
 
@@ -1343,6 +1348,8 @@ begin
     FFiltered := false;
   end;
   FSummaryManager.NotifyChanges;
+  if Assigned(FOnFilter) then
+    FOnFilter(Self);
 end;
 
 procedure TmCustomVirtualDataset.ClearFilter;
@@ -1355,6 +1362,8 @@ begin
   end;
   Resync([]);
   FSummaryManager.NotifyChanges;
+  if Assigned(FOnFilter) then
+    FOnFilter(Self);
 end;
 
 (*
