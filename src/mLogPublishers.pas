@@ -184,7 +184,6 @@ end;
 procedure TmFilePublisher.Publish(aContext, aLevel, aMessage: string; aDate: TDateTime);
 var
   s: RawByteString;
-  i : integer;
 begin
   if FFileName <> '' then
   begin
