@@ -81,10 +81,8 @@ type
 implementation
 
 uses
-  FileUtil;
-
-var
-  UTF8BOM : array[0..2] of byte = ($EF, $BB, $BF);
+  FileUtil,
+  mUtility;
 
 { TmConsolePublisher }
 
@@ -203,7 +201,7 @@ begin
       else
       begin
         FFileStream := TFileStream.Create(FFileName, fmCreate);
-        FFileStream.Write(UTF8BOM[0],3);
+        AddUTF8BOMToFileStream(FFileStream);
       end;
     end;
     s := UTF8Encode(Self.GetFormattedString(aContext, aLevel, aMessage, aDate) + sLineBreak);
