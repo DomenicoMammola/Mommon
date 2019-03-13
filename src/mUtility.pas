@@ -111,11 +111,13 @@ function EncodeSVGString(const aSrc : String): String;
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
 
-function GetTimeStampForFileName(const aInstant : TDateTime): string;
+function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : boolean = true): string;
 
 // encode a file to base64
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
 procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFile: String);
+
+procedure AddUTF8BOMToFileStream (aFileStream : TFileStream);
 
 function IsRunningAsRoot : boolean;
 
@@ -126,6 +128,9 @@ uses
   {$ifdef windows}shlobj, registry, winutils,{$else}LazUTF8,{$endif}
   {$ifdef linux}initc, ctypes, BaseUnix,{$endif}
   mMathUtility;
+
+var
+  UTF8BOM : array[0..2] of byte = ($EF, $BB, $BF);
 
 {$ifdef linux}
 function sysconf(i:cint):clong;cdecl;external name 'sysconf';
@@ -1873,6 +1878,11 @@ begin
     Result := ChangeFileExt(Result, ExtractFileExt(aSrc));
 end;
 
+procedure AddUTF8BOMToFileStream(aFileStream: TFileStream);
+begin
+  aFileStream.Write(UTF8BOM[0],3);
+end;
+
 function IsRunningAsRoot: boolean;
 begin
 {$IFDEF WINDOWS}
@@ -1884,15 +1894,16 @@ begin
 {$ENDIF}
 end;
 
-function GetTimeStampForFileName(const aInstant: TDateTime): string;
+function GetTimeStampForFileName(const aInstant: TDateTime; const aAddTime : boolean = true): string;
 var
   year, month, day : word;
   hour, minute, second, millisecond : word;
 begin
   DecodeDate(aInstant, year, month, day);
   DecodeTime(aInstant, hour, minute, second, millisecond);
-  Result := AddZerosFront(year, 4) + AddZerosFront(month, 2) + AddZerosFront(day, 2) + '-';
-  Result := Result + AddZerosFront(hour, 2) + AddZerosFront(minute, 2) + AddZerosFront(second, 2);
+  Result := AddZerosFront(year, 4) + AddZerosFront(month, 2) + AddZerosFront(day, 2);
+  if aAddTime then
+    Result := Result  + '-' + AddZerosFront(hour, 2) + AddZerosFront(minute, 2) + AddZerosFront(second, 2);
 end;
 
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
