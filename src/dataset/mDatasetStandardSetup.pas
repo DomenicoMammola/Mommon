@@ -27,7 +27,7 @@ implementation
 
 uses
   SysUtils, StrUtils,
-  mSystemColumns, mFieldNames;
+  mFields;
 
 function GenerateDisplayLabel(aSourceString: String): String;
 begin
@@ -54,7 +54,7 @@ begin
     else
       aDataset.Fields[i].DisplayLabel := GenerateDisplayLabel(aDataset.Fields[i].FieldName);
 
-    if IsSystemField(aDataset.Fields[i]) then
+    if IsSystemField(aDataset.Fields[i].FieldName) then
       aDataset.Fields[i].Visible:= false;
   end;
 
