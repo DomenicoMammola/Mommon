@@ -201,7 +201,7 @@ begin
       else
       begin
         FFileStream := TFileStream.Create(FFileName, fmCreate);
-        AddUTF8BOMToFileStream(FFileStream);
+        AddUTF8BOMToStream(FFileStream);
       end;
     end;
     s := UTF8Encode(Self.GetFormattedString(aContext, aLevel, aMessage, aDate) + sLineBreak);

@@ -117,7 +117,7 @@ function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : bo
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
 procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFile: String);
 
-procedure AddUTF8BOMToFileStream (aFileStream : TFileStream);
+procedure AddUTF8BOMToStream (aStream : TStream);
 
 function IsRunningAsRoot : boolean;
 
@@ -1878,9 +1878,9 @@ begin
     Result := ChangeFileExt(Result, ExtractFileExt(aSrc));
 end;
 
-procedure AddUTF8BOMToFileStream(aFileStream: TFileStream);
+procedure AddUTF8BOMToStream(aStream: TStream);
 begin
-  aFileStream.Write(UTF8BOM[0],3);
+  aStream.Write(UTF8BOM[0],3);
 end;
 
 function IsRunningAsRoot: boolean;
