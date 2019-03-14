@@ -30,10 +30,11 @@ type
     FQuoteChar: Char;
     FLineEnding: String;
     FFilename : String;
-    FFilestream : TFileStream;
+    FExtStream : TStream;
+    FOwnedFileStream : TFileStream;
     FUTF8 : boolean;
     FCurrentRow: String;
-    procedure CheckFileStream;
+    function CheckFileStream : TStream;
   public
     constructor Create;
     destructor Destroy; override;
@@ -50,6 +51,7 @@ type
     property LineEnding: String read FLineEnding write FLineEnding;
     property FileName: String read FFilename write FFilename;
     property UTF8: Boolean read FUTF8 write FUTF8;
+    property Stream : TStream read FExtStream write FExtStream;
   end;
 
 implementation
@@ -60,9 +62,13 @@ uses
 
 { TmCSVBuilder }
 
-procedure TmCSVBuilder.CheckFileStream;
+function TmCSVBuilder.CheckFileStream : TStream;
 begin
-  if not Assigned(FFilestream) then
+  if Assigned(FExtStream) then
+    Result := FExtStream
+  else if Assigned(FOwnedFileStream) then
+    Result := FOwnedFileStream
+  else
     raise Exception.Create('Missing file stream. Call StartWrite before.');
 end;
 
@@ -72,43 +78,49 @@ begin
   FQuoteChar := '"';
   FLineEnding := sLineBreak;
   FFilename:= '';
-  FFilestream:= nil;
+  FOwnedFileStream:= nil;
+  FExtStream:= nil;
   FUTF8:= true;
   FCurrentRow := '';
 end;
 
 destructor TmCSVBuilder.Destroy;
 begin
-  if Assigned(FFilestream) then
+  if Assigned(FOwnedFileStream) then
     EndWrite;
   inherited Destroy;
 end;
 
 procedure TmCSVBuilder.StartWrite;
 begin
-  if FFilename = '' then
-    raise Exception.Create('Filename is empty');
-
-  if Assigned(FFilestream) then
+  if Assigned(FOwnedFileStream) then
     EndWrite;
 
-  FFileStream := TFileStream.Create(FFilename, fmCreate);
-  if FUTF8 then
-    AddUTF8BOMToFileStream(FFilestream);
+  if Assigned(FExtStream) then
+  begin
+    if FUTF8 then
+      AddUTF8BOMToStream(FExtStream);
+  end
+  else
+  begin
+    if (FFilename = '') then
+      raise Exception.Create('Filename is empty');
+    FOwnedFileStream := TFileStream.Create(FFilename, fmCreate);
+    if FUTF8 then
+      AddUTF8BOMToStream(FOwnedFileStream);
+  end;
 end;
 
 procedure TmCSVBuilder.EndWrite;
 begin
-  CheckFileStream;
   if FCurrentRow <> '' then
     AppendRow;
   FCurrentRow := '';
-  FreeAndNil(FFilestream);
+  FreeAndNil(FOwnedFileStream);
 end;
 
 procedure TmCSVBuilder.AppendCell(const aValue: String);
 begin
-  CheckFileStream;
   if FCurrentRow <> '' then
     FCurrentRow := FCurrentRow + FDelimiter + aValue
   else
@@ -131,16 +143,17 @@ end;
 procedure TmCSVBuilder.AppendRow;
 var
   s: RawByteString;
+  fs : TStream;
 begin
-  CheckFileStream;
+  fs := CheckFileStream;
   FCurrentRow:= FCurrentRow + sLineBreak;
   if FUTF8 then
   begin
     s := UTF8Encode(FCurrentRow);
-    FFileStream.Write(s[1], Length(s));
+    fs.Write(s[1], Length(s));
   end
   else
-    FFilestream.Write(FCurrentRow[1], Length(FCurrentRow));
+    fs.Write(FCurrentRow[1], Length(FCurrentRow));
   FCurrentRow:= '';
 end;
 
