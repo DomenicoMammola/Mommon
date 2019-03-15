@@ -49,6 +49,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure AssignFromField(const aSource: TField);
+    procedure Assign(const aSource: TmField);
 
     property FieldName : String read FFieldName write SetFieldName;
     property DisplayLabel : String read FDisplayLabel write FDisplayLabel;
@@ -74,6 +75,7 @@ type
     function Get(const aIndex : integer): TmField;
 
     procedure Clear;
+    procedure Assign(const aSource : TmFields);
 
     function FieldByName(const aFieldName : String) : TmField;
   end;
@@ -144,6 +146,15 @@ begin
   FList.Clear;
 end;
 
+procedure TmFields.Assign(const aSource: TmFields);
+var
+  i : integer;
+begin
+  Self.Clear;
+  for i := 0 to aSource.Count - 1 do
+    Self.Add.Assign(aSource.Get(i));
+end;
+
 function TmFields.FieldByName(const aFieldName: String): TmField;
 begin
   Result := FFieldsDictionary.Find(Uppercase(aFieldName)) as TmField;
@@ -196,6 +207,16 @@ begin
     EditFormat:= '';
   end;
   FieldName := aSource.FieldName;
+end;
+
+procedure TmField.Assign(const aSource: TmField);
+begin
+  FieldName:= aSource.FieldName;
+  DisplayLabel:= aSource.DisplayLabel;
+  EditFormat:= aSource.EditFormat;
+  DisplayFormat:= aSource.DisplayFormat;
+  Visible:= aSource.Visible;
+  DataType:= aSource.DataType;
 end;
 
 

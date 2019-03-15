@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, contnrs, db,
-  mDataProviderInterfaces, mFloatsManagement, mNullables, mMaps;
+  mFloatsManagement, mNullables, mMaps;
 
 type
 

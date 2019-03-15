@@ -19,7 +19,7 @@ interface
 
 uses
   Classes,
-  mDataProviderFieldDefs;
+  mDataProviderFieldDefs, mSortConditions, mFilter, mSummary;
 
 type
 
@@ -47,6 +47,38 @@ type
     function GetKeyFieldName : String;
     procedure GetMinimumFields(aFieldsForLookup : TStringList);
   end;
+
+  ISortableDatasetManager = interface
+    ['{481EA485-3F80-46B1-BF24-587EF48EFE11}']
+    function GetSorted : boolean;
+    function GetSortByConditions : TSortByConditions;
+    function Sort : boolean;
+    procedure ClearSort;
+  end;
+
+  { IFilterDatasetManager }
+
+  IFilterDatasetManager = interface
+    ['{6BCEF289-FCB4-4EFE-B594-8D08DBC1B09A}']
+    procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
+    function DoFilter : boolean;
+    function GetFiltered : boolean;
+    function GetFilters : TmFilters;
+    procedure RemoveFilterForField(const aFieldName: string);
+    procedure RemoveFilterForFields(const aFieldNames: TStrings);
+    procedure RemoveFilter;
+  end;
+
+  ISummaryDatasetManager = interface
+    ['{48E41715-7DB6-4876-9E7F-AB313E0287E7}']
+    function GetSummaryDefinitions : TmSummaryDefinitions;
+    function GetSummaryValues : TmSummaryValues;
+    procedure RefreshSummaries;
+    procedure NotifyChanges;
+    procedure RegisterListener (aOnRefresh : TNotifyEvent);
+    //procedure RemoveListener (const aIndex : integer);
+  end;
+
 
 
 function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >

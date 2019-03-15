@@ -20,7 +20,7 @@ uses
   Data.DbConsts,
   {$ENDIF}
   DB, BufDataset,
-  mDataProviderFieldDefs, mDatasetStandardSetup, mSortConditions, mDatasetInterfaces,
+  mDataProviderFieldDefs, mDatasetStandardSetup, mSortConditions, mDataProviderInterfaces,
   mFilter, mSummary;
 
 {$REGION 'Documentation'}
