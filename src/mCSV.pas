@@ -44,6 +44,7 @@ type
 
     procedure AppendCell(const aValue: String); overload;
     procedure AppendCell(const aValue: TAbstractNullable); overload;
+    procedure AppendQuotedCell(const aValue : String);
     procedure AppendRow;
 
     property Delimiter: Char read FDelimiter write FDelimiter;
@@ -130,14 +131,17 @@ end;
 procedure TmCSVBuilder.AppendCell(const aValue: TAbstractNullable);
 begin
   if aValue is TNullableString then
-  begin
-    if FQuoteChar <> '' then
-      Self.AppendCell(FQuoteChar + StringReplace(StringReplace(aValue.AsString, FQuoteChar, '', [rfReplaceAll]), FDelimiter, '', [rfReplaceAll]) + FQuoteChar)
-    else
-      Self.AppendCell(StringReplace(aValue.AsString, FDelimiter, '', [rfReplaceAll]));
-  end
+    Self.AppendQuotedCell(StringReplace(aValue.AsString, FDelimiter, '', [rfReplaceAll]))
   else
     Self.AppendCell(aValue.AsString);
+end;
+
+procedure TmCSVBuilder.AppendQuotedCell(const aValue: String);
+begin
+  if FQuoteChar <> '' then
+    Self.AppendCell(Self.QuoteChar + StringReplace(aValue, FQuoteChar, '', [rfReplaceAll]) + Self.QuoteChar)
+  else
+    Self.AppendCell(aValue);
 end;
 
 procedure TmCSVBuilder.AppendRow;
