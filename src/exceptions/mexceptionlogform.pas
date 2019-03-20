@@ -58,7 +58,7 @@ implementation
 {$R *.lfm}
 
 uses
-  mExceptionLog, mUtility, mToast;
+  mExceptionLog, mUtility;
 
 { TExceptionLogForm }
 
@@ -96,7 +96,7 @@ begin
       Self.ModalResult:= mrOk;
     end
     else
-      TmToast.ShowText(SWrongEmailMessage);
+      ShowMessage(SWrongEmailMessage);
   end
   else
     Self.ModalResult:= mrOk;
@@ -113,7 +113,7 @@ begin
       Self.ModalResult:= mrOk;
     end
     else
-      TmToast.ShowText(SWrongEmailMessage);
+      ShowMessage(SWrongEmailMessage);
   end
   else
     Self.ModalResult:= mrOk;
