@@ -130,7 +130,7 @@ end;
 
 procedure TmCSVBuilder.AppendCell(const aValue: TAbstractNullable);
 begin
-  if aValue is TNullableString then
+  if (aValue is TNullableString) and aValue.NotNull then
     Self.AppendQuotedCell(StringReplace(aValue.AsString, FDelimiter, '', [rfReplaceAll]))
   else
     Self.AppendCell(aValue.AsString);
