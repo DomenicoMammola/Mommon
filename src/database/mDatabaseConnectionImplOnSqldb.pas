@@ -7,10 +7,6 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-//
-// To enable database access throw the sqldb components to MsSqlServer
-// please check:
-// http://wiki.freepascal.org/mssqlconn
 
 unit mDatabaseConnectionImplOnSqldb;
 
