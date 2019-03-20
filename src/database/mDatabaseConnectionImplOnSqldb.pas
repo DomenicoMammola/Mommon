@@ -31,33 +31,29 @@ uses
 type
 
 
-  { TSqldbDatabaseConnectionImpl }
+  { TAbstractSqldbDatabaseConnectionImpl }
 
-  TSqldbDatabaseConnectionImpl = class(TmDatabaseConnectionImpl)
-  private
+  TAbstractSqldbDatabaseConnectionImpl = class(TmDatabaseConnectionImpl)
+  protected
     FConnection : TSQLConnection;
     FTransaction : TSQLTransaction;
-  protected
-    procedure SetConnectionInfo(AValue: TmDatabaseConnectionInfo); override;
   public
     constructor Create(); override;
     destructor Destroy; override;
 
     procedure Connect; override;
     procedure Close; override;
-    function GetName : String; override;
     procedure StartTransaction; override;
     procedure Commit; override;
     procedure Rollback; override;
-
-    class function GetImplementationName : String;
+    function Connected: boolean; override;
   end;
 
-  { TSqldbDatabaseQueryImpl }
+  { TAbstractSqldbDatabaseQueryImpl }
 
-  TSqldbDatabaseQueryImpl = class (TmDatabaseQueryImpl)
+  TAbstractSqldbDatabaseQueryImpl = class (TmDatabaseQueryImpl)
   private
-    FConnectionImpl : TSqldbDatabaseConnectionImpl;
+    FConnectionImpl : TAbstractSqldbDatabaseConnectionImpl;
     FQuery: TSQLQuery;
     FPrepared : boolean;
   protected
@@ -86,13 +82,11 @@ type
     procedure SetUnidirectional(const aValue : boolean); override;
   end;
 
-  { TSdacDatabaseCommandImpl }
+  { TAbstractSqldbDatabaseCommandImpl }
 
-  { TSqldbDatabaseCommandImpl }
-
-  TSqldbDatabaseCommandImpl = class (TmDatabaseCommandImpl)
+  TAbstractSqldbDatabaseCommandImpl = class (TmDatabaseCommandImpl)
   private
-    FConnectionImpl : TSqldbDatabaseConnectionImpl;
+    FConnectionImpl : TAbstractSqldbDatabaseConnectionImpl;
     FCommand : TSQLQuery;
     FPrepared : boolean;
   protected
@@ -121,74 +115,72 @@ type
 implementation
 
 uses
-  mssqlconn, dblib,
-  mDatabaseConnectionImplRegister,
   SysUtils;
 
-{ TSqldbDatabaseCommandImpl }
+{ TAbstractSqldbDatabaseCommandImpl }
 
-procedure TSqldbDatabaseCommandImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
+procedure TAbstractSqldbDatabaseCommandImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
 begin
-  FConnectionImpl := value as TSqldbDatabaseConnectionImpl;
+  FConnectionImpl := value as TAbstractSqldbDatabaseConnectionImpl;
   FCommand.DataBase := FConnectionImpl.FConnection;
 end;
 
-function TSqldbDatabaseCommandImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
+function TAbstractSqldbDatabaseCommandImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
 begin
   Result := FConnectionImpl;
 end;
 
-constructor TSqldbDatabaseCommandImpl.Create;
+constructor TAbstractSqldbDatabaseCommandImpl.Create;
 begin
   FCommand := TSQLQuery.Create(nil);
   FPrepared := false;
 end;
 
-destructor TSqldbDatabaseCommandImpl.Destroy;
+destructor TAbstractSqldbDatabaseCommandImpl.Destroy;
 begin
   FreeAndNil(FCommand);
   inherited Destroy;
 end;
 
-procedure TSqldbDatabaseCommandImpl.SetSQL(aValue: TStringList);
+procedure TAbstractSqldbDatabaseCommandImpl.SetSQL(aValue: TStringList);
 begin
   FCommand.SQL.Clear;
   FCommand.SQL.AddStrings(aValue);
   FPrepared := false;
 end;
 
-function TSqldbDatabaseCommandImpl.SameSQL(aValue: TStringList): boolean;
+function TAbstractSqldbDatabaseCommandImpl.SameSQL(aValue: TStringList): boolean;
 begin
   Result := FCommand.SQL.Count <> aValue.Count;
   if (not Result) then
     Result := (CompareStr(FCommand.SQL.Text, aValue.Text) = 0);
 end;
 
-function TSqldbDatabaseCommandImpl.Execute: integer;
+function TAbstractSqldbDatabaseCommandImpl.Execute: integer;
 begin
   FCommand.ExecSQL();
   Result := FCommand.RowsAffected;
   FPrepared := true;
 end;
 
-procedure TSqldbDatabaseCommandImpl.Prepare;
+procedure TAbstractSqldbDatabaseCommandImpl.Prepare;
 begin
   FCommand.Prepare;
   FPrepared := true;
 end;
 
-procedure TSqldbDatabaseCommandImpl.Unprepare;
+procedure TAbstractSqldbDatabaseCommandImpl.Unprepare;
 begin
   FCommand.Unprepare;
   FPrepared := false;
 end;
 
-function TSqldbDatabaseCommandImpl.ParamCount: integer;
+function TAbstractSqldbDatabaseCommandImpl.ParamCount: integer;
 begin
   Result := FCommand.Params.Count;
 end;
 
-procedure TSqldbDatabaseCommandImpl.SetParamValue(aParam: TmQueryParameter);
+procedure TAbstractSqldbDatabaseCommandImpl.SetParamValue(aParam: TmQueryParameter);
 var
   TmpParam : TParam;
 begin
@@ -221,105 +213,107 @@ begin
   end;
 end;
 
-function TSqldbDatabaseCommandImpl.GetParam(aIndex: integer): TParam;
+function TAbstractSqldbDatabaseCommandImpl.GetParam(aIndex: integer): TParam;
 begin
   Result := FCommand.Params[aIndex];
 end;
 
-function TSqldbDatabaseCommandImpl.Prepared: boolean;
+function TAbstractSqldbDatabaseCommandImpl.Prepared: boolean;
 begin
   Result := FPrepared;
 end;
 
-{ TSqldbDatabaseQueryImpl }
+{ TAbstractSqldbDatabaseQueryImpl }
 
-procedure TSqldbDatabaseQueryImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
+procedure TAbstractSqldbDatabaseQueryImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
 begin
-  FConnectionImpl := value as TSqldbDatabaseConnectionImpl;
+  FConnectionImpl := value as TAbstractSqldbDatabaseConnectionImpl;
   FQuery.DataBase := FConnectionImpl.FConnection;
 end;
 
-function TSqldbDatabaseQueryImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
+function TAbstractSqldbDatabaseQueryImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
 begin
   Result := FConnectionImpl;
 end;
 
-constructor TSqldbDatabaseQueryImpl.Create;
+constructor TAbstractSqldbDatabaseQueryImpl.Create;
 begin
   FQuery := TSQLQuery.Create(nil);
   FQuery.UniDirectional:= true;
+  FQuery.ParseSQL := False;
+  FQuery.ReadOnly := True;
   FPrepared := false;
 end;
 
-destructor TSqldbDatabaseQueryImpl.Destroy;
+destructor TAbstractSqldbDatabaseQueryImpl.Destroy;
 begin
   FreeAndNil(FQuery);
   inherited Destroy;
 end;
 
-procedure TSqldbDatabaseQueryImpl.SetSQL(aValue: TStringList);
+procedure TAbstractSqldbDatabaseQueryImpl.SetSQL(aValue: TStringList);
 begin
   FQuery.SQL.Clear;
   FQuery.SQL.AddStrings(aValue);
 end;
 
-function TSqldbDatabaseQueryImpl.SameSQL(aValue: TStringList): boolean;
+function TAbstractSqldbDatabaseQueryImpl.SameSQL(aValue: TStringList): boolean;
 begin
   Result := FQuery.SQL.Count <> aValue.Count;
   if (not Result) then
     Result := (CompareStr(FQuery.SQL.Text, aValue.Text) = 0);
 end;
 
-procedure TSqldbDatabaseQueryImpl.Open;
+procedure TAbstractSqldbDatabaseQueryImpl.Open;
 begin
   if not FPrepared then
     FPrepared := true;
   FQuery.Open;
 end;
 
-procedure TSqldbDatabaseQueryImpl.Close;
+procedure TAbstractSqldbDatabaseQueryImpl.Close;
 begin
   FQuery.Close;
 end;
 
-procedure TSqldbDatabaseQueryImpl.Prepare;
+procedure TAbstractSqldbDatabaseQueryImpl.Prepare;
 begin
   FQuery.Prepare;
   FPrepared := true;
 end;
 
-procedure TSqldbDatabaseQueryImpl.Unprepare;
+procedure TAbstractSqldbDatabaseQueryImpl.Unprepare;
 begin
   FQuery.UnPrepare;
   FPrepared := false;
 end;
 
-procedure TSqldbDatabaseQueryImpl.First;
+procedure TAbstractSqldbDatabaseQueryImpl.First;
 begin
   FQuery.First;
 end;
 
-procedure TSqldbDatabaseQueryImpl.Next;
+procedure TAbstractSqldbDatabaseQueryImpl.Next;
 begin
   FQuery.Next;
 end;
 
-function TSqldbDatabaseQueryImpl.Eof: boolean;
+function TAbstractSqldbDatabaseQueryImpl.Eof: boolean;
 begin
   Result := FQuery.EOF;
 end;
 
-function TSqldbDatabaseQueryImpl.AsDataset: TDataset;
+function TAbstractSqldbDatabaseQueryImpl.AsDataset: TDataset;
 begin
   Result := FQuery;
 end;
 
-function TSqldbDatabaseQueryImpl.ParamCount: integer;
+function TAbstractSqldbDatabaseQueryImpl.ParamCount: integer;
 begin
   Result := FQuery.Params.Count;
 end;
 
-procedure TSqldbDatabaseQueryImpl.SetParamValue(aParam: TmQueryParameter);
+procedure TAbstractSqldbDatabaseQueryImpl.SetParamValue(aParam: TmQueryParameter);
 var
   TmpParam : TParam;
 begin
@@ -352,61 +346,42 @@ begin
   end;
 end;
 
-function TSqldbDatabaseQueryImpl.GetParam(aIndex: integer): TParam;
+function TAbstractSqldbDatabaseQueryImpl.GetParam(aIndex: integer): TParam;
 begin
   Result := FQuery.Params[aIndex];
 end;
 
-function TSqldbDatabaseQueryImpl.Prepared: boolean;
+function TAbstractSqldbDatabaseQueryImpl.Prepared: boolean;
 begin
   Result := FPrepared;
 end;
 
-function TSqldbDatabaseQueryImpl.GetUnidirectional: boolean;
+function TAbstractSqldbDatabaseQueryImpl.GetUnidirectional: boolean;
 begin
   Result := FQuery.UniDirectional;
 end;
 
-procedure TSqldbDatabaseQueryImpl.SetUnidirectional(const aValue: boolean);
+procedure TAbstractSqldbDatabaseQueryImpl.SetUnidirectional(const aValue: boolean);
 begin
   FQuery.UniDirectional:= aValue;
 end;
 
-{ TSqldbDatabaseConnectionImpl }
+{ TAbstractSqldbDatabaseConnectionImpl }
 
-
-procedure TSqldbDatabaseConnectionImpl.SetConnectionInfo(AValue: TmDatabaseConnectionInfo);
-begin
-  inherited SetConnectionInfo(AValue);
-  if Assigned(FConnection) then
-    FreeAndNil(FConnection);
-  if (FConnectionInfo.VendorType = dvSQLServer) then
-  begin
-    FConnection := TMSSQLConnection.Create(nil);
-    FTransaction.DataBase := FConnection;
-    {$IFDEF WINDOWS}
-    if Pos('v2008', FConnectionInfo.ExtraSettings) > 0 then
-      DBLibLibraryName := 'dblib_2008.dll'
-    else
-      DBLibLibraryName := DBLIBDLL;
-    {$ENDIF}
-  end;
-end;
-
-constructor TSqldbDatabaseConnectionImpl.Create;
+constructor TAbstractSqldbDatabaseConnectionImpl.Create();
 begin
   FConnection := nil;
   FTransaction := TSQLTransaction.Create(nil);
 end;
 
-destructor TSqldbDatabaseConnectionImpl.Destroy;
+destructor TAbstractSqldbDatabaseConnectionImpl.Destroy;
 begin
   FreeAndNil(FTransaction);
   FreeAndNil(FConnection);
   inherited Destroy;
 end;
 
-procedure TSqldbDatabaseConnectionImpl.Connect;
+procedure TAbstractSqldbDatabaseConnectionImpl.Connect;
 begin
   if (not FConnection.Connected) then
   begin
@@ -422,40 +397,31 @@ begin
   end;
 end;
 
-procedure TSqldbDatabaseConnectionImpl.Close;
+procedure TAbstractSqldbDatabaseConnectionImpl.Close;
 begin
   if FConnection.Connected then
     FConnection.Close(false);
 end;
 
-function TSqldbDatabaseConnectionImpl.GetName: String;
-begin
-  Result := TSqldbDatabaseConnectionImpl.GetImplementationName;
-end;
-
-procedure TSqldbDatabaseConnectionImpl.StartTransaction;
+procedure TAbstractSqldbDatabaseConnectionImpl.StartTransaction;
 begin
   FTransaction.StartTransaction;
 end;
 
-procedure TSqldbDatabaseConnectionImpl.Commit;
+procedure TAbstractSqldbDatabaseConnectionImpl.Commit;
 begin
   FTransaction.Commit;
 end;
 
-procedure TSqldbDatabaseConnectionImpl.Rollback;
+procedure TAbstractSqldbDatabaseConnectionImpl.Rollback;
 begin
   FTransaction.Rollback;
 end;
 
-class function TSqldbDatabaseConnectionImpl.GetImplementationName: String;
+function TAbstractSqldbDatabaseConnectionImpl.Connected: boolean;
 begin
-  Result := 'sqldb';
+  Result := FConnection.Connected;
 end;
 
-
-initialization
-
-  GetDataConnectionClassesRegister.RegisterImplementations(TSqldbDatabaseConnectionImpl.GetImplementationName, dvSQLServer, TSqldbDatabaseConnectionImpl, TSqldbDatabaseQueryImpl, TSqldbDatabaseCommandImpl);
 
 end.

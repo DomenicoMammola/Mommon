@@ -35,6 +35,7 @@ type
       procedure StartTransaction; virtual; abstract;
       procedure Commit; virtual; abstract;
       procedure Rollback; virtual; abstract;
+      function Connected : boolean; virtual; abstract;
 
       property ConnectionInfo : TmDatabaseConnectionInfo read FConnectionInfo write SetConnectionInfo;
   end;

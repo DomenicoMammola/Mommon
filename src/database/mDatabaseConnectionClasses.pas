@@ -23,7 +23,7 @@ uses
 type
   TmDataConnectionException = class (Exception);
 
-  TmDatabaseVendor = (dvUnknown, dvSQLServer);
+  TmDatabaseVendor = (dvUnknown, dvSQLServer, dvMySQL56);
 
   TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptTime, ptInteger, ptFloat, ptString, ptWideString);
 

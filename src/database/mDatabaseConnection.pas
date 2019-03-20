@@ -43,6 +43,8 @@ type
     procedure Commit; override;
     procedure Rollback; override;
 
+    function Connected: boolean; override;
+
     property ConnectionInfo : TmDatabaseConnectionInfo read FConnectionInfo write FConnectionInfo;
     property OwnsConnectionInfo : boolean read FOwnsConnectionInfo write FOwnsConnectionInfo;
   end;
@@ -550,6 +552,12 @@ procedure TmDatabaseConnection.Rollback;
 begin
   CreateImplementation;
   FImplementation.Rollback;
+end;
+
+function TmDatabaseConnection.Connected: boolean;
+begin
+  CreateImplementation;
+  Result := FImplementation.Connected;
 end;
 
 initialization

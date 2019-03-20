@@ -146,10 +146,9 @@ begin
 end;
 
 initialization
-_Register := nil;
+  _Register := nil;
 
 finalization
-if Assigned(_Register) then
   FreeAndNil(_Register);
 
 end.
