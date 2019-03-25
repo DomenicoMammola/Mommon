@@ -15,8 +15,10 @@ unit mVirtualFileSystem_FTP;
 
 interface
 
+{$I mDefines.inc}
+
 uses
-  Classes, SysUtils, {$IFNDEF CONSOLE}Controls, Forms, {$ENDIF}
+  Classes, SysUtils, {$IFDEF GUI}Controls, Forms, {$ENDIF}
 
   IdTCPClient, IdFTP, IdFTPCommon,
 
@@ -100,13 +102,13 @@ var
   tmpFile : TmFile;
   tmpFileType : TFTPFileType;
   tmpFileName : string;
-  {$IFNDEF CONSOLE}
+  {$IFDEF GUI}
   tmpCursor : TCursor;
   {$ENDIF}
 begin
   if aIsGUIApplication then
   begin
-    {$IFNDEF CONSOLE}
+    {$IFDEF GUI}
     tmpCursor := Screen.Cursor;
     Screen.Cursor:= crHourGlass;
     {$ENDIF}
@@ -158,7 +160,7 @@ begin
       FTPClient.Free;
     end;
   finally
-    {$IFNDEF CONSOLE}
+    {$IFDEF GUI}
     if aIsGUIApplication then
       Screen.Cursor:= tmpCursor;
     {$ENDIF}

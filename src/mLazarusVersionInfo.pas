@@ -47,7 +47,7 @@ Function GetCompilerInfo: String;
 Function GetTargetInfo: String;
 Function GetOS: String;
 Function GetCPU: String;
-{$IFNDEF CONSOLE}
+{$IFDEF LCL}
 Function GetLCLVersion: String;
 Function GetWidgetSet: String;
 {$ENDIF}
@@ -61,7 +61,7 @@ Function GetProductVersion: String;
 
 function CompareFileVersion (const aVer1, aVer2: TFileProductVersion): integer;
 
-{$IFNDEF CONSOLE}
+{$IFDEF LCL}
 Const
   WIDGETSET_GTK        = 'GTK widget set';
   WIDGETSET_GTK2       = 'GTK 2 widget set';
@@ -77,10 +77,10 @@ Implementation
 
 Uses
   resource, versionresource
-  {$IFNDEF CONSOLE}, LCLVersion, InterfaceBase, LCLPlatformDef{$ENDIF}
+  {$IFDEF LCL}, LCLVersion, InterfaceBase, LCLPlatformDef{$ENDIF}
   ;
 
-{$IFNDEF CONSOLE}
+{$IFDEF LCL}
 function GetWidgetSet: String;
 Begin
   Case WidgetSet.LCLPlatform Of
@@ -117,7 +117,7 @@ begin
   Result := {$I %FPCTARGETCPU%};
 end;
 
-{$IFNDEF CONSOLE}
+{$IFDEF LCL}
 function GetLCLVersion: String;
 Begin
   Result := 'LCL '+lcl_version;

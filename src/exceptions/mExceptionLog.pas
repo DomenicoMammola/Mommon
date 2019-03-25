@@ -12,6 +12,8 @@ unit mExceptionLog;
 
 interface
 
+{$I mDefines.inc}
+
 uses
   Classes, SysUtils;
 
@@ -31,6 +33,7 @@ type
   end;
 
   TExceptionLogGetTraceFunction = function(var aTitle: string):string;
+  TExceptionLogShowCallStackProcedure = procedure (const aReport: String; out aWantsToShutDown: boolean);
 
 {$IFDEF FPC}
 // credits: procedure DumpExceptionCallStack(E: Exception) in http://wiki.freepascal.org/Logging_exceptions
@@ -41,20 +44,23 @@ procedure DumpExceptionCallStack(Sender: TObject; E: Exception; out aWantsToShut
 function ExceptionLogConfiguration : TExceptionLogConfiguration;
 
 procedure RegisterExceptionLogTracer (const aGetTrace: TExceptionLogGetTraceFunction);
+procedure RegisterExceptionLogPublisher (const aShowCallStack : TExceptionLogShowCallStackProcedure);
 
 implementation
 
 uses
   {$IFDEF WINDOWS}windows,{$ENDIF} Dos, contnrs,
-  {$IFNDEF CONSOLE}
-  mExceptionLogForm,
-  {$ENDIF}
   mUtility, mLazarusVersionInfo, mThreadsBaseClasses;
 
 type
   TRegisteredTracer = class
   public
     TraceFunction: TExceptionLogGetTraceFunction;
+  end;
+
+  TRegisteredShowCallStack = class
+  public
+    ShowProcedure : TExceptionLogShowCallStackProcedure;
   end;
 
 {$IFDEF WINDOWS}
@@ -75,6 +81,7 @@ type
 var
   _ExceptionLogConfiguration : TExceptionLogConfiguration;
   _Tracers: TObjectList;
+  _ShowProcedures : TObjectList;
 
 
 {$IFDEF WINDOWS}
@@ -168,9 +175,6 @@ end;
 procedure DumpExceptionCallStack(Sender: TObject; E: Exception; out aWantsToShutDown : boolean);
 var
   Report: string;
-  {$IFNDEF CONSOLE}
-  Dlg : TExceptionLogForm;
-  {$ENDIF}
   i : integer;
   tmpTitle, tmpTrace: string;
 begin
@@ -213,17 +217,11 @@ begin
     end;
   end;
 
-  {$IFDEF CONSOLE}
-  {$ELSE}
-  Dlg := TExceptionLogForm.Create(nil);
-  try
-    Dlg.Init(Report);
-    Dlg.ShowModal;
-    aWantsToShutDown:= Dlg.UserWantsToShutDown;
-  finally
-    Dlg.Free;
+  if Assigned(_ShowProcedures) then
+  begin
+    for i := 0 to _ShowProcedures.Count -1 do
+      (_ShowProcedures.Items[i] as TRegisteredShowCallStack).ShowProcedure(Report, aWantsToShutDown);
   end;
-  {$ENDIF}
 end;
 
 function ExceptionLogConfiguration: TExceptionLogConfiguration;
@@ -244,6 +242,18 @@ begin
   _Tracers.Add(t);
 end;
 
+procedure RegisterExceptionLogPublisher(const aShowCallStack: TExceptionLogShowCallStackProcedure);
+var
+  s: TRegisteredShowCallStack;
+begin
+  if not Assigned(_ShowProcedures) then
+    _ShowProcedures := TObjectList.Create(true);
+  s := TRegisteredShowCallStack.Create;
+  s.ShowProcedure:= aShowCallStack;
+  _ShowProcedures.Add(s);
+
+end;
+
 { TExceptionLogConfiguration }
 
 constructor TExceptionLogConfiguration.Create;
@@ -255,5 +265,6 @@ end;
 finalization
   FreeAndNil(_ExceptionLogConfiguration);
   FreeAndNil(_Tracers);
+  FreeAndNil(_ShowProcedures);
 
 end.

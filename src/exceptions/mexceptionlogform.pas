@@ -12,8 +12,9 @@ unit mExceptionLogForm;
 {$mode objfpc}{$H+}
 
 interface
+{$I mDefines.inc}
 
-{$IFDEF CONSOLE}
+{$IFNDEF GUI}
 ** this unit should not be compiled in a console application **
 {$ENDIF}
 
@@ -140,6 +141,25 @@ begin
   MemoReport.Text:= aReport;
   FReport:= aReport;
 end;
+
+procedure ShowLogForm(const aReport: String; out aWantsToShutDown: boolean);
+var
+  Dlg : TExceptionLogForm;
+begin
+  Dlg := TExceptionLogForm.Create(nil);
+  try
+    Dlg.Init(aReport);
+    Dlg.ShowModal;
+    aWantsToShutDown:= Dlg.UserWantsToShutDown;
+  finally
+    Dlg.Free;
+  end;
+end;
+
+initialization
+
+RegisterExceptionLogPublisher(@ShowLogForm);
+
 
 end.
 
