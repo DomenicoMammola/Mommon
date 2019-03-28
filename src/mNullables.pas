@@ -1191,11 +1191,19 @@ begin
 end;
 
 procedure TNullableColor.Assign(const aValue: Variant);
+var
+  str : String;
 begin
   if VarIsNull(aValue) then
     Self.IsNull:= true
   else
-    Self.Value:= StringToColor(VarToStr(aValue));
+  begin
+    str := VarToStr(aValue);
+    if str = '' then
+      Self.IsNull:= true
+    else
+      Self.Value:= StringToColor(VarToStr(aValue));
+  end;
   SetTagChanged(false);
 end;
 
