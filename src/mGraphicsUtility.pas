@@ -121,14 +121,14 @@ const
 
   function IsDark(const aColor: TColor): boolean;
   var
-    cRed,
-    cGreen,
-    cBlue: Byte;
+    cRed, cGreen, cBlue: Byte;
+    s : integer;
   begin
     cRed := GetRValue(aColor);
     cGreen := GetGValue(aColor);
     cBlue := GetBValue(aColor);
-    Result := ((128 * 3) - (cRed + cGreen + cBlue)) > 0;
+    s := (cRed + cGreen + cBlue);
+    Result := ((128 * 3) - s) > 0;
   end;
 
   function ScaleForDPI(const aValue: integer): integer;
