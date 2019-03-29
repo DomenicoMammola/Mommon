@@ -16,8 +16,11 @@ interface
   {$MODE DELPHI}
 {$ENDIF}
 
+{$I mDefines.inc}
+
 uses
-  Classes, SysUtils, Variants, {$ifdef windows}Windows, {$ifdef fpc}{$ifndef console}InterfaceBase,{$endif}{$endif} {$ifndef console}Forms,{$endif}{$endif}
+  Classes, SysUtils, Variants, {$IFDEF WINDOWS}Windows, {$IFDEF FPC}{$IFDEF GRAPHICS_AVAILABLE}InterfaceBase,{$ENDIF}{$ENDIF} {$ENDIF}
+  {$IFDEF GRAPHICS_AVAILABLE}Graphics,{$ENDIF} {$IFDEF GUI}Forms,{$ENDIF}
   mIntList, mDoubleList;
 
 const
@@ -46,6 +49,9 @@ function TryToUnderstandDateString(const aInputString : String; out aValue : TDa
 // try to convert the input text from the user as a time value, if it fails it returns false
 // user can edit time as hhmm or hhmmss or with separators like ':', '.', ....
 function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
+{$IFDEF GRAPHICS_AVAILABLE}
+function TryToUndestandColorString(const aInputString : String; out Value : TColor) : boolean;
+{$ENDIF}
 
 // http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11
 function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string): TDateTime;
@@ -86,9 +92,9 @@ function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
 function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
 function GetOSUser : string;
-{$ifndef console}
+{$IFDEF GUI}
 procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
-{$endif}
+{$ENDIF}
 // http://forum.codecall.net/topic/69184-solved-file-association-and-the-registry/
 function RegisterDefaultApplication(const aFullPathExe : string; const aFileExtension : string; var aError : string): boolean;
 
@@ -125,16 +131,16 @@ implementation
 
 uses
   DateUtils, base64,
-  {$ifdef windows}shlobj, registry, winutils,{$else}LazUTF8,{$endif}
-  {$ifdef linux}initc, ctypes, BaseUnix,{$endif}
+  {$IFDEF WINDOWS}shlobj, registry, winutils,{$ELSE}LazUTF8,{$ENDIF}
+  {$IFDEF LINUX}initc, ctypes, BaseUnix,{$ENDIF}
   mMathUtility;
 
 var
   UTF8BOM : array[0..2] of byte = ($EF, $BB, $BF);
 
-{$ifdef linux}
+{$IFDEF LINUX}
 function sysconf(i:cint):clong;cdecl;external name 'sysconf';
-{$endif}
+{$ENDIF}
 
 function AddZerosFront (const aValue : integer; const aLength : integer) : String;
 begin
@@ -542,6 +548,22 @@ begin
   end;
 end;
 
+{$IFDEF GRAPHICS_AVAILABLE}
+function TryToUndestandColorString(const aInputString: String; out Value: TColor): boolean;
+begin
+  Result := false;
+  try
+    Value := StringToColor(aInputString);
+    Result := true;
+  except
+    on e: Exception do
+    begin
+      // ignored
+    end;
+  end;
+end;
+{$ENDIF}
+
 (*
 http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11
 
@@ -787,6 +809,7 @@ function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 begin
   Result := C in CharSet;
 end;
+{$ENDIF}
 
 function ExtractLastFolderFromPath(aFullPath: string): string;
 var
@@ -893,7 +916,6 @@ begin
     aList.Add(VarAsType(aValue, vardate));
 end;
 
-{$ENDIF}
 
 function CompareVariants(aVal1, aVal2: variant): integer;
 var
@@ -1087,7 +1109,7 @@ begin
   Result := tmpVariant;
 end;
 
-{$ifdef windows}
+{$IFDEF WINDOWS}
 function GetCPUCores : integer;
 var
   Info: TSystemInfo;
@@ -1095,16 +1117,16 @@ begin
   GetSystemInfo(Info);
   Result := Info.dwNumberOfProcessors;
 end;
-{$else}
+{$ELSE}
 
-{$ifdef linux}
+{$IFDEF LINUX}
 function GetCPUCores : integer;
 begin
   // http://forum.lazarus.freepascal.org/index.php?topic=33125.0
   Result := sysconf(83);
 end;
-{$else}
-{$ifdef Darwin}
+{$ELSE}
+{$IFDEF DARWIN}
 // http://forum.lazarus.freepascal.org/index.php?topic=4098.0
 function GetCPUCores : integer;
 //returns number of CPUs for MacOSX computer
@@ -1137,35 +1159,35 @@ var
    lProcess.Free;
 end;
 
-{$else}
+{$ELSE}
 function GetCPUCores : integer;
 begin
   raise Exception.Create('GetCPUCores missing implementation for this platform');
 end;
-{$endif}
-{$endif}
-{$endif}
+{$ENDIF}
+{$ENDIF}
+{$ENDIF}
 
 function GetApplicationLocalDataFolder(const aApplicationSubDir: string): String;
 var
   tmpDir : string;
-  {$ifdef windows}
+  {$IFDEF WINDOWS}
   AppDataPath: Array[0..MaxPathLen] of Char; //http://wiki.lazarus.freepascal.org/Windows_Programming_Tips
-  {$endif}
+  {$ENDIF}
 begin
-  {$ifdef windows}
+  {$IFDEF WINDOWS}
   AppDataPath:='';
   SHGetSpecialFolderPath(0,AppDataPath,CSIDL_LOCAL_APPDATA,false);
   tmpDir:= AppDataPath;
   Result := IncludeTrailingPathDelimiter(tmpDir) + aApplicationSubDir;
-  {$else}
-    {$ifdef linux}
+  {$ELSE}
+    {$IFDEF LINUX}
     tmpDir:= GetEnvironmentVariableUTF8('HOME');
     Result := IncludeTrailingPathDelimiter(tmpDir) + '.' + aApplicationSubDir;
-    {$else}
+    {$ELSE}
     raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');
-    {$endif}
-  {$endif}
+    {$ENDIF}
+  {$ENDIF}
   if not DirectoryExists(Result) then
     ForceDirectories(Result);
 end;
@@ -1173,23 +1195,23 @@ end;
 function GetApplicationDataFolder(const aApplicationSubDir: string): String;
 var
   tmpDir : string;
-  {$ifdef windows}
+  {$IFDEF WINDOWS}
   AppDataPath: Array[0..MaxPathLen] of Char; //http://wiki.lazarus.freepascal.org/Windows_Programming_Tips
-  {$endif}
+  {$ENDIF}
 begin
-  {$ifdef windows}
+  {$IFDEF WINDOWS}
   AppDataPath:='';
   SHGetSpecialFolderPath(0,AppDataPath,CSIDL_APPDATA,false);
   tmpDir:= AppDataPath;
   Result := IncludeTrailingPathDelimiter(tmpDir) + aApplicationSubDir;
-  {$else}
-    {$ifdef linux}
+  {$ELSE}
+    {$IFDEF LINUX}
     // GetAppConfigDir(false);
     raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');
-    {$else}
+    {$ELSE}
     raise Exception.Create('GetApplicationLocalDataFolder missing implementation for this platform');
-    {$endif}
-  {$endif}
+    {$ENDIF}
+  {$ENDIF}
   if not DirectoryExists(Result) then
     ForceDirectories(Result);
 end;
@@ -1201,19 +1223,19 @@ begin
     Result := SysUtils.GetEnvironmentVariable('USER');
 end;
 
-{$ifndef console}
+{$IFDEF GUI}
 procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
 begin
-  {$ifdef windows}
+  {$IFDEF WINDOWS}
   // http://forum.lazarus.freepascal.org/index.php?topic=33574.0
   If aFlashEvenIfActive or (not Application.Active) Then
-    FlashWindow({$ifdef fpc}WidgetSet.AppHandle{$else}Application.Handle{$endif}, True);
-  {$endif}
+    FlashWindow({$IFDEF FPC}WidgetSet.AppHandle{$ELSE}Application.Handle{$ENDIF}, True);
+  {$ENDIF}
 end;
-{$endif}
+{$ENDIF}
 
 function RegisterDefaultApplication(const aFullPathExe: string; const aFileExtension: string; var aError : string) : boolean;
-{$ifdef windows}
+{$IFDEF WINDOWS}
 var
   a: byte;
   tmpRegistry : TRegistry;
@@ -1290,11 +1312,11 @@ begin
 
   SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nil, nil);
   Result := true;
-{$else}
+{$ELSE}
 begin
   Result := false;
   aError := 'OS not supported';
-{$endif}
+{$ENDIF}
 end;
 
 function CreateUniqueIdentifier: String;
