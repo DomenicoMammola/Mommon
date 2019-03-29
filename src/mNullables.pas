@@ -16,13 +16,12 @@ unit mNullables;
 {$ENDIF}
 
 interface
+{$I mDefines.inc}
 
 uses
   db,
-  {$IFDEF FPC}
-  {$IFDEF LCL}
+  {$IFDEF GRAPHICS_AVAILABLE}
   Graphics,
-  {$ENDIF}
   {$ENDIF}
   variants, Classes,
   mUtility, mMathUtility, mFloatsManagement;
@@ -394,8 +393,7 @@ type
     property Value : Integer read GetValue write SetValue;
   end;
 
-  {$IFDEF FPC}
-  {$IFDEF LCL}
+  {$IFDEF GRAPHICS_AVAILABLE}
   { TNullableColor }
 
   TNullableColor = class(TAbstractNullable)
@@ -418,7 +416,6 @@ type
 
     property Value : TColor read GetValue write SetValue;
   end;
-  {$ENDIF}
   {$ENDIF}
 
   { TNullableValue }
@@ -1139,8 +1136,7 @@ begin
     Result := Value;
 end;
 
-{$IFDEF FPC}
-{$IFDEF LCL}
+{$IFDEF GRAPHICS_AVAILABLE}
 
 { TNullableColor }
 
@@ -1256,7 +1252,6 @@ begin
   else
     Result := ColorToString(Self.Value);
 end;
-{$ENDIF}
 {$ENDIF}
 
 { TNullableInteger }
