@@ -100,6 +100,9 @@ type
 
 implementation
 
+uses
+  mIntList, mDoubleList;
+
 { TmFiltersEvaluator }
 
 constructor TmFiltersEvaluator.Create;
@@ -157,11 +160,18 @@ end;
 { TmFilterEvaluator }
 
 procedure TmFilterEvaluator.StartEvaluation(aFilter: TmFilter);
+  procedure CheckValuesForBeetween (const aNumOfValues : integer);
+  begin
+    if aNumOfValues <> 2 then
+      raise Exception.Create('BETWEEN operator needs 2 values to perform evaluation.');
+  end;
+
 var
   i : integer;
-  start, stop : integer;
   str : string;
-  tmpDouble : double;
+  sList : TStringList;
+  iList : TIntegerList;
+  dList : TDoubleList;
 begin
   FreeAndNil(FValuesAsStrings);
   FreeAndnil(FValuesDictionary);
@@ -181,39 +191,72 @@ begin
   else
   if FCurrentFilter.FilterOperator = foBetween then
   begin
-    start := VarArrayLowBound(FCurrentFilter.Value, 1);
-    stop := VarArrayHighBound(FCurrentFilter.Value, 1);
-    if (stop - start) <> 2 then
-      raise Exception.Create('BETWEEN operator needs 2 values to perform evaluation.');
-
     if FCurrentFilter.DataType = fdtString then
     begin
-      FMinStrValue := VarToStr(FCurrentFilter.Value[start]);
-      FMaxStrValue := VarToStr(FCurrentFilter.Value[stop]);
+      sList := TStringList.Create;
+      try
+        mUtility.ConvertVariantToStringList(FCurrentFilter.Value, sList);
+        CheckValuesForBeetween(sList.Count);
+        FMinStrValue := sList.Strings[0];
+        FMaxStrValue := sList.Strings[1];
+      finally
+        sList.Free;
+      end;
     end else if aFilter.DataType = fdtDate then
     begin
-      tmpDouble := VarAsType(FCurrentFilter.Value[start], vardate);
-      FMinDoubleValue:= trunc(tmpDouble);
-      tmpDouble := VarAsType(FCurrentFilter.Value[stop], vardate);
-      FMaxDoubleValue:= trunc(tmpDouble);
+      iList := TIntegerList.Create;
+      try
+        ConvertVariantToDateList(FCurrentFilter.Value, iList);
+        CheckValuesForBeetween(iList.Count);
+        FMinDoubleValue:= iList.Items[0];
+        FMaxDoubleValue:= iList.Items[1];
+      finally
+        iList.Free;
+      end;
     end else if aFilter.DataType = fdtTime then
     begin
-      tmpDouble := VarAsType(FCurrentFilter.Value[start], vardate);
-      FMinDoubleValue:= tmpDouble - trunc(tmpDouble);
-      tmpDouble := VarAsType(FCurrentFilter.Value[stop], vardate);
-      FMaxDoubleValue:= tmpDouble - trunc (tmpDouble);
+      dList := TDoubleList.Create;
+      try
+        ConvertVariantToDateTimeList(FCurrentFilter.Value, dList);
+        CheckValuesForBeetween(dList.Count);
+        FMinDoubleValue:= dList.Items[0] - trunc(dList.Items[0]);
+        FMaxDoubleValue:= dList.Items[1] - trunc (dList.Items[1]);
+      finally
+        dList.Free;
+      end;
     end else if (aFilter.DataType = fdtDateTime) then
     begin
-      FMinDoubleValue:= VarAsType(FCurrentFilter.Value[start], vardate);
-      FMaxDoubleValue:= VarAsType(FCurrentFilter.Value[stop], vardate);
+      dList := TDoubleList.Create;
+      try
+        ConvertVariantToDateTimeList(FCurrentFilter.Value, dList);
+        CheckValuesForBeetween(dList.Count);
+        FMinDoubleValue:= dList.Items[0];
+        FMaxDoubleValue:= dList.Items[1];
+      finally
+        dList.Free;
+      end;
     end else if aFilter.DataType = fdtInteger then
     begin
-      FMinIntegerValue:= VarAsType(FCurrentFilter.Value[start], varinteger);
-      FMaxIntegerValue:= VarAsType(FCurrentFilter.Value[stop], varinteger);
+      iList := TIntegerList.Create;
+      try
+        ConvertVariantToDateList(FCurrentFilter.Value, iList);
+        CheckValuesForBeetween(iList.Count);
+        FMinIntegerValue:= iList.Items[0];
+        FMaxIntegerValue:= iList.Items[1];
+      finally
+        iList.Free;
+      end;
     end else if aFilter.DataType = fdtFloat then
     begin
-      FMinDoubleValue:= VarAsType(FCurrentFilter.Value[start], vardouble);
-      FMaxDoubleValue:= VarAsType(FCurrentFilter.Value[stop], vardouble);
+      dList := TDoubleList.Create;
+      try
+        ConvertVariantToDoubleList(FCurrentFilter.Value, dList);
+        CheckValuesForBeetween(dList.Count);
+        FMinDoubleValue:= dList.Items[0];
+        FMaxDoubleValue:= dList.Items[1];
+      finally
+        dList.Free;
+      end;
     end;
   end;
 end;
