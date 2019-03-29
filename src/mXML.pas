@@ -12,8 +12,10 @@ unit mXML;
 
 interface
 
+{$I mDefines.inc}
+
 uses
-  Classes, SysUtils,
+  Classes, SysUtils, {$IFDEF GRAPHICS_AVAILABLE}Graphics,{$ENDIF}
   mNullables;
 
 type
@@ -87,6 +89,13 @@ type
     procedure SetBooleanAttribute(Name : TmXmlString; Value : Boolean);
     function GetBooleanAttribute(Name: TmXMLString): boolean; overload;
     function GetBooleanAttribute(Name: TmXMLString; DefaultValue : boolean): boolean; overload;
+    {$IFDEF GRAPHICS_AVAILABLE}
+    procedure SetColorAttribute(const aName: TmXmlString; const aValue: TColor); overload;
+    procedure SetColorAttribute(const aName: TmXmlString; const aValue: TNullableColor); overload;
+    function GetColorAttribute(const aName: TmXmlString): TColor; overload;
+    function GetColorAttribute(const aName: TmXmlString; const aDefaultValue : TColor): TColor; overload;
+    procedure GetColorAttribute(const aName: TmXmlString; aValue : TNullableColor);
+    {$ENDIF}
 
     procedure SetValue(const aValue: TmXMLString); overload;
     procedure SetValue(const aValue: TNullableString); overload;
@@ -188,7 +197,7 @@ type
 implementation
 
 uses
-  mXML_oxml;
+  mXML_oxml, mUtility;
 
 var
   InternalFactory : TImpl_Factory;
@@ -339,6 +348,54 @@ function TmXmlElement.GetBooleanAttribute(Name: TmXMLString; DefaultValue: boole
 begin
   Result := StrToBool(Self.GetAttribute(Name, BoolToStr(DefaultValue, true)));
 end;
+
+{$IFDEF GRAPHICS_AVAILABLE}
+procedure TmXmlElement.SetColorAttribute(const aName: TmXmlString; const aValue: TColor);
+begin
+  Self.SetAttribute(aName, ColorToString(aValue));
+end;
+{$ENDIF}
+
+{$IFDEF GRAPHICS_AVAILABLE}
+procedure TmXmlElement.SetColorAttribute(const aName: TmXmlString; const aValue: TNullableColor);
+begin
+  if aValue.NotNull  then
+    Self.SetColorAttribute(aName, aValue.Value)
+  else
+    Self.DeleteAttribute(aName);
+end;
+{$ENDIF}
+
+{$IFDEF GRAPHICS_AVAILABLE}
+function TmXmlElement.GetColorAttribute(const aName: TmXmlString): TColor;
+begin
+  Result := GetColorAttribute(aName, clNone);
+end;
+{$ENDIF}
+
+{$IFDEF GRAPHICS_AVAILABLE}
+function TmXmlElement.GetColorAttribute(const aName: TmXmlString; const aDefaultValue: TColor): TColor;
+var
+  str: String;
+  tmpColor: TColor;
+begin
+  str:= GetAttribute(aName);
+  if TryToUndestandColorString(str, tmpColor) then
+    Result := tmpColor
+  else
+    Result := aDefaultValue;
+end;
+{$ENDIF}
+
+{$IFDEF GRAPHICS_AVAILABLE}
+procedure TmXmlElement.GetColorAttribute(const aName: TmXmlString; aValue: TNullableColor);
+begin
+  if Self.HasAttribute(aName) then
+    aValue.Value:= Self.GetColorAttribute(aName)
+  else
+    aValue.IsNull:= true;
+end;
+{$ENDIF}
 
 procedure TmXmlElement.SetValue(const aValue: TmXMLString);
 begin
