@@ -13,9 +13,11 @@ unit mThreads;
 
 interface
 
+{$I mDefines.inc}
+
 uses
   Classes, contnrs, syncobjs, SysUtils,
-  {$ifdef lcl}{$ifndef console}Forms, Controls, {$endif}{$endif}
+  {$ifdef gui}Forms, Controls, {$endif}
   mUtility, mProgress, mThreadsBaseClasses;
 
 type
@@ -85,7 +87,7 @@ type
     destructor Destroy; override;
 
     function QueueJob : TmJob;
-    procedure Execute ({$ifdef lcl}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
+    procedure Execute ({$ifdef gui}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
   end;
 
   function BatchExecutor : TmBatchExecutor;
@@ -131,7 +133,7 @@ type
     FCallBack : TOnEndJobCallback;
     FRunning : boolean;
     FCurrentJobResults : TJobResults;
-    {$ifdef lcl}
+    {$ifdef gui}
     FParentForm: TForm;
     {$endif}
 
@@ -148,7 +150,7 @@ type
 
     property CallBack : TOnEndJobCallback read FCallBack write FCallBack;
     property Running : boolean read FRunning;
-    {$ifdef lcl}
+    {$ifdef gui}
     property ParentForm: TForm read FParentForm write FParentForm;
     {$endif}
   end;
@@ -219,7 +221,7 @@ end;
 
 procedure TControlThread.RunEndCallBack;
 begin
-  {$ifdef lcl}
+  {$ifdef gui}
   if Assigned(FParentForm) then
   begin
     FParentForm.Cursor:= crArrow;
@@ -422,7 +424,7 @@ begin
   Result.FJobId:= GetControlThread(Self).Jobs.Count;
 end;
 
-procedure TmBatchExecutor.Execute({$ifdef lcl}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
+procedure TmBatchExecutor.Execute({$ifdef gui}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
 begin
   if GetControlThread(Self).Running then
     exit;
@@ -432,7 +434,7 @@ begin
 
   GetControlThread(Self).ParentForm := nil;
 
-  {$ifdef lcl}
+  {$ifdef gui}
   if Assigned(aParentForm) then
   begin
     GetControlThread(Self).ParentForm := aParentForm;

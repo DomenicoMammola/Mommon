@@ -14,10 +14,12 @@ unit mLogPublishers;
   {$MODE DELPHI}
 {$ENDIF}
 
+{$I mDefines.inc}
+
 interface
 
 uses
-  {$ifdef lcl}Forms, StdCtrls, Controls,{$endif}
+  {$ifdef gui}Forms, StdCtrls, Controls,{$endif}
   sysutils, Classes,
   mLog;
 
@@ -25,7 +27,7 @@ const
   SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER = 'showlog';
 
 type
-  {$ifdef lcl}
+  {$ifdef gui}
   TmMemoPublisher = class (TmLogPublisher)
   strict private
     FCurrentLevel : TmLogMessageLevel;
@@ -111,7 +113,7 @@ begin
   Result := FCurrentLevel;
 end;
 
-{$ifdef lcl}
+{$ifdef gui}
 
 function TmMemoPublisher.ActInsideMainThread: boolean;
 begin

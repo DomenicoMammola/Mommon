@@ -14,8 +14,10 @@ unit mVirtualDataSet;
 
 interface
 
+{$I mDefines.inc}
+
 uses
-  Classes, SysUtils, Variants, contnrs, {$IFNDEF CONSOLE}Forms,{$ENDIF}
+  Classes, SysUtils, Variants, contnrs, {$IFDEF GUI}Forms,{$ENDIF}
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
