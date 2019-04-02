@@ -25,7 +25,8 @@ function RoundToExt (const aValue : double; const aRoundingMethod : TRoundingMet
 function GetFractionalPartDigits(const aValue: double): integer;
 
 function TryToConvertToDouble(aValue: string; out aOutValue: Double): boolean;
-function TryToConvertToInteger(aValue: string; out aOutValue: integer): boolean;
+function TryToConvertToInteger(aValue: string; out aOutValue: Integer): boolean;
+function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
 function IsNumeric(aValue: string; const aAllowFloat: Boolean): Boolean;
 
 implementation
@@ -91,7 +92,7 @@ begin
   end;
 end;
 
-function TryToConvertToInteger(aValue: string; out aOutValue: integer): boolean;
+function TryToConvertToInteger(aValue: string; out aOutValue: Integer): boolean;
 var
   tmpValueInt : integer;
   tmp : String;
@@ -126,6 +127,32 @@ begin
         aOutValue := tmpValueInt;
         exit;
       end;
+    end;
+  end;
+end;
+
+function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
+var
+  tmp : String;
+  posDot, posDotR, posComma, posCommaR : integer;
+begin
+  Result := false;
+  tmp := Trim(aValue);
+  posComma := Pos(',', aValue);
+  posCommaR := RPos(',', aValue);
+  posDot := Pos('.', aValue);
+  posDotR := RPos('.', aValue);
+  if (SysUtils.FormatSettings.ThousandSeparator = '.') and (posDot = posDotR) then // 1.023
+    tmp := StringReplace(aValue, '.', '', [rfReplaceAll])
+  else if (SysUtils.FormatSettings.ThousandSeparator = ',') and (posComma = posCommaR) then // 1,023
+    tmp := StringReplace(aValue, ',', '', [rfReplaceAll]);
+  try
+    aOutValue := StrToInt64(tmp);
+    Result := true;
+  except
+    on e: exception do
+    begin
+      // ignored
     end;
   end;
 end;

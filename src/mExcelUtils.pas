@@ -21,6 +21,7 @@ procedure WriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aVal
 
 procedure WriteInteger(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TNullableInteger); overload;
 procedure WriteInteger(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : integer); overload;
+procedure WriteInt64(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : Int64); overload;
 
 implementation
 
@@ -40,8 +41,19 @@ begin
 end;
 
 procedure WriteInteger(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: integer);
+var
+  vDouble : Double;
 begin
-  aSheet.WriteNumber(aRow, aCol, aValue, nfFixed, 0);
+  vDouble := aValue;
+  aSheet.WriteNumber(aRow, aCol, vDouble, nfFixed, 0);
+end;
+
+procedure WriteInt64(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: Int64);
+var
+  vDouble : Double;
+begin
+  vDouble := aValue;
+  aSheet.WriteNumber(aRow, aCol, vDouble, nfFixed, 0);
 end;
 
 end.
