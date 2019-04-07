@@ -196,10 +196,10 @@ end;
 
 constructor TmLogManager.Create;
 begin
-  FEndThreadEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, ''){$ENDIF};
+  FEndThreadEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, 'mLogManager_EndThreadEvent'){$ENDIF};
   FThread := TmLogPublisherThread.Create(FEndThreadEvent, Self);
 
-  FVCLEndThreadEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, ''){$ENDIF};
+  FVCLEndThreadEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, 'mLogManager_VCLEndThreadEvent'){$ENDIF};
   FVCLThread := TmLogPublisherThread.Create(FVCLEndThreadEvent, Self);
 
   FLogs := TObjectList.Create(true);
