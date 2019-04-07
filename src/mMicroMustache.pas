@@ -24,9 +24,9 @@ type
   TMustacheLexState = class
   strict private
     FText : string;
-    FCharIndex : integer;
-    FLenRow : integer;
-    FOpenTokens : integer;
+    FCharIndex : Int64;
+    FLenRow : Int64;
+    FOpenTokens : Integer;
     FLastTokenString : String;
   public
     procedure SetText (const aText : String);
@@ -45,7 +45,6 @@ type
   TmMicroMustache = class
   strict private
     FValues : TmStringDictionary;
-    FTemplate : TStringList;
     procedure yylex (aState : TMustacheLexState; var aValue : String);
     function CalcToken (const aToken : String) : String;
   public
@@ -53,16 +52,16 @@ type
     destructor Destroy; override;
 
     procedure AddValue (const aKey, aValue : string);
-    function Render : String;
-
-    property Template : TStringList read FTemplate;
+    function Render(aTemplate: String): String;
   end;
 
 implementation
 
 uses
-  mBaseClassesAsObjects;
+  mBaseClassesAsObjects, mLog, htmlelements;
 
+var
+  logger : TmLog;
 
 { TMustacheLexState }
 
@@ -100,62 +99,62 @@ end;
 
 procedure TmMicroMustache.yylex(aState: TMustacheLexState; var aValue : String);
 begin
+  while not aState.Eof do
+  begin
+    if aState.CurrentChar = '{' then
+    begin
+      aState.Advance;
+      if aState.Eof or (aState.CurrentChar <> '{') then
+      begin
+        aState.GoBack;
+        if aState.OpenTokens > 0 then
+          aState.LastTokenString:= aState.LastTokenString + aState.CurrentChar
+        else
+          aValue := aValue + aState.CurrentChar;
+      end
+      else
+        aState.OpenTokens:= aState.OpenTokens + 1;
+    end
+    else if (aState.CurrentChar = '}') then
+    begin
+      aState.Advance;
+      if aState.Eof or (aState.CurrentChar <> '}') then
+      begin
+        aState.GoBack;
+        if aState.OpenTokens > 0 then
+          aState.LastTokenString:= aState.LastTokenString + aState.CurrentChar
+        else
+          aValue := aValue + aState.CurrentChar;
+      end
+      else
+      begin
+        aState.OpenTokens:= aState.OpenTokens - 1;
+        if aState.OpenTokens = 0 then
+        begin
+          aValue := aValue + CalcToken(aState.LastTokenString);
+          aState.LastTokenString:= '';
+        end;
+      end;
+    end
+    else
+    begin
+      if aState.OpenTokens > 0 then
+        aState.LastTokenString:= aState.LastTokenString + aState.CurrentChar
+      else
+        aValue:= aValue + aState.CurrentChar;
+    end;
+
+    aState.Advance;
+  end;
+
   if aState.Eof then
   begin
     if aState.OpenTokens > 0 then
     begin
-      aValue := aValue + aState.LastTokenString;
+      aValue := aValue + '{{' + aState.LastTokenString;
       aState.LastTokenString:= '';
     end;
-
-    exit;
   end;
-
-  if aState.CurrentChar = '{' then
-  begin
-    aState.Advance;
-    if aState.Eof or (aState.CurrentChar <> '{') then
-    begin
-      aState.GoBack;
-      if aState.OpenTokens > 0 then
-        aState.LastTokenString:= aState.LastTokenString + aState.CurrentChar
-      else
-        aValue := aValue + aState.CurrentChar;
-    end
-    else
-      aState.OpenTokens:= aState.OpenTokens + 1;
-  end
-  else if (aState.CurrentChar = '}') then
-  begin
-    aState.Advance;
-    if aState.Eof or (aState.CurrentChar <> '}') then
-    begin
-      aState.GoBack;
-      if aState.OpenTokens > 0 then
-        aState.LastTokenString:= aState.LastTokenString + aState.CurrentChar
-      else
-        aValue := aValue + aState.CurrentChar;
-    end
-    else
-    begin
-      aState.OpenTokens:= aState.OpenTokens - 1;
-      if aState.OpenTokens = 0 then
-      begin
-        aValue := aValue + CalcToken(aState.LastTokenString);
-        aState.LastTokenString:= '';
-      end;
-    end;
-  end
-  else
-  begin
-    if aState.OpenTokens > 0 then
-      aState.LastTokenString:= aState.LastTokenString + aState.CurrentChar
-    else
-      aValue:= aValue + aState.CurrentChar;
-  end;
-
-  aState.Advance;
-  yylex(aState, aValue);
 end;
 
 function TmMicroMustache.CalcToken(const aToken: String) : string;
@@ -163,13 +162,26 @@ var
   state : TMustacheLexState;
   lc : String;
 begin
+  if aToken = 'miss' then
+  begin
+    Result := '';
+    exit;
+  end;
+
   state := TMustacheLexState.Create;
   try
+    logger.Debug('CalcToken:' + aToken);
     state.SetText(aToken);
+    Result := '';
     yylex(state, Result);
     lc := lowercase(Result);
+    logger.Debug('Find token ' + lc);
     if FValues.Contains(lc) then
-      Result := (FValues.Find(lc) as TStringObject).Value
+    begin
+      // Result := EscapeHTML((FValues.Find(lc) as TStringObject).Value);
+      Result := (FValues.Find(lc) as TStringObject).Value;
+      logger.Debug('Token value: ' + Result);
+    end
     else
       Result := aToken;
   finally
@@ -180,13 +192,11 @@ end;
 constructor TmMicroMustache.Create;
 begin
   FValues := TmStringDictionary.Create(true);
-  FTemplate := TStringList.Create;
 end;
 
 destructor TmMicroMustache.Destroy;
 begin
   FValues.Free;
-  FTemplate.Free;
   inherited Destroy;
 end;
 
@@ -200,18 +210,23 @@ begin
   FValues.Add(l, TStringObject.Create(aValue));
 end;
 
-function TmMicroMustache.Render: String;
+function TmMicroMustache.Render (aTemplate: String): String;
 var
   lexState : TMustacheLexState;
 begin
   Result := '';
   lexState := TMustacheLexState.Create;
   try
-    lexState.SetText(FTemplate.Text);
+    lexState.SetText(aTemplate);
     yylex(lexState, Result);
   finally
     lexState.Free;
   end;
 end;
 
+initialization
+
+logger := logManager.AddLog('mustache');
+
 end.
+
