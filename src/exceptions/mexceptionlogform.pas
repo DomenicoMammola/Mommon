@@ -14,10 +14,6 @@ unit mExceptionLogForm;
 interface
 {$I mDefines.inc}
 
-{$IFNDEF GUI}
-** this unit should not be compiled in a console application **
-{$ENDIF}
-
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
   StdCtrls, LCLIntf, ExtCtrls, Clipbrd;
@@ -60,6 +56,10 @@ implementation
 
 uses
   mExceptionLog, mUtility;
+
+{$IFNDEF GUI}
+** this unit should not be compiled in a console application **
+{$ENDIF}
 
 { TExceptionLogForm }
 
