@@ -27,14 +27,16 @@ type
   TmCSVBuilder = class
   strict private
     FDelimiter: Char;
-    FQuoteChar: Char;
+    FQuoteChar: String;
     FLineEnding: String;
     FFilename : String;
     FExtStream : TStream;
     FOwnedFileStream : TFileStream;
     FUTF8 : boolean;
     FCurrentRow: String;
+    FIsNewRow: boolean;
     function CheckFileStream : TStream;
+    procedure StartNewRow;
   public
     constructor Create;
     destructor Destroy; override;
@@ -48,7 +50,7 @@ type
     procedure AppendRow;
 
     property Delimiter: Char read FDelimiter write FDelimiter;
-    property QuoteChar: Char read FQuoteChar write FQuoteChar;
+    property QuoteChar: String read FQuoteChar write FQuoteChar;
     property LineEnding: String read FLineEnding write FLineEnding;
     property FileName: String read FFilename write FFilename;
     property UTF8: Boolean read FUTF8 write FUTF8;
@@ -73,6 +75,12 @@ begin
     raise Exception.Create('Missing file stream. Call StartWrite before.');
 end;
 
+procedure TmCSVBuilder.StartNewRow;
+begin
+  FCurrentRow:= '';
+  FIsNewRow:= true;
+end;
+
 constructor TmCSVBuilder.Create;
 begin
   FDelimiter := ',';
@@ -82,7 +90,7 @@ begin
   FOwnedFileStream:= nil;
   FExtStream:= nil;
   FUTF8:= true;
-  FCurrentRow := '';
+  StartNewRow;
 end;
 
 destructor TmCSVBuilder.Destroy;
@@ -109,6 +117,7 @@ begin
     FOwnedFileStream := TFileStream.Create(FFilename, fmCreate);
     if FUTF8 then
       AddUTF8BOMToStream(FOwnedFileStream);
+    StartNewRow;
   end;
 end;
 
@@ -116,16 +125,18 @@ procedure TmCSVBuilder.EndWrite;
 begin
   if FCurrentRow <> '' then
     AppendRow;
-  FCurrentRow := '';
   FreeAndNil(FOwnedFileStream);
 end;
 
 procedure TmCSVBuilder.AppendCell(const aValue: String);
 begin
-  if FCurrentRow <> '' then
-    FCurrentRow := FCurrentRow + FDelimiter + aValue
-  else
+  if FIsNewRow then
+  begin
     FCurrentRow:= aValue;
+    FIsNewRow := false;
+  end
+  else
+    FCurrentRow := FCurrentRow + FDelimiter + aValue;
 end;
 
 procedure TmCSVBuilder.AppendCell(const aValue: TAbstractNullable);
@@ -158,7 +169,7 @@ begin
   end
   else
     fs.Write(FCurrentRow[1], Length(FCurrentRow));
-  FCurrentRow:= '';
+  StartNewRow;
 end;
 
 end.
