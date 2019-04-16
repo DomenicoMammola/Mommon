@@ -301,19 +301,19 @@ destructor TmLogPublisherThread.Destroy;
 var
   i : integer;
 begin
-  FStartEvent.Free;
-  FMessages.Free;
-  FPublishers.Free;
-  FPublishersCriticalSection.Free;
+  FreeAndNil(FStartEvent);
+  FreeAndNil(FMessages);
+  FreeAndNil(FPublishers);
+  FreeAndNil(FPublishersCriticalSection);
   if Assigned(FCurrentMsg) then
-    FCurrentMsg.Free;
+    FreeAndNil(FCurrentMsg);
   try
     for i:= 0 to FOwnedPublishers.Count-1 do
       TmLogPublisher(FOwnedPublishers.Items[i]).Free;
   except
     //
   end;
-  FOwnedPublishers.Free;
+  FreeAndNil(FOwnedPublishers);
 
   inherited;
 end;
@@ -327,7 +327,7 @@ begin
   if not Self.Terminated then
   begin
     try
-      while (not Self.Terminated) or ((not FTrashMessagesOnQuit) and (not FMessages.Empty)) do
+      while (not Self.Terminated) or ((not FTrashMessagesOnQuit) and Assigned(FMessages) and (not FMessages.Empty)) do
       begin
         FreeAndNil(FCurrentMsg);
         FCurrentMsg := FMessages.PullMessage;
