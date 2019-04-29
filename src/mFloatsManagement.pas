@@ -12,18 +12,18 @@ unit mFloatsManagement;
 
 interface
 
-function DoublesAreEqual(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
+function DoublesAreEqual(const aValue1, aValue2 : double; const aFloatingPointDigits : integer): boolean; overload;
 function DoublesAreEqual(const aValue1, aValue2 : double): boolean; overload;
 
 function DoubleIsLessThan(const aValue1, aValue2 : double) : boolean; overload;
-function DoubleIsLessThan(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
+function DoubleIsLessThan(const aValue1, aValue2 : double; const aFloatingPointDigits : integer): boolean; overload;
 
 function DoubleIsLessOrEqual(const aValue1, aValue2 : double) : boolean; overload;
-function DoubleIsLessOrEqual(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
+function DoubleIsLessOrEqual(const aValue1, aValue2 : double; const aFloatingPointDigits : integer): boolean; overload;
 
 function SafeDiv (numer, denom: double): double;
 
-procedure SetDefaultDecimalNumbers (aDecimalNumbers : integer);
+procedure SetDefaultDecimalNumbers (aFloatingPointDigits : integer);
 
 function RoundDoubleToStandardPrecision (const aValue : double) : double;
 
@@ -38,11 +38,11 @@ var
 
 
 
-function DoublesAreEqual(const aValue1, aValue2 : double; const aDecimalNumbers : integer): boolean; overload;
+function DoublesAreEqual(const aValue1, aValue2 : double; const aFloatingPointDigits : integer): boolean; overload;
 var
   CompareValue : double;
 begin
-  CompareValue := Power(10, -1 * aDecimalNumbers) - Power(10, -1 * (aDecimalNumbers + 1)) - Power(10, -1 * (aDecimalNumbers + 2));
+  CompareValue := Power(10, -1 * aFloatingPointDigits) - Power(10, -1 * (aFloatingPointDigits + 1)) - Power(10, -1 * (aFloatingPointDigits + 2));
   Result := (Abs(aValue1 - aValue2) <= CompareValue);
 end;
 
@@ -51,12 +51,12 @@ begin
   Result := (Abs(aValue1 - aValue2) <= DefaultCompareValue);
 end;
 
-procedure SetDefaultDecimalNumbers (aDecimalNumbers : integer);
+procedure SetDefaultDecimalNumbers (aFloatingPointDigits : integer);
 begin
-  if (DefaultDecimalNumbers <> aDecimalNumbers) then
+  if (DefaultDecimalNumbers <> aFloatingPointDigits) then
   begin
-    DefaultCompareValue := Power(10, -1 * aDecimalNumbers) - Power(10, -1 * (aDecimalNumbers + 1)) - Power(10, -1 * (aDecimalNumbers + 2));
-    DefaultDecimalNumbers := aDecimalNumbers;
+    DefaultCompareValue := Power(10, -1 * aFloatingPointDigits) - Power(10, -1 * (aFloatingPointDigits + 1)) - Power(10, -1 * (aFloatingPointDigits + 2));
+    DefaultDecimalNumbers := aFloatingPointDigits;
   end;
 end;
 
@@ -70,9 +70,9 @@ begin
   Result := (not DoublesAreEqual(aValue1, aValue2)) and (aValue1 < aValue2);
 end;
 
-function DoubleIsLessThan(const aValue1, aValue2: double; const aDecimalNumbers: integer): boolean;
+function DoubleIsLessThan(const aValue1, aValue2: double; const aFloatingPointDigits: integer): boolean;
 begin
-  Result := (not DoublesAreEqual(aValue1, aValue2, aDecimalNumbers)) and (aValue1 < aValue2);
+  Result := (not DoublesAreEqual(aValue1, aValue2, aFloatingPointDigits)) and (aValue1 < aValue2);
 end;
 
 function DoubleIsLessOrEqual(const aValue1, aValue2: double): boolean;
@@ -80,9 +80,9 @@ begin
   Result := DoublesAreEqual(aValue1, aValue2) or (aValue1 < aValue2);
 end;
 
-function DoubleIsLessOrEqual(const aValue1, aValue2: double; const aDecimalNumbers: integer): boolean;
+function DoubleIsLessOrEqual(const aValue1, aValue2: double; const aFloatingPointDigits: integer): boolean;
 begin
-  Result := DoublesAreEqual(aValue1, aValue2, aDecimalNumbers) or (aValue1 < aValue2);
+  Result := DoublesAreEqual(aValue1, aValue2, aFloatingPointDigits) or (aValue1 < aValue2);
 end;
 
 function SafeDiv (numer, denom: double): double;
