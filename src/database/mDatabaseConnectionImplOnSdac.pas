@@ -64,6 +64,7 @@ type
 
     procedure SetSQL (aValue : TStringList); override;
     function SameSQL (aValue : TStringList): boolean; override;
+    procedure SetUnidirectional(const aValue : boolean); override;
 
     procedure Open; override;
     procedure Close; override;
@@ -258,6 +259,11 @@ begin
   Result := FQuery.SQL.Count <> aValue.Count;
   if (not Result) then
     Result := (CompareStr(FQuery.SQL.Text, aValue.Text) = 0);
+end;
+
+procedure TSdacDatabaseQueryImpl.SetUnidirectional(const aValue: boolean);
+begin
+  FQuery.UniDirectional:= aValue;
 end;
 
 procedure TSdacDatabaseQueryImpl.Open;
