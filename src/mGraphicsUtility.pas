@@ -16,11 +16,6 @@ unit mGraphicsUtility;
 
 {$I mDefines.inc}
 
-{$IFNDEF GUI}
-** This unit should not be compiled in a console application **
-{$ENDIF}
-
-
 interface
 
 uses
@@ -43,6 +38,10 @@ type
   function ScaleForDPI (const aValue : integer) : integer;
 
 implementation
+
+{$IFNDEF GUI}
+** This unit should not be compiled in a console application **
+{$ENDIF}
 
 uses
   SysUtils, Math {$IFDEF FPC},graphutil{$ENDIF};
