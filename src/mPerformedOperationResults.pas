@@ -26,7 +26,8 @@ type
     procedure AddError (const aMessage: String);
     procedure AddWarning (const aMessage: String);
     procedure AddInfo (const aMessage: String);
-    procedure GetResultsAsStrings(aResults : TStringList);
+    procedure AddResult (const aMessage: String);
+    procedure GetMessagesAsStrings(aResults : TStringList);
   end;
 
 
@@ -36,6 +37,8 @@ type
   TPerformedOperationResultsAsLog = class (IPerformedOperationResults)
   strict private
     FList : TStringList;
+    FWarnings : Word;
+    FErrors : Word;
     function GetMessages: TStrings;
   public
     constructor Create;
@@ -44,9 +47,12 @@ type
     procedure AddError (const aMessage: String);
     procedure AddWarning (const aMessage: String);
     procedure AddInfo (const aMessage: String);
-    procedure GetResultsAsStrings(aResults : TStringList);
+    procedure AddResult (const aMessage: String);
+    procedure GetMessagesAsStrings(aMessages : TStringList);
 
     property Messages : TStrings read GetMessages;
+    property Warnings : Word read FWarnings;
+    property Errors : Word read FErrors;
   end;
 
 implementation
@@ -61,6 +67,8 @@ end;
 constructor TPerformedOperationResultsAsLog.Create;
 begin
   FList := TStringList.Create;
+  FWarnings:= 0;
+  FErrors:= 0;
 end;
 
 destructor TPerformedOperationResultsAsLog.Destroy;
@@ -72,11 +80,13 @@ end;
 procedure TPerformedOperationResultsAsLog.AddError(const aMessage: String);
 begin
   FList.Append('[ERROR] ' + aMessage);
+  inc (FErrors);
 end;
 
 procedure TPerformedOperationResultsAsLog.AddWarning(const aMessage: String);
 begin
   FList.Append ('[WARNING] ' + aMessage);
+  inc (FWarnings);
 end;
 
 procedure TPerformedOperationResultsAsLog.AddInfo(const aMessage: String);
@@ -84,10 +94,15 @@ begin
   FList.Append ('[INFO] ' + aMessage);
 end;
 
-procedure TPerformedOperationResultsAsLog.GetResultsAsStrings(aResults: TStringList);
+procedure TPerformedOperationResultsAsLog.AddResult(const aMessage: String);
 begin
-  aResults.Clear;
-  aResults.AddStrings(FList);
+  FList.Append('[RESULT] ' + aMessage);
+end;
+
+procedure TPerformedOperationResultsAsLog.GetMessagesAsStrings(aMessages: TStringList);
+begin
+  aMessages.Clear;
+  aMessages.AddStrings(FList);
 end;
 
 end.
