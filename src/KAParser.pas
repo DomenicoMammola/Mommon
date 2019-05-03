@@ -152,7 +152,7 @@ type
   TKAParserOnGetRangeValuesEvent = procedure (const RangeFunction, Func: string; ValueType: TKAParserValueType; ValuesArray : TmArrayOfVariants;  out Successfull : boolean) of object;
 
   TKAParserOnCalcUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; out Value: Double; out Successfull : boolean) of object;
-  TKAParserOnCalcStrUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; var Value: string; out Handled: Boolean) of object;
+  TKAParserOnCalcStrUserFunction = procedure (Sender: TObject; const Func: string; Parameters: TStringList; out Value: string; out Handled: Boolean) of object;
 
 
   { TKAParser }
@@ -176,7 +176,7 @@ type
     function DoUserFunction(const funct: string; ParametersList: TStringList): double;
     function DoStrUserFunction(const funct : string; ParametersList: TStringList) : string;
     // Lexical Analyzer Function http://www.gnu.org/software/bison/manual/html_node/Lexical.html
-    procedure yylex (var lexState: TLexState; var lexResult : TLexResult);
+    procedure yylex (var lexState: TLexState; out lexResult : TLexResult);
     // double
     procedure StartCalculate(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
     procedure Calc6(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
@@ -187,11 +187,11 @@ type
     procedure Calc1(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
     procedure CalcTerm(out resValue: double; var lexState: TLexState; var lexResult : TLexResult);
     // string
-    procedure StartCalculateStr(var resValue: string; var lexState: TLexState; var lexResult : TLexResult);
-    procedure CalculateStrLevel1(var resValue: string; var lexState: TLexState; var lexResult : TLexResult);
-    procedure CalculateStrLevel2(var resValue: string; var lexState: TLexState; var lexResult : TLexResult);
+    procedure StartCalculateStr(out resValue: string; var lexState: TLexState; var lexResult : TLexResult);
+    procedure CalculateStrLevel1(out resValue: string; var lexState: TLexState; var lexResult : TLexResult);
+    procedure CalculateStrLevel2(out resValue: string; var lexState: TLexState; var lexResult : TLexResult);
     // range functions
-    procedure ManageRangeFunction (const funct: string; ParametersList: TStringList; const ValueType: TKAParserValueType; var TempValuesArray : TmArrayOfVariants);
+    procedure ManageRangeFunction (const funct: string; ParametersList: TStringList; const ValueType: TKAParserValueType; out TempValuesArray : TmArrayOfVariants);
     function IsInternalFunction(functionName: string): boolean;
     function IsFunction(functionName: string): boolean;
     procedure ParseFunctionParameters(const funct: string; ParametersList: TStringList; var lexState: TLexState);
@@ -456,7 +456,7 @@ begin
   end;
 end;
 
-procedure TKAParser.CalculateStrLevel1(var resValue: string; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.CalculateStrLevel1(out resValue: string; var lexState: TLexState; var lexResult: TLexResult);
 var
   newString: string;
 begin
@@ -542,7 +542,7 @@ begin
   end;
 end;
 
-procedure TKAParser.CalculateStrLevel2(var resValue: string; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.CalculateStrLevel2(out resValue: string; var lexState: TLexState; var lexResult: TLexResult);
 var
   currentIdent: String;
   ParamList: TStringList;
@@ -1493,7 +1493,7 @@ begin
     RaiseError(sSyntaxError);
 end;
 
-procedure TKAParser.StartCalculateStr(var resValue: string; var lexState: TLexState; var lexResult: TLexResult);
+procedure TKAParser.StartCalculateStr(out resValue: string; var lexState: TLexState; var lexResult: TLexResult);
 begin
   CalculateStrLevel1(resValue, lexState, lexResult);
   while (lexResult.Token = tkSEMICOLON) do
@@ -1537,7 +1537,7 @@ begin
   end;
 end;
 
-procedure TKAParser.yylex(var lexState: TLexState; var lexResult : TLexResult);
+procedure TKAParser.yylex(var lexState: TLexState; out lexResult : TLexResult);
 var
   currentIntegerStr : string;
   currentInteger : integer;
@@ -1780,7 +1780,7 @@ begin
 
 end;
 
-procedure TKAParser.ManageRangeFunction (const funct: string; ParametersList: TStringList; const ValueType: TKAParserValueType; var TempValuesArray : TmArrayOfVariants);
+procedure TKAParser.ManageRangeFunction (const funct: string; ParametersList: TStringList; const ValueType: TKAParserValueType; out TempValuesArray : TmArrayOfVariants);
 
   function InsideBraces (aValue : string) : string;
   var

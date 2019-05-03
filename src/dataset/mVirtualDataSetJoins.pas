@@ -73,14 +73,14 @@ type
     destructor Destroy; override;
   end;
 
-  procedure ExtractPrefixAndFieldName (const aSource : String; var aPrefix, aFieldName : string);
+  procedure ExtractPrefixAndFieldName (const aSource : String; out aPrefix, aFieldName : string);
 
 implementation
 
 //var
 //  logger : TmLog;
 
-procedure ExtractPrefixAndFieldName(const aSource: String; var aPrefix, aFieldName: string);
+procedure ExtractPrefixAndFieldName(const aSource: String; out aPrefix, aFieldName: string);
 var
   i : integer;
 begin
