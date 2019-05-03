@@ -23,6 +23,41 @@ type
     procedure Notify(const aMessage: string);
   end;
 
+  { TmFakeProgress }
+
+  TmFakeProgress = class (ImProgress)
+  public
+    procedure Notify(const aMessage: string);
+  end;
+
+  function FakeProgress : TmFakeProgress;
+
 implementation
+
+uses
+  SysUtils;
+
+var
+  _FakeProgress : TmFakeProgress;
+
+function FakeProgress: TmFakeProgress;
+begin
+  if not Assigned(_FakeProgress) then
+    _FakeProgress := TmFakeProgress.Create;
+  Result := _FakeProgress;
+end;
+
+{ TmFakeProgress }
+
+procedure TmFakeProgress.Notify(const aMessage: string);
+begin
+  // do nothing..
+end;
+
+initialization
+  _FakeProgress := nil;
+
+finalization
+  FreeAndNil(_FakeProgress);
 
 end.
