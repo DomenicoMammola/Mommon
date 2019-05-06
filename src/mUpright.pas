@@ -56,7 +56,7 @@ type
     FReference : TObject;
     FOwnsReference : boolean;
   public
-    constructor Create;
+    constructor Create(const aFractionalPartDigits : byte);
     destructor Destroy; override;
     function CompareTo (aOther : TmUprightEvent) : integer;
     function GetValue (const aIndex : byte) : TNullableDouble;
@@ -89,7 +89,7 @@ type
   private
     FEvent : TmUprightEvent;
     FKey : TmUprightValueKey;
-    FUprights : array[0..MAX_NUM_OF_VALUES-1] of double;
+    FUprights : array[0..MAX_NUM_OF_VALUES-1] of TNullableDouble;
     FHighlights : array[0..MAX_NUM_OF_VALUES-1] of TmUprightHighlightType;
     FLimits : array[0..MAX_NUM_OF_VALUES-1] of TNullableDouble;
     FRemainings : array[0..MAX_NUM_OF_VALUES-1] of TNullableDouble;
@@ -99,7 +99,7 @@ type
     const FLD_POSITION = 'POSITION';
     const FLD_DATE = 'DATE';
   public
-    constructor Create;
+    constructor Create(const aFractionalPartDigits : byte);
     destructor Destroy; override;
 
     function GetDatumKey : IVDDatumKey;
@@ -116,10 +116,8 @@ type
     class function GetLimitFieldName(const aIndex : integer): string;
     class function GetRemainingFieldName(const aIndex : integer): string;
 
-    procedure SetUpright(const aIndex: byte; const aValue : double);
-    function GetUpright(const aIndex: byte): double;
+    function GetUpright(const aIndex: byte): TNullableDouble;
     function GetRemaining(const aIndex: byte): TNullableDouble;
-
 
     property Position : integer read GetPosition;
     property Event : TmUprightEvent read FEvent;
@@ -132,12 +130,13 @@ type
     FGarbage : TObjectList;
     FDataList : TFPList;
     FEventsList : TObjectList;
+    FFractionalPartDigits : byte;
 
     function OnCompareData (Item1, Item2: Pointer): Integer;
     function OnCompareEvents (Item1, Item2: Pointer): Integer;
     procedure CalculateHighlights;
   public
-    constructor Create;
+    constructor Create(const aFractionalPartDigits : byte);
     destructor Destroy; override;
 
     function Add : TmUprightEvent;
@@ -189,16 +188,19 @@ begin
   Result := FKey.Position;
 end;
 
-constructor TmUprightDatum.Create;
+constructor TmUprightDatum.Create(const aFractionalPartDigits : byte);
 var
   i : integer;
 begin
   for i := 0 to MAX_NUM_OF_VALUES - 1 do
   begin
-    FUprights[i] := 0;
+    FUprights[i] := TNullableDouble.Create();
+    FUprights[i].FractionalPartDigits:= aFractionalPartDigits;
     FHighlights[i] := uhNone;
-    FLimits [i] := TNullableDouble.Create();
+    FLimits[i] := TNullableDouble.Create();
+    FLimits[i].FractionalPartDigits:= aFractionalPartDigits;
     FRemainings[i] := TNullableDouble.Create();
+    FRemainings[i].FractionalPartDigits:= aFractionalPartDigits;
   end;
 
   FKey := TmUprightValueKey.Create;
@@ -211,12 +213,13 @@ begin
   FKey.Free;
   for i := 0 to MAX_NUM_OF_VALUES - 1 do
   begin
-    FLimits [i].Free;
+    FUprights[i].Free;
+    FLimits[i].Free;
     FRemainings[i].Free;
   end;
 end;
 
-constructor TmUprightEvent.Create;
+constructor TmUprightEvent.Create(const aFractionalPartDigits : byte);
 var
   i : integer;
 begin
@@ -230,6 +233,7 @@ begin
   begin
     FAttributes[i] := TNullableString.Create();
     FValues[i] := TNullableDouble.Create();
+    FValues[i].FractionalPartDigits:= aFractionalPartDigits;
   end;
 end;
 
@@ -294,7 +298,7 @@ begin
       if i > 0 then
       begin
         i := StrToInt(Copy(aFieldName, i + LENGTH_FLD_UPRIGHT, 999));
-        Result := GetUpright(i - 1);
+        Result := GetUpright(i - 1).AsVariant;
       end
       else
       begin
@@ -435,12 +439,7 @@ begin
   Result := FLD_REMAINING + IntToStr(aIndex + 1);
 end;
 
-procedure TmUprightDatum.SetUpright(const aIndex: byte; const aValue: double);
-begin
-  FUprights[aIndex] := aValue;
-end;
-
-function TmUprightDatum.GetUpright(const aIndex: byte): double;
+function TmUprightDatum.GetUpright(const aIndex: byte): TNullableDouble;
 begin
   Result := FUprights[aIndex];
 end;
@@ -481,21 +480,20 @@ begin
     idxMax[k] := -1;
   end;
 
-
   for i := 0 to FDataList.Count -1 do
   begin
     tmp:= TmUprightDatum(FDataList.Items[i]);
     for k := 0 to MAX_NUM_OF_VALUES -1 do
     begin
       tmp.FHighlights[k] := uhNone;
-      if not mFloatsManagement.DoubleIsLessThan(tmpMin[k], tmp.GetUpright(k)) then
+      if not mFloatsManagement.DoubleIsLessThan(tmpMin[k], tmp.GetUpright(k).AsFloat) then
       begin
-        tmpMin[k] := tmp.GetUpright(k);
+        tmpMin[k] := tmp.GetUpright(k).AsFloat;
         idxMin[k] := i;
       end;
-      if mFloatsManagement.DoubleIsLessThan(tmpMax[k], tmp.GetUpright(k)) then
+      if mFloatsManagement.DoubleIsLessThan(tmpMax[k], tmp.GetUpright(k).AsFloat) then
       begin
-        tmpMax[k] := tmp.GetUpright(k);
+        tmpMax[k] := tmp.GetUpright(k).AsFloat;
         idxMax[k] := i;
       end;
     end;
@@ -510,8 +508,9 @@ begin
   end;
 end;
 
-constructor TmUpright.Create;
+constructor TmUpright.Create(const aFractionalPartDigits : byte);
 begin
+  FFractionalPartDigits:= aFractionalPartDigits;
   FDataList := TFPList.Create;
   FEventsList := TObjectList.Create(true);
   FGarbage := TObjectList.Create(true);
@@ -527,19 +526,18 @@ end;
 
 function TmUpright.Add: TmUprightEvent;
 begin
-  Result := TmUprightEvent.Create;
+  Result := TmUprightEvent.Create(FFractionalPartDigits);
   FEventsList.Add(Result);
 end;
 
 procedure TmUpright.Calculate (const aDoSort : boolean = true);
 var
-  i, k : integer;
-  tmpEvent : TmUprightEvent;
+  i, k, s, q : integer;
+  tmpEvent, tmpLimitEvent : TmUprightEvent;
   tmpDatum : TmUprightDatum;
   currentLimitIndex : array[0..MAX_NUM_OF_VALUES-1] of integer;
-  lastValues : array [0..MAX_NUM_OF_VALUES -1] of double;
+  lastValues : array [0..MAX_NUM_OF_VALUES -1] of TNullableDouble;
   tmpLimits : TFPList;
-
 begin
   FDataList.Clear;
   FGarbage.Clear;
@@ -552,7 +550,7 @@ begin
       tmpEvent:= TmUprightEvent(FEventsList.Items[i]);
       if tmpEvent.EventType = etuValue then
       begin
-        tmpDatum := TmUprightDatum.Create;
+        tmpDatum := TmUprightDatum.Create(FFractionalPartDigits);
         tmpDatum.FEvent := tmpEvent;
         FDataList.Add(tmpDatum);
         FGarbage.Add(tmpDatum);
@@ -569,47 +567,54 @@ begin
       MergeSort(tmpLimits, OnCompareEvents);
     end;
 
-
-
     for i := 0 to MAX_NUM_OF_VALUES -1 do
     begin
-      lastValues[i] := 0;
+      lastValues[i] := TNullableDouble.Create();
+      lastValues[i].FractionalPartDigits:= FFractionalPartDigits;
+      FGarbage.Add(lastValues[i]);
       currentLimitIndex[i]:= -1;
     end;
 
     for i := 0 to FDataList.Count -1 do
     begin
-      tmpDatum:= TmUprightDatum(FDataList.Items[i]);
+      tmpDatum:= TmUprightDatum(FDataList.Items[i]); // datum to be computed
 
-      for k := 0 to MAX_NUM_OF_VALUES -1 do
+      if tmpLimits.Count > 0 then
       begin
-        if (tmpLimits.Count > currentLimitIndex[k] + 1) then
+        for k := 0 to MAX_NUM_OF_VALUES - 1 do
         begin
-          tmpEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k] + 1]);
-          while Assigned(tmpEvent) and (tmpEvent.GetValue(k).NotNull) and (DoubleIsLessThan(tmpEvent.EventDate, tmpDatum.FEvent.EventDate) or (DoublesAreEqual(tmpEvent.EventDate, tmpDatum.FEvent.EventDate))) do
+          s := currentLimitIndex[k] + 1;
+          for q := s to tmpLimits.Count -1 do
           begin
-            inc(currentLimitIndex[k]);
-            if (tmpLimits.Count > currentLimitIndex[k] + 1) then
-              tmpEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k] + 1])
+            tmpLimitEvent := TmUprightEvent(tmpLimits.Items[q]);
+
+            if (DoubleIsLessThan(tmpLimitEvent.EventDate, tmpDatum.FEvent.EventDate) or (DoublesAreEqual(tmpLimitEvent.EventDate, tmpDatum.FEvent.EventDate))) then
+            begin
+              if (tmpLimitEvent.GetValue(k).NotNull) then
+                currentLimitIndex[k] := q;
+            end
             else
-              tmpEvent := nil;
+              break;
           end;
         end;
       end;
+
       tmpDatum.FKey.FPosition := i + 1;
       for k := 0 to MAX_NUM_OF_VALUES - 1 do
       begin
-        tmpDatum.SetUpright(k, lastValues[k] + tmpDatum.FEvent.GetValue(k).AsFloat);
-        lastValues[k] := tmpDatum.GetUpright(k);
+        tmpDatum.GetUpright(k).Assign(lastValues[k]);
+        tmpDatum.GetUpright(k).Add(tmpDatum.FEvent.GetValue(k));
+        lastValues[k].Assign(tmpDatum.GetUpright(k));
       end;
 
       for k := 0 to MAX_NUM_OF_VALUES - 1 do
       begin
         if currentLimitIndex[k] >= 0 then
         begin
-          tmpEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k]]);
-          tmpDatum.FLimits[k].Assign(tmpEvent.GetValue(k));
-          tmpDatum.FRemainings[k].Value := tmpDatum.FLimits[k].AsFloat + tmpDatum.GetUpright(k);
+          tmpLimitEvent := TmUprightEvent(tmpLimits.Items[currentLimitIndex[k]]);
+          tmpDatum.FLimits[k].Assign(tmpLimitEvent.GetValue(k));
+          tmpDatum.FRemainings[k].Assign(tmpDatum.FLimits[k]);
+          tmpDatum.FRemainings[k].Add(tmpDatum.GetUpright(k));
         end;
       end;
     end;
