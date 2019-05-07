@@ -107,8 +107,6 @@ type
     FCanDieEvent : TSimpleEvent;
     FJob : TmJob;
     FJobResult : TJobResult;
-    FLastException : Exception;
-    procedure RaiseApplicationOnException;
   public
     constructor Create (aJob : TmJob; aJobResult : TJobResult); reintroduce;
     destructor Destroy; override;
@@ -268,57 +266,66 @@ var
   tmpJobResult : TJobResult;
   tmpCanDiedEvent : TSimpleEvent;
 begin
-  runningJobs := 0;
+  try
+    runningJobs := 0;
 
-  while not Terminated do
-  begin
-    FCanStartEvent.WaitFor(INFINITE);
-
-    if FJobs.Count > 0 then
+    while not Terminated do
     begin
-      FRunning := true;
+      FCanStartEvent.WaitFor(INFINITE);
 
-      if not Terminated then
+      if FJobs.Count > 0 then
       begin
-        FCurrentJobResults := TJobResults.Create;
+        FRunning := true;
 
-        runningJobs := FJobs.Count;
-        for i := 0 to FJobs.Count -1 do
+        if not Terminated then
         begin
-          tmpJobResult := TJobResult.Create;
-          FCurrentJobResults.Add(tmpJobResult);
-          tmpThread := TJobThread.Create(FJobs.Items[i] as TmJob, tmpJobResult);
-          tmpCanDiedEvent := TSimpleEvent.Create;
-          tmpThread.CanDieEvent := tmpCanDiedEvent;
-          FThreads.Add(tmpThread);
-          FCanDieEvents.Add(tmpCanDiedEvent);
-          tmpThread.CanStartEvent.SetEvent;
-        end;
-      end;
+          FCurrentJobResults := TJobResults.Create;
 
-      while (not Terminated) and (runningJobs > 0) do
-      begin
-        for i := 0 to FJobs.Count - 1 do
+          runningJobs := FJobs.Count;
+          for i := 0 to FJobs.Count -1 do
+          begin
+            tmpJobResult := TJobResult.Create;
+            FCurrentJobResults.Add(tmpJobResult);
+            tmpThread := TJobThread.Create(FJobs.Items[i] as TmJob, tmpJobResult);
+            tmpCanDiedEvent := TSimpleEvent.Create;
+            tmpThread.CanDieEvent := tmpCanDiedEvent;
+            FThreads.Add(tmpThread);
+            FCanDieEvents.Add(tmpCanDiedEvent);
+            tmpThread.CanStartEvent.SetEvent;
+          end;
+        end;
+
+        while (not Terminated) and (runningJobs > 0) do
         begin
-          if (FCanDieEvents.Items[i] as TSimpleEvent).WaitFor(10) <> wrTimeout then
-            dec(runningJobs);
-          if Terminated or (runningJobs = 0) then
-            break;
+          for i := 0 to FJobs.Count - 1 do
+          begin
+            if (FCanDieEvents.Items[i] as TSimpleEvent).WaitFor(10) <> wrTimeout then
+              dec(runningJobs);
+            if Terminated or (runningJobs = 0) then
+              break;
+          end;
         end;
-      end;
 
-      if not Terminated then
-      begin
-        FCanStartEvent.ResetEvent;
-        Synchronize(@RunEndCallBack);
-        FThreads.Clear;
-        FCanDieEvents.Clear;
-        FJobs.Clear;
+        if not Terminated then
+        begin
+          FCanStartEvent.ResetEvent;
+          Synchronize(@RunEndCallBack);
+          FThreads.Clear;
+          FCanDieEvents.Clear;
+          FJobs.Clear;
+        end;
+        FRunning := false;
       end;
-      FRunning := false;
+    end;
+    FCanDieEvent.SetEvent;
+  except
+    on e:Exception do
+    begin
+      DumpExceptionBackTrace;
+      FLastException := e;
+      Synchronize(@ReRaiseLastException);
     end;
   end;
-  FCanDieEvent.SetEvent;
 end;
 
 function TControlThread.GetDebugInfo: string;
@@ -328,14 +335,6 @@ end;
 
 
 { TJobThread }
-
-procedure TJobThread.RaiseApplicationOnException;
-begin
-  if Assigned(Application.OnException) then
-    Application.OnException(Self, FLastException)
-  else
-    Application.ShowException(FLastException);
-end;
 
 constructor TJobThread.Create(aJob : TmJob; aJobResult : TJobResult);
 begin
@@ -366,18 +365,15 @@ begin
     except
       on e:Exception do
       begin
+        DumpExceptionBackTrace;
+
         FJobResult.FExceptionMessage:= e.Message;
         FJobResult.FGotException:= true;
 
         if not FJob.TrapExceptions then
         begin
-          if Assigned(Application.OnException) then
-          begin
-            FLastException := e;
-            Synchronize(@RaiseApplicationOnException);
-          end
-          else
-            Application.ShowException(e);
+          FLastException := e;
+          Synchronize(@ReRaiseLastException);
         end;
       end;
     end;

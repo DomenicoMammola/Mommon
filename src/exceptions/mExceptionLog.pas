@@ -145,15 +145,35 @@ begin
     Result := Result + sLineBreak + 'Thread debug name: ' + ((aSender as TThread) as TmThread).GetDebugInfo;
 end;
 
-function GetStackTrace: String;
+function GetStackTrace(const aSender: TObject): String;
 var
-  I: Integer;
+  i: Integer;
   Frames: PPointer;
+  threadCallStack : TStringList;
 begin
-  Result := BackTraceStrFunc(ExceptAddr);
-  Frames := ExceptFrames;
-  for I := 0 to ExceptFrameCount - 1 do
-    Result := Result + sLineBreak + BackTraceStrFunc(Frames[I]);
+  if aSender is TmThread then
+  begin
+    threadCallStack := TStringList.Create;
+    try
+      (aSender as TmThread).GetCallStack(threadCallStack);
+      for i := 0 to threadCallStack.Count -1 do
+      begin
+        if i = 0 then
+          Result := threadCallStack.Strings[0]
+        else
+          Result := Result + sLineBreak + threadCallStack.Strings[i];
+      end;
+    finally
+      threadCallStack.Free;
+    end;
+  end
+  else
+  begin
+    Result := BackTraceStrFunc(ExceptAddr);
+    Frames := ExceptFrames;
+    for i := 0 to ExceptFrameCount - 1 do
+      Result := Result + sLineBreak + BackTraceStrFunc(Frames[i]);
+  end;
 end;
 
 function GetExceptionInfo (e: Exception): String;
@@ -204,7 +224,7 @@ begin
 
   Report := Report + sLineBreak;
   Report := Report + sLineBreak + BuildTitle('STACK TRACE LOG');
-  Report := Report + sLineBreak + GetStackTrace;
+  Report := Report + sLineBreak + GetStackTrace(Sender);
 
   if Assigned(_Tracers) then
   begin
