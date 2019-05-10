@@ -44,6 +44,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    procedure Clear;
+
     procedure AddError (const aMessage: String);
     procedure AddWarning (const aMessage: String);
     procedure AddInfo (const aMessage: String);
@@ -75,6 +77,13 @@ destructor TPerformedOperationResultsAsLog.Destroy;
 begin
   FList.Free;
   inherited Destroy;
+end;
+
+procedure TPerformedOperationResultsAsLog.Clear;
+begin
+  FList.Clear;
+  FWarnings:= 0;
+  FErrors:= 0;
 end;
 
 procedure TPerformedOperationResultsAsLog.AddError(const aMessage: String);
