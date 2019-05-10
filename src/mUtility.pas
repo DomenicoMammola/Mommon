@@ -106,7 +106,8 @@ function BytesToHumanReadableString(const bytes: UInt64): string;
 // https://www.ietf.org/rfc/rfc822.txt
 // Author: Ernesto D'Spirito
 // http://www.howtodothings.com/computers/a1169-validating-email-addresses-in-delphi.html
-function ValidEmail(const email: string): boolean;
+function ValidEmail(const email: String): boolean;
+function ValidEmails(const emails: String; out normalizedEmails : String): boolean;
 
 // https://marc.durdin.net/2012/07/indy-tiduri-pathencode-urlencode-and-paramsencode-and-more/
 // Author: Marc Durdin
@@ -1638,7 +1639,7 @@ begin
 end;
 
 
-function ValidEmail(const email: string): boolean;
+function ValidEmail(const email: String): boolean;
 // Returns True if the email address is valid
 // Author: Ernesto D'Spirito
 const
@@ -1730,6 +1731,38 @@ begin
     Result := False
   else
     Result := (State = STATE_SUBDOMAIN) and (subdomains >= 2);
+end;
+
+function ValidEmails(const emails: String; out normalizedEmails: String): boolean;
+var
+  stlst : TStringList;
+  i : integer;
+  s, sep : string;
+const
+  mailDelimiter : Char = ';';
+begin
+  Result := false;
+  normalizedEmails:= '';
+  sep := '';
+  stlst := TStringList.Create;
+  try
+    stlst.Delimiter:= mailDelimiter;
+    stlst.DelimitedText:= emails;
+    for i := 0 to stlst.Count - 1 do
+    begin
+      s := Trim(LowerCase(stlst.Strings[i]));
+      if s <> '' then
+      begin
+        if not ValidEmail(s) then
+          exit;
+        normalizedEmails:= normalizedEmails + sep + s;
+        sep := mailDelimiter;
+      end;
+    end;
+  finally
+    stlst.Free;
+  end;
+  Result := (normalizedEmails <> '');
 end;
 
 function EncodeURIComponent(const aSrc: String): UTF8String;
