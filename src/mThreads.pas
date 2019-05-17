@@ -362,6 +362,7 @@ begin
   begin
     try
       FJob.DoJobProcedure (FProgress, FJobResult);
+      Self.FProgress.Close;
     except
       on e:Exception do
       begin

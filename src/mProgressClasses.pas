@@ -43,6 +43,7 @@ type
   TmAbstractProgress = class (ImProgress)
   strict private
     FCaption : String;
+    FProgressClosed : Boolean;
   private
     FOnRefresh : TmProgressNotifyEvent;
     FOnRemove : TmProgressNotifyEvent;
@@ -52,6 +53,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Notify(const aMessage: string);
+    procedure Close;
 
     property OwnerThread : TmThreadWithProgress read FOwnerThread write FOwnerThread;
     property OnRefresh : TmProgressNotifyEvent read FOnRefresh write FOnRefresh;
@@ -114,6 +116,7 @@ end;
 
 destructor TmThreadWithProgress.Destroy;
 begin
+  FProgress.Close;
   FProgress.Free;
   inherited Destroy;
 end;
@@ -125,15 +128,16 @@ begin
   FProgress.OwnerThread := Self;
 end;
 
+
 procedure TmThreadWithProgress.RefreshProgress;
 begin
-  if Assigned(FProgress.OnRefresh) then
+  if Assigned(FProgress) and Assigned(FProgress.OnRefresh) then
     FProgress.OnRefresh(FProgress);
 end;
 
 procedure TmThreadWithProgress.RemoveProgress;
 begin
-  if Assigned(FProgress.OnRemove) then
+  if Assigned(FProgress) and Assigned(FProgress.OnRemove) then
     FProgress.OnRemove(FProgress);
 end;
 
@@ -192,17 +196,27 @@ begin
     FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RefreshProgress);
 end;
 
+procedure TmAbstractProgress.Close;
+begin
+  if FProgressClosed then
+    exit;
+
+  if Assigned(FOwnerThread) then
+    FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RemoveProgress);
+  FProgressClosed := true;
+end;
+
 constructor TmAbstractProgress.Create;
 begin
   FCaption := '';
   FId := GenerateRandomIdString(30);
+  FProgressClosed := false;
   GetProgressGUIFactory.GetCurrentProgressGUI.AddProgress(Self);
 end;
 
 destructor TmAbstractProgress.Destroy;
 begin
-  if Assigned(FOwnerThread) then
-    FOwnerThread.Synchronize(FOwnerThread, FOwnerThread.RemoveProgress);
+  Self.Close;
   inherited Destroy;
 end;
 
