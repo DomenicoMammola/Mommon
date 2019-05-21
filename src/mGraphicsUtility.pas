@@ -19,7 +19,7 @@ unit mGraphicsUtility;
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows,{$ELSE} LCLIntf, LCLType,{$ENDIF} Forms, Controls, Graphics, Types;
+  {$IFDEF WINDOWS}Windows,{$ELSE} LCLIntf, LCLType,{$ENDIF} Forms, Controls, Graphics, Types, Classes;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
@@ -37,11 +37,9 @@ type
 
   function ScaleForDPI (const aValue : integer) : integer;
 
-implementation
+  procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
 
-{$IFNDEF GUI}
-** This unit should not be compiled in a console application **
-{$ENDIF}
+implementation
 
 uses
   SysUtils, Math {$IFDEF FPC},graphutil{$ENDIF};
@@ -50,6 +48,51 @@ uses
 const
   HLSMAX = 255;
 {$ENDIF}
+
+procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
+var
+  TempFlags: cardinal;
+  {$ifndef windows}
+  xPos, tw : integer;
+  newText : string;
+  {$else}
+  tmpRect : TRect;
+  {$endif}
+begin
+  SetBkMode(ACanvas.Handle, TRANSPARENT);
+  ACanvas.Font.Size := max(8, (ARect.Bottom - ARect.Top) - 10);
+  {$ifndef windows}
+  newText := AText;
+  if (ARect.Width < ACanvas.TextWidth('..')) then
+    exit;
+  tw := ACanvas.TextWidth(newText);
+  while tw > (ARect.Right - ARect.Left) do
+  begin
+    newText := Copy(newText, 1, Length(newText) - 3) + '..';
+    tw := ACanvas.TextWidth(newText);
+  end;
+  case ATextAlignment of
+    taLeftJustify: xPos := ARect.Left;
+    taRightJustify: xPos := ARect.Right - tw;
+    taCenter: xPos := ARect.Left + ((ARect.Width - tw) div 2);
+  end;
+  ACanvas.TextOut(xPos, ARect.Top, newText);
+  //DebugLn(IntToStr(xPos) + ' ' + newText + ' ' + IntToStr(ACanvas.Font.Size));
+  {$else}
+  TempFlags := 0;
+  case ATextAlignment of
+    taLeftJustify: TempFlags := DT_LEFT;
+    taRightJustify: TempFlags := DT_RIGHT;
+    taCenter: TempFlags := DT_CENTER;
+  end;
+  TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE {$ifndef fpc}DT_WORD_ELLIPSIS{$endif});
+
+  tmpRect := ARect;
+  if DrawText(ACanvas.Handle, PChar(AText), -1, tmpRect, TempFlags) = 0 then
+    RaiseLastOSError;
+  {$endif}
+end;
+
 
   procedure RGBToHLS(aColor: TColor; var H, L, S: Double);
   var
@@ -261,4 +304,8 @@ begin
          Bitmap.Canvas.Handle, 0, 0, SRCCOPY);
 end;
 
+
+{$IFNDEF GUI}
+** This unit should not be compiled in a console application **
+{$ENDIF}
 end.
