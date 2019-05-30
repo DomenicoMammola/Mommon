@@ -36,13 +36,20 @@ type
   strict private
     FMessage : String;
     FMustBeValidated : boolean;
+    FLevel : String;
   public
-    constructor Create(const aMessage : String; const aMustBeValidated: boolean); overload;
+    const INFO : String = 'INFO';
+    const ERROR : String = 'ERROR';
+    const RESULT : String = 'RESULT';
+    const WARNING : String = 'WARNING';
+  public
+    constructor Create(const aMessage : String; const aLevel: String; const aMustBeValidated: boolean); overload;
     constructor Create(); overload;
     destructor Destroy; override;
 
     property Message : String read FMessage write FMessage;
     property MustBeValidated : boolean read FMustBeValidated write FMustBeValidated;
+    property Level : String read FLevel write FLevel;
   end;
 
   { TPerformedOperations }
@@ -68,6 +75,7 @@ type
     FWarnings : TPerformedOperations;
     FInfos : TPerformedOperations;
     FResults : TPerformedOperations;
+    FPerformedOperations : TPerformedOperations;
     FMessages : TStringList;
 
     function GetMessages: TStrings;
@@ -84,6 +92,7 @@ type
     procedure GetMessagesAsStrings(aMessages : TStringList);
 
     property Messages : TStrings read GetMessages;
+    property PerformedOperations : TPerformedOperations read FPerformedOperations;
     property Warnings : TPerformedOperations read FWarnings;
     property Errors : TPerformedOperations read FErrors;
     property Infos : TPerformedOperations read FInfos;
@@ -133,15 +142,16 @@ end;
 
 { TPerformedOperation }
 
-constructor TPerformedOperation.Create(const aMessage : String; const aMustBeValidated: boolean);
+constructor TPerformedOperation.Create(const aMessage : String; const aLevel: String; const aMustBeValidated: boolean);
 begin
   FMessage:= aMessage;
   FMustBeValidated:= aMustBeValidated;
+  FLevel := aLevel;
 end;
 
 constructor TPerformedOperation.Create();
 begin
-  Self.Create('', false);
+  Self.Create('', '', false);
 end;
 
 destructor TPerformedOperation.Destroy;
@@ -163,6 +173,7 @@ begin
   FInfos := TPerformedOperations.Create();
   FResults := TPerformedOperations.Create();
   FMessages := TStringList.Create;
+  FPerformedOperations := TPerformedOperations.Create();
 end;
 
 destructor TPerformedOperationResultsAsLog.Destroy;
@@ -172,6 +183,7 @@ begin
   FInfos.Free;
   FResults.Free;
   FMessages.Free;
+  FPerformedOperations.Free;
   inherited Destroy;
 end;
 
@@ -182,30 +194,35 @@ begin
   FInfos.Clear;
   FResults.Clear;
   FMessages.Clear;
+  FPerformedOperations.Clear;
 end;
 
 procedure TPerformedOperationResultsAsLog.AddError(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append('[ERROR] ' + aMessage);
-  FErrors.Add(TPerformedOperation.Create(aMessage, aMustBeValidated));
+  FMessages.Append('['+ TPerformedOperation.ERROR + '] ' + aMessage);
+  FErrors.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.ERROR, aMustBeValidated));
+  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.ERROR, aMustBeValidated));
 end;
 
 procedure TPerformedOperationResultsAsLog.AddWarning(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append ('[WARNING] ' + aMessage);
-  FWarnings.Add(TPerformedOperation.Create(aMessage, aMustBeValidated));
+  FMessages.Append ('[' + TPerformedOperation.WARNING + '] ' + aMessage);
+  FWarnings.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.WARNING, aMustBeValidated));
+  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.WARNING, aMustBeValidated));
 end;
 
 procedure TPerformedOperationResultsAsLog.AddInfo(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append ('[INFO] ' + aMessage);
-  FInfos.Add(TPerformedOperation.Create(aMessage, aMustBeValidated));
+  FMessages.Append ('[' + TPerformedOperation.INFO + '] ' + aMessage);
+  FInfos.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.INFO, aMustBeValidated));
+  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.INFO, aMustBeValidated));
 end;
 
 procedure TPerformedOperationResultsAsLog.AddResult(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append('[RESULT] ' + aMessage);
-  FResults.Add(TPerformedOperation.Create(aMessage, aMustBeValidated));
+  FMessages.Append('[' + TPerformedOperation.RESULT + '] ' + aMessage);
+  FResults.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.RESULT, aMustBeValidated));
+  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.RESULT, aMustBeValidated));
 end;
 
 procedure TPerformedOperationResultsAsLog.GetMessagesAsStrings(aMessages: TStringList);
