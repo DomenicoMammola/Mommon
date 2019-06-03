@@ -425,7 +425,7 @@ end;
 
 function TmLogPublisher.GetFormattedString(aContext, aLevel, aMessage: string; aDate: TDateTime): string;
 begin
-  Result := '[' + DateTimeToStr(aDate) + '] [' + aLevel + '] [' + aContext + '] ' + aMessage;
+  Result := '[' + FormatDateTime('dd/mm/yyyy hh:nn:ss.zzz', aDate) + '] [' + aLevel + '] [' + aContext + '] ' + aMessage;
 end;
 
 { TmLogMessage }
