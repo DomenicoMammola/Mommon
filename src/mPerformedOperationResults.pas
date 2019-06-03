@@ -28,12 +28,15 @@ type
     procedure AddInfo (const aMessage: String; const aMustBeValidated : boolean = false);
     procedure AddResult (const aMessage: String; const aMustBeValidated : boolean = false);
     procedure GetMessagesAsStrings(aResults : TStringList);
+    function Count : integer;
+    procedure Get (const aIndex : integer; out aLevel, aMessage : String; out aTime : TDateTime);
   end;
 
   { TPerformedOperation }
 
   TPerformedOperation = class
   strict private
+    FTime : TDateTime;
     FMessage : String;
     FMustBeValidated : boolean;
     FLevel : String;
@@ -47,6 +50,7 @@ type
     constructor Create(); overload;
     destructor Destroy; override;
 
+    property Time : TDateTime read FTime write FTime;
     property Message : String read FMessage write FMessage;
     property MustBeValidated : boolean read FMustBeValidated write FMustBeValidated;
     property Level : String read FLevel write FLevel;
@@ -90,6 +94,8 @@ type
     procedure AddInfo (const aMessage: String; const aMustBeValidated : boolean = false);
     procedure AddResult (const aMessage: String; const aMustBeValidated : boolean = false);
     procedure GetMessagesAsStrings(aMessages : TStringList);
+    function Count : integer;
+    procedure Get (const aIndex : integer; out aLevel, aMessage : String; out aTime : TDateTime);
 
     property Messages : TStrings read GetMessages;
     property PerformedOperations : TPerformedOperations read FPerformedOperations;
@@ -100,6 +106,9 @@ type
   end;
 
 implementation
+
+uses
+  sysutils;
 
 { TPerformedOperations }
 
@@ -147,6 +156,7 @@ begin
   FMessage:= aMessage;
   FMustBeValidated:= aMustBeValidated;
   FLevel := aLevel;
+  FTime := Now;
 end;
 
 constructor TPerformedOperation.Create();
@@ -229,6 +239,18 @@ procedure TPerformedOperationResultsAsLog.GetMessagesAsStrings(aMessages: TStrin
 begin
   aMessages.Clear;
   aMessages.AddStrings(FMessages);
+end;
+
+function TPerformedOperationResultsAsLog.Count: integer;
+begin
+  Result := FPerformedOperations.Count;
+end;
+
+procedure TPerformedOperationResultsAsLog.Get(const aIndex: integer; out aLevel, aMessage: String; out aTime : TDateTime);
+begin
+  aLevel := FPerformedOperations.Get(aIndex).Level;
+  aMessage := FPerformedOperations.Get(aIndex).Message;
+  aTime := FPerformedOperations.Get(aIndex).Time;
 end;
 
 end.
