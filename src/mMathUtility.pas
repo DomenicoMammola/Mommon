@@ -27,7 +27,7 @@ function GetFractionalPartDigits(const aValue: double): integer;
 function TryToConvertToDouble(aValue: string; out aOutValue: Double): boolean;
 function TryToConvertToInteger(aValue: string; out aOutValue: Integer): boolean;
 function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
-function IsNumeric(aValue: string; const aAllowFloat: Boolean): Boolean;
+function IsNumeric(const aValue: string; const aAllowFloat: Boolean): Boolean;
 
 implementation
 
@@ -157,7 +157,7 @@ begin
   end;
 end;
 
-function IsNumeric(aValue: string; const aAllowFloat: Boolean): Boolean;
+function IsNumeric(const aValue: string; const aAllowFloat: Boolean): Boolean;
 var
   tmpInt : integer;
   tmpDouble : double;

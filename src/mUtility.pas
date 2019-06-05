@@ -304,6 +304,9 @@ var
 begin
   Result := false;
   canTry := false;
+  dString := '';
+  mString := '';
+  yString := '';
 
   tmp := Trim(aInputString);
   l := Length(tmp);

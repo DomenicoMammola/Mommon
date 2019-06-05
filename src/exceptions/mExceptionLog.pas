@@ -178,6 +178,7 @@ end;
 
 function GetExceptionInfo (e: Exception): String;
 begin
+  Result := '';
   if E <> nil then begin
     Result := 'Exception class: ' + E.ClassName;
     Result := Result + sLineBreak + 'Message: ' + E.Message;

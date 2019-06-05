@@ -152,6 +152,7 @@ var
   end;
 
 begin
+  m := -1;
   n := aEquipmentList.Count;
   SetLength(p, n+1);
   SetLength(w, n+1);

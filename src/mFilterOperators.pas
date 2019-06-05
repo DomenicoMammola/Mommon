@@ -27,6 +27,8 @@ implementation
 
 function TmFilterOperatorToString(const aValue: TmFilterOperator): String;
 begin
+  Result := '';
+
   if aValue = foUnknown then
     Result := ''
   else if aValue = foEq then

@@ -57,7 +57,9 @@ begin
   else if aOperator = foIn then
     Result := 'IN'
   else if aOperator = foBetween then
-    Result := 'BETWEEN';
+    Result := 'BETWEEN'
+  else
+    Result := '?';
 end;
 
 end.

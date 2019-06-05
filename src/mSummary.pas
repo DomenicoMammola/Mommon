@@ -355,6 +355,8 @@ var
   tmpString : string;
   tmpDouble : double;
 begin
+  tmpString := '';
+
   case FDefinition.SummaryOperator of
     soCount:
       begin

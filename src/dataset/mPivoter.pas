@@ -266,6 +266,8 @@ begin
         if Length(Result) > 0 then
           Result := Copy(Result,1,1);
       end;
+    else
+      raise Exception.Create('[TmPivoter.GetIndexKeyValue] Unknown operation kind');
   end;
 end;
 
