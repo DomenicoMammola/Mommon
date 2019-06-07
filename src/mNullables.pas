@@ -340,8 +340,20 @@ type
     procedure Assign(const aSource : TNullableBoolean); overload;
     procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aSourceField: TField; const aAllowNull: boolean); overload;
-    procedure Assign (const aValue : Variant); override; overload;
-    procedure Assign (const aValue : string); overload;
+    procedure Assign(const aValue : Variant); override; overload;
+    procedure Assign(const aValue : string); overload;
+
+    procedure AddAnd(const aSource : TNullableBoolean); overload;
+    procedure AddAnd(const aSourceField : TField); overload;
+    procedure AddAnd(const aSourceField: TField; const aAllowNull: boolean); overload;
+    procedure AddAnd(const aValue : Variant); overload;
+    procedure AddAnd(const aValue : string); overload;
+
+    procedure AddOr(const aSource : TNullableBoolean); overload;
+    procedure AddOr(const aSourceField : TField); overload;
+    procedure AddOr(const aSourceField: TField; const aAllowNull: boolean); overload;
+    procedure AddOr(const aValue : Variant); overload;
+    procedure AddOr(const aValue : string); overload;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
@@ -1501,6 +1513,137 @@ end;
 procedure TNullableBoolean.Assign(const aValue: string);
 begin
   Self.Assign(TNullableBoolean.StringToVariant(aValue));
+end;
+
+procedure TNullableBoolean.AddAnd(const aSource: TNullableBoolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSource);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aSourceField: TField);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aSourceField: TField; const aAllowNull: boolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField, aAllowNull);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aValue: Variant);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aValue: string);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aSource: TNullableBoolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSource);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+
+end;
+
+procedure TNullableBoolean.AddOr(const aSourceField: TField);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aSourceField: TField; const aAllowNull: boolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField, aAllowNull);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aValue: Variant);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aValue: string);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
 end;
 
 function TNullableBoolean.AsVariant: Variant;
