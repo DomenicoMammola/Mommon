@@ -27,7 +27,7 @@ type
     constructor Create; overload;
     constructor Create (aSheet : TsWorksheet); overload;
 
-    procedure WriteFloat(const aRow, aCol : integer; const aValue : TNullableDouble; const aFractionalPartDigits : integer); overload;
+    procedure WriteFloat(const aRow, aCol : integer; const aValue : TNullableDouble); overload;
     procedure WriteFloat(const aRow, aCol : integer; const aValue : double; const aFractionalPartDigits : integer); overload;
     procedure WriteDate(const aRow, aCol : integer; const aValue: TNullableDateTime); overload;
     procedure WriteDate(const aRow, aCol : integer; const aValue : TDateTime); overload;
@@ -220,9 +220,9 @@ begin
   FSheet := aSheet;
 end;
 
-procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: TNullableDouble; const aFractionalPartDigits: integer);
+procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: TNullableDouble);
 begin
-  spWriteFloat(FSheet, aRow, aCol, aValue, aFractionalPartDigits);
+  spWriteFloat(FSheet, aRow, aCol, aValue, aValue.FractionalPartDigits);
 end;
 
 procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: double; const aFractionalPartDigits: integer);
