@@ -19,7 +19,7 @@ unit mGraphicsUtility;
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows,{$ELSE} LCLIntf, LCLType,{$ENDIF} Forms, Controls, Graphics, Types, Classes;
+  {$IFDEF WINDOWS}Windows,{$ELSE} {$ifdef fpc}InterfaceBase, LCLIntf, LCLType,{$endif}{$ENDIF} Forms, Controls, Graphics, Types, Classes;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
@@ -38,6 +38,10 @@ type
   function ScaleForDPI (const aValue : integer) : integer;
 
   procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
+  {$ifdef fpc}
+  function IsDoubleBufferedNeeded: boolean;
+  {$endif}
+
 
 implementation
 
@@ -49,27 +53,51 @@ const
   HLSMAX = 255;
 {$ENDIF}
 
+{$ifdef fpc}
+function IsDoubleBufferedNeeded: boolean;
+begin
+  Result:= WidgetSet.GetLCLCapability(lcCanDrawOutsideOnPaint) = LCL_CAPABILITY_YES;
+end;
+{$endif}
+
+
 procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
 var
-  TempFlags: cardinal;
   {$ifndef windows}
-  xPos, tw : integer;
+  xPos, tw, len1, len2 : integer;
   newText : string;
+
   {$else}
+  TempFlags: cardinal;
   tmpRect : TRect;
   {$endif}
 begin
   SetBkMode(ACanvas.Handle, TRANSPARENT);
-  ACanvas.Font.Size := max(8, (ARect.Bottom - ARect.Top) - 10);
+  ACanvas.Font.Size := min(max(8, (ARect.Bottom - ARect.Top) - 12), max(8, (ARect.Right - ARect.Left) - 24));
   {$ifndef windows}
   newText := AText;
   if (ARect.Width < ACanvas.TextWidth('..')) then
     exit;
   tw := ACanvas.TextWidth(newText);
-  while tw > (ARect.Right - ARect.Left) do
+  if tw > (ARect.Right - ARect.Left) then
   begin
-    newText := Copy(newText, 1, Length(newText) - 3) + '..';
-    tw := ACanvas.TextWidth(newText);
+    len1 := Length(AText);
+    if len1 = 2 then
+        newText := Copy(newText, 1, 1) + '.'
+    else if len1 > 2 then
+    begin
+      while tw > (ARect.Right - ARect.Left) do
+      begin
+        len2 := Length(newText);
+        newText := Copy(newText, 1, len2 - 3) + '..';
+        if newText = '..' then
+        begin
+          newText := Copy(AText, 1, 1) + '.';
+          break;
+        end;
+        tw := ACanvas.TextWidth(newText);
+      end;
+    end;
   end;
   case ATextAlignment of
     taLeftJustify: xPos := ARect.Left;
