@@ -19,7 +19,8 @@ unit mGraphicsUtility;
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows,{$ELSE} {$ifdef fpc}InterfaceBase, LCLIntf, LCLType,{$endif}{$ENDIF} Forms, Controls, Graphics, Types, Classes;
+  {$ifdef fpc}InterfaceBase, LCLIntf, LCLType,{$endif}
+  {$IFDEF WINDOWS}Windows,{$ENDIF} Forms, Controls, Graphics, Types, Classes;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
