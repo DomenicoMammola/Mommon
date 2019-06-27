@@ -18,26 +18,59 @@ uses
 
 type
 
+  { TmSpreadsheetFont }
+
+  TmSpreadsheetFont = class
+  strict private
+    FItalic : boolean;
+    FBold : boolean;
+    FFontName : String;
+    FFontSize : integer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property Italic : boolean read FItalic write FItalic;
+    property Bold : boolean read FBold write FBold;
+    property FontName : String read FFontName write FFontName;
+    property FontSize : integer read FFontSize write FFontSize;
+  end;
+
   { TmSpreadsheetHelper }
 
   TmSpreadsheetHelper = class
   strict private
     FSheet: TsWorksheet;
+    FDefaultFont : TmSpreadsheetFont;
+    FDefaultRowHeight : integer;
+    procedure WriteDefaultFont(const aRow, aCol : integer);
   public
     constructor Create; overload;
     constructor Create (aSheet : TsWorksheet); overload;
+    destructor Destroy; override;
 
     procedure WriteFloat(const aRow, aCol : integer; const aValue : TNullableDouble); overload;
-    procedure WriteFloat(const aRow, aCol : integer; const aValue : double; const aFractionalPartDigits : integer); overload;
+    procedure WriteFloat(const aRow, aCol : integer; const aValue : double; const aFractionalPartDigits: integer); overload;
+    procedure WriteFloat(const aRow, aCol : integer; const aValue : double); overload;
+    procedure WriteFloat(const aRow, aCol : integer; const aValue : double; const aFormatString: String); overload;
+
     procedure WriteDate(const aRow, aCol : integer; const aValue: TNullableDateTime); overload;
     procedure WriteDate(const aRow, aCol : integer; const aValue : TDateTime); overload;
     procedure WriteDateTime(const aRow, aCol : integer; const aValue: TNullableDateTime); overload;
     procedure WriteDateTime(const aRow, aCol : integer; const aValue : TDateTime); overload;
     procedure WriteInteger(const aRow, aCol : integer; const aValue : TNullableInteger); overload;
     procedure WriteInteger(const aRow, aCol : integer; const aValue : integer); overload;
-    procedure WriteInt64(const aRow, aCol : integer; const aValue : Int64); overload;
+    procedure WriteInt64(const aRow, aCol : integer; const aValue : Int64);
+    procedure WriteBoolean(const aRow, aCol : integer; const aValue : boolean); overload;
+    procedure WriteBoolean(const aRow, aCol : integer; const aValue : TNullableBoolean); overload;
     procedure WriteText(const aRow, aCol : integer; const aValue : TNullableString); overload;
+    procedure WriteText(const aRow, aCol : integer; const aValue : TNullableString; const aItalic, aBold : boolean; const aBackgroundColor : DWord = scNotDefined); overload;
     procedure WriteText(const aRow, aCol : integer; const aValue : String); overload;
+    procedure WriteText(const aRow, aCol : integer; const aValue : String; const aItalic, aBold : boolean; const aBackgroundColor : DWord = scNotDefined); overload;
+
+    procedure WriteSouthBorder(const aRow, aCol: integer);
+    procedure WriteBackgroundColor(const aRow, aCol : integer; const aColor : DWord); // $00BBGGRR
+    procedure WriteFontStyle(const aRow, aCol : integer; const aItalic, aBold : boolean);
 
     procedure ReadInteger(const aRow, aCol : integer; aValue : TNullableInteger);
     procedure ReadFloat(const aRow, aCol : integer; aValue : TNullableDouble);
@@ -46,10 +79,13 @@ type
     procedure ReadDate(const aRow, aCol : integer; aValue : TNullableDateTime);
 
     property Sheet : TsWorksheet read FSheet write FSheet;
+    property DefaultFont : TmSpreadsheetFont read FDefaultFont;
+    property DefaultRowHeight : integer read FDefaultRowHeight write FDefaultRowHeight;
   end;
 
 procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TNullableDouble; const aFractionalPartDigits : integer); overload;
 procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : double; const aFractionalPartDigits : integer); overload;
+procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : double; const aFormatString : String); overload;
 
 procedure spWriteDate(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue: TNullableDateTime); overload;
 procedure spWriteDate(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TDateTime); overload;
@@ -85,6 +121,14 @@ end;
 procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: double; const aFractionalPartDigits: integer);
 begin
   aSheet.WriteNumber(aRow, aCol, aValue, nfFixed, aFractionalPartDigits);
+end;
+
+procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: double; const aFormatString : String);
+begin
+  if aFormatString <> '' then
+    aSheet.WriteNumber(aRow, aCol, aValue, nfGeneral, aFormatString)
+  else
+    aSheet.WriteNumber(aRow, aCol, aValue, nfGeneral);
 end;
 
 procedure spWriteDate(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: TDateTime);
@@ -208,7 +252,34 @@ begin
   aValue.Assign(aSheet.ReadAsText(aRow, aCol));
 end;
 
+{ TmSpreadsheetFont }
+
+constructor TmSpreadsheetFont.Create;
+begin
+  FItalic:= false;
+  FBold:= false;
+  FFontName:= '';
+  FFontSize:= 10;
+end;
+
+destructor TmSpreadsheetFont.Destroy;
+begin
+  inherited Destroy;
+end;
+
 { TmSpreadsheetHelper }
+
+procedure TmSpreadsheetHelper.WriteDefaultFont(const aRow, aCol: integer);
+begin
+  if FDefaultFont.FontName <> '' then
+  begin
+    Sheet.WriteFontName (aRow, aCol, FDefaultFont.FontName);
+    Sheet.WriteFontSize (aRow, aCol, FDefaultFont.FontSize);
+    WriteFontStyle(aRow, aCol, FDefaultFont.Italic, FDefaultFont.Bold);
+  end;
+  if FDefaultRowHeight > 0 then
+    Sheet.WriteRowHeight(aRow, FDefaultRowHeight, suPoints);
+end;
 
 constructor TmSpreadsheetHelper.Create;
 begin
@@ -218,86 +289,173 @@ end;
 constructor TmSpreadsheetHelper.Create(aSheet: TsWorksheet);
 begin
   FSheet := aSheet;
+  FDefaultFont := TmSpreadsheetFont.Create;
+  FDefaultRowHeight:= 0;
+end;
+
+destructor TmSpreadsheetHelper.Destroy;
+begin
+  FDefaultFont.Free;
+  inherited Destroy;
 end;
 
 procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: TNullableDouble);
 begin
   spWriteFloat(FSheet, aRow, aCol, aValue, aValue.FractionalPartDigits);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: double; const aFractionalPartDigits: integer);
 begin
   spWriteFloat(FSheet, aRow, aCol, aValue, aFractionalPartDigits);
+  WriteDefaultFont(aRow, aCol);
+end;
+
+procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: double);
+begin
+  spWriteFloat(FSheet, aRow, aCol, aValue, '');
+  WriteDefaultFont(aRow, aCol);
+end;
+
+procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: double; const aFormatString: String);
+begin
+  spWriteFloat(FSheet, aRow, aCol, aValue, aFormatString);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteDate(const aRow, aCol: integer; const aValue: TNullableDateTime);
 begin
   spWriteDate(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteDate(const aRow, aCol: integer; const aValue: TDateTime);
 begin
   spWriteDate(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteDateTime(const aRow, aCol: integer; const aValue: TNullableDateTime);
 begin
   spWriteDateTime(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteDateTime(const aRow, aCol: integer; const aValue: TDateTime);
 begin
   spWriteDateTime(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteInteger(const aRow, aCol: integer; const aValue: TNullableInteger);
 begin
   spWriteInteger(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteInteger(const aRow, aCol: integer; const aValue: integer);
 begin
   spWriteInteger(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteInt64(const aRow, aCol: integer; const aValue: Int64);
 begin
   spWriteInt64(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
+end;
+
+procedure TmSpreadsheetHelper.WriteBoolean(const aRow, aCol: integer; const aValue: boolean);
+begin
+  FSheet.WriteBoolValue(aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
+end;
+
+procedure TmSpreadsheetHelper.WriteBoolean(const aRow, aCol: integer; const aValue: TNullableBoolean);
+begin
+  if aValue.NotNull then
+    WriteBoolean(aRow, aCol, aValue.Value);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: TNullableString);
 begin
+  Self.WriteText(aRow, aCol, aValue, false, false);
+end;
+
+procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: TNullableString; const aItalic, aBold: boolean; const aBackgroundColor : DWord = scNotDefined);
+begin
   spWriteText(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
+  WriteFontStyle(aRow, aCol, aItalic, aBold);
+  WriteBackgroundColor(aRow, aCol, aBackgroundColor);
 end;
 
 procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: String);
 begin
+  WriteText(aRow, aCol, aValue, false, false);
+end;
+
+procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: String; const aItalic, aBold: boolean; const aBackgroundColor : DWord = scNotDefined);
+begin
   spWriteText(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
+  WriteFontStyle(aRow, aCol, aItalic, aBold);
+  WriteBackgroundColor(aRow, aCol, aBackgroundColor);
+end;
+
+procedure TmSpreadsheetHelper.WriteSouthBorder(const aRow, aCol: integer);
+begin
+  FSheet.WriteBorders(aRow,aCol, [cbSouth]);
+end;
+
+procedure TmSpreadsheetHelper.WriteFontStyle(const aRow, aCol: integer; const aItalic, aBold: boolean);
+var
+  tmpStyle : TsFontStyles;
+begin
+  tmpStyle := [];
+  if aBold then
+    tmpStyle := tmpStyle + [fssBold];
+  if aItalic then
+    tmpStyle := tmpStyle + [fssItalic];
+  if tmpStyle <> [] then
+    Sheet.WriteFontStyle(aRow, aCol, tmpStyle);
+end;
+
+procedure TmSpreadsheetHelper.WriteBackgroundColor(const aRow, aCol: integer; const aColor: DWord);
+begin
+  if aColor <> scNotDefined then
+    Sheet.WriteBackgroundColor(aRow, aCol, aColor);
 end;
 
 procedure TmSpreadsheetHelper.ReadInteger(const aRow, aCol: integer; aValue: TNullableInteger);
 begin
   spReadInteger(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadFloat(const aRow, aCol: integer; aValue: TNullableDouble);
 begin
   spReadFloat(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadUppercaseText(const aRow, aCol: integer; aValue: TNullableString; const aDoTrim : boolean = true);
 begin
   spReadUppercaseText(FSheet, aRow, aCol, aValue, aDoTrim);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadText(const aRow, aCol: integer; aValue: TNullableString; const aDoTrim : boolean = true);
 begin
   spReadText(FSheet, aRow, aCol, aValue, aDoTrim);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadDate(const aRow, aCol: integer; aValue: TNullableDateTime);
 begin
   spReadDate(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
 end;
 
 end.
