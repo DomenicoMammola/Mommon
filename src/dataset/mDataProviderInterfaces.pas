@@ -52,6 +52,7 @@ type
     ['{8462163A-558F-41C5-9268-BEAE64C96359}']
     function GetDataProvider: IVDDataProvider;
     procedure FilterDataProvider(const aLookForValue: String);
+    procedure Clear;
   end;
 
   ISortableDatasetManager = interface
