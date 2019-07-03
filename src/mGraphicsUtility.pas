@@ -74,7 +74,7 @@ var
   {$endif}
 begin
   SetBkMode(ACanvas.Handle, TRANSPARENT);
-  ACanvas.Font.Size := min(max(8, (ARect.Bottom - ARect.Top) - 12), max(8, (ARect.Right - ARect.Left) - 24));
+  ACanvas.Font.Size := min(max(8, (ARect.Bottom - ARect.Top) - 30), max(8, (ARect.Right - ARect.Left) - 24));
   {$ifndef windows}
   newText := AText;
   if (ARect.Width < ACanvas.TextWidth('..')) then
