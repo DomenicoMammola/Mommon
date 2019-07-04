@@ -20,7 +20,10 @@ interface
 
 uses
   Classes, SysUtils, Variants, {$IFDEF WINDOWS}Windows, {$IFDEF FPC}{$IFDEF GRAPHICS_AVAILABLE}InterfaceBase,{$ENDIF}{$ENDIF} {$ENDIF}
-  {$IFDEF GRAPHICS_AVAILABLE}Graphics,{$ENDIF} {$IFDEF GUI}Forms,{$ENDIF}
+  {$IFDEF GRAPHICS_AVAILABLE}Graphics,{$ENDIF}
+  {$IFDEF GUI}
+  Forms,
+  {$ENDIF}
   mIntList, mDoubleList;
 
 const
@@ -128,9 +131,6 @@ procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFil
 procedure AddUTF8BOMToStream (aStream : TStream);
 
 function IsRunningAsRoot: boolean;
-
-function CtrlPressed: boolean;
-function ShiftPressed: boolean;
 
 implementation
 
@@ -1964,16 +1964,6 @@ begin
   // http://forum.lazarus.freepascal.org/index.php?topic=22454.0
   Result := (fpgeteuid = 0);
 {$ENDIF}
-end;
-
-function CtrlPressed: boolean;
-begin
-  Result := ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_CONTROL) and $8000 <> 0)
-end;
-
-function ShiftPressed: boolean;
-begin
-Result := ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_SHIFT) and $8000 <> 0)
 end;
 
 function GetTimeStampForFileName(const aInstant: TDateTime; const aAddTime : boolean = true): string;

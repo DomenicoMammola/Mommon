@@ -19,7 +19,14 @@ unit mGraphicsUtility;
 interface
 
 uses
-  {$ifdef fpc}InterfaceBase, LCLIntf, LCLType,{$endif}
+  {$IFDEF FPC}
+  LCLIntf,
+  LclType,
+  LclProc,
+  LResources,
+  LMessages,
+  InterfaceBase,
+  {$ENDIF}
   {$IFDEF WINDOWS}Windows,{$ENDIF} Forms, Controls, Graphics, Types, Classes;
 
 type
@@ -43,6 +50,8 @@ type
   function IsDoubleBufferedNeeded: boolean;
   {$endif}
 
+  function CtrlPressed: boolean;
+  function ShiftPressed: boolean;
 
 implementation
 
@@ -333,6 +342,15 @@ begin
          Bitmap.Canvas.Handle, 0, 0, SRCCOPY);
 end;
 
+function CtrlPressed: boolean;
+begin
+  Result := ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_CONTROL) and $8000 <> 0)
+end;
+
+function ShiftPressed: boolean;
+begin
+Result := ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_SHIFT) and $8000 <> 0)
+end;
 
 {$IFNDEF GUI}
 ** This unit should not be compiled in a console application **
