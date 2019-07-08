@@ -243,6 +243,8 @@ type
       function AsVariant: Variant; override;
       function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
       function YearOf: variant;
+      function ValueIsEqual (const aValue : TDateTime) : boolean; overload;
+      function ValueIsEqual (const aValue : TNullableDateTime) : boolean; overload;
 
       class function StringToVariant(const aValue : String): Variant;
       class function VariantToString(const aValue: Variant; const aShowTime: boolean): String;
@@ -2253,6 +2255,16 @@ begin
     Result := dateutils.YearOf(Self.Value)
   else
     Result := null;
+end;
+
+function TNullableDateTime.ValueIsEqual(const aValue: TDateTime): boolean;
+begin
+  Result := DoublesAreEqual(Self.Value, aValue);
+end;
+
+function TNullableDateTime.ValueIsEqual(const aValue: TNullableDateTime): boolean;
+begin
+  Result := (aValue.AsString = Self.AsString);
 end;
 
 class function TNullableDateTime.StringToVariant(const aValue: String): Variant;
