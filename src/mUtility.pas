@@ -121,6 +121,7 @@ function EncodeSVGString(const aSrc : String): String;
 
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
+function SanitizeSubstringForFileName(const aSubString : String): String;
 
 function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : boolean = true): string;
 
@@ -1895,6 +1896,40 @@ begin
   end;
 end;
 
+function InternalSanitizeSubstringForFileName(const aSubString: String; const aIgnoreDirectorySeparator : boolean): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := 1 to Length(aSubString) do
+  begin
+    if aSubString[i] = '<' then
+      Result := Result + '_'
+    else if aSubString[i] = '>' then
+      Result := Result + '_'
+    else if aSubString[i] = ':' then
+      Result := Result + '_'
+    else if aSubString[i] = '"' then
+      Result := Result + '_'
+    else if (aSubString[i] = '/') and ((not aIgnoreDirectorySeparator) or ('/' <> DirectorySeparator)) then
+      Result := Result + '_'
+    else if (aSubString[i] = '\') and ((not aIgnoreDirectorySeparator) or ('\' <> DirectorySeparator)) then
+      Result := Result + '_'
+    else if aSubString[i] = '|' then
+      Result := Result + '_'
+    else if aSubString[i] = '?' then
+      Result := Result + '_'
+    else if aSubString[i] = '*' then
+      Result := Result + '_'
+    else if aSubString[i] = '.' then
+      Result := Result + '_'
+    else if Ord(aSubString[i]) <= 31 then
+      Result := Result + '_'
+    else
+      Result := Result + aSubString[i];
+  end;
+end;
+
 
 (*
     https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
@@ -1916,38 +1951,17 @@ var
 begin
   Result := '';
   tmp := ChangeFileExt(ExtractFileName(aSrc), '');
-  for i := 1 to Length(tmp) do
-  begin
-    if tmp[i] = '<' then
-      Result := Result + '_'
-    else if tmp[i] = '>' then
-      Result := Result + '_'
-    else if tmp[i] = ':' then
-      Result := Result + '_'
-    else if tmp[i] = '"' then
-      Result := Result + '_'
-    else if tmp[i] = '/' then
-      Result := Result + '_'
-    else if tmp[i] = '\' then
-      Result := Result + '_'
-    else if tmp[i] = '|' then
-      Result := Result + '_'
-    else if tmp[i] = '?' then
-      Result := Result + '_'
-    else if tmp[i] = '*' then
-      Result := Result + '_'
-    else if tmp[i] = '.' then
-      Result := Result + '_'
-    else if Ord(tmp[i]) <= 31 then
-      Result := Result + '_'
-    else
-      Result := Result + tmp[i];
-  end;
+  Result := InternalSanitizeSubstringForFileName(tmp, true);
   tmp := ExtractFileDir(aSrc);
   if tmp <> '' then
     Result := IncludeTrailingPathDelimiter(tmp) + ChangeFileExt(Result, ExtractFileExt(aSrc))
   else
     Result := ChangeFileExt(Result, ExtractFileExt(aSrc));
+end;
+
+function SanitizeSubstringForFileName(const aSubString: String): String;
+begin
+  Result := InternalSanitizeSubstringForFileName(aSubString, false);
 end;
 
 procedure AddUTF8BOMToStream(aStream: TStream);
