@@ -45,10 +45,15 @@ type
 
   function ScaleForDPI (const aValue : integer) : integer;
 
+
+  // https://forum.lazarus.freepascal.org/index.php?topic=36579.0
+  function GetTextWidth(const aText: String; const aFont: TFont): Integer;
+
   procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
-  {$ifdef fpc}
+
+  {$IFDEF FPC}
   function IsDoubleBufferedNeeded: boolean;
-  {$endif}
+  {$ENDIF}
 
   function CtrlPressed: boolean;
   function ShiftPressed: boolean;
@@ -63,28 +68,67 @@ const
   HLSMAX = 255;
 {$ENDIF}
 
-{$ifdef fpc}
+{$IFDEF FPC}
 function IsDoubleBufferedNeeded: boolean;
 begin
   Result:= WidgetSet.GetLCLCapability(lcCanDrawOutsideOnPaint) = LCL_CAPABILITY_YES;
 end;
-{$endif}
+{$ENDIF}
 
+function GetTextWidth(const aText: String; const aFont: TFont): Integer;
+var
+  bmp: TBitmap;
+begin
+  Result := 0;
+  bmp := TBitmap.Create;
+  try
+    bmp.Canvas.Font.Assign(aFont);
+    Result := bmp.Canvas.TextWidth(aText);
+  finally
+    bmp.Free;
+  end;
+end;
 
 procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
 var
-  {$ifndef windows}
+  {$IFNDEF WINDOWS}
   xPos, tw, len1, len2 : integer;
   newText : string;
-
-  {$else}
+  {$ELSE}
   TempFlags: cardinal;
   tmpRect : TRect;
-  {$endif}
+  {$ENDIF}
+  w, h : integer;
+  lastSize : integer;
 begin
   SetBkMode(ACanvas.Handle, TRANSPARENT);
-  ACanvas.Font.Size := min(max(8, (ARect.Bottom - ARect.Top) - 30), max(8, (ARect.Right - ARect.Left) - 24));
-  {$ifndef windows}
+
+  lastSize := ACanvas.Font.Size;
+
+  w := ACanvas.TextWidth(AText);
+  h := ACanvas.TextHeight(AText);
+  if (w > ARect.Width) or (h > Arect.Height) then
+  begin
+    while ((w > ARect.Width) or (h > Arect.Height)) and (aCanvas.Font.Size > 8) do
+    begin
+      ACanvas.Font.Size := ACanvas.Font.Size - 1;
+      w := ACanvas.TextWidth(AText);
+      h := ACanvas.TextHeight(AText);
+    end;
+  end
+  else if (w < ARect.Width) and (h < ARect.Height) then
+  begin
+    while (w < ARect.Width) and (h < ARect.Height) do
+    begin
+      lastSize := ACanvas.Font.Size;
+      ACanvas.Font.Size := ACanvas.Font.Size + 1;
+      w := ACanvas.TextWidth(AText);
+      h := ACanvas.TextHeight(AText);
+    end;
+    ACanvas.Font.Size:= lastSize;
+  end;
+  // ACanvas.Font.Size := min(max(8, (ARect.Bottom - ARect.Top) - 30), max(8, (ARect.Right - ARect.Left) - 24));
+  {$IFNDEF WINDOWS}
   newText := AText;
   if (ARect.Width < ACanvas.TextWidth('..')) then
     exit;
@@ -116,7 +160,7 @@ begin
   end;
   ACanvas.TextOut(xPos, ARect.Top, newText);
   //DebugLn(IntToStr(xPos) + ' ' + newText + ' ' + IntToStr(ACanvas.Font.Size));
-  {$else}
+  {$ELSE}
   TempFlags := 0;
   case ATextAlignment of
     taLeftJustify: TempFlags := DT_LEFT;
@@ -128,7 +172,7 @@ begin
   tmpRect := ARect;
   if DrawText(ACanvas.Handle, PChar(AText), -1, tmpRect, TempFlags) = 0 then
     RaiseLastOSError;
-  {$endif}
+  {$ENDIF}
 end;
 
 
@@ -344,12 +388,12 @@ end;
 
 function CtrlPressed: boolean;
 begin
-  Result := ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_CONTROL) and $8000 <> 0)
+  Result := ({$IFNDEF FPC}GetAsyncKeyState{$ELSE}GetKeyState{$ENDIF}(VK_CONTROL) and $8000 <> 0)
 end;
 
 function ShiftPressed: boolean;
 begin
-Result := ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_SHIFT) and $8000 <> 0)
+Result := ({$IFNDEF FPC}GetAsyncKeyState{$ELSE}GetKeyState{$ENDIF}(VK_SHIFT) and $8000 <> 0)
 end;
 
 {$IFNDEF GUI}
