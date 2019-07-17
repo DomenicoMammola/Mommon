@@ -28,6 +28,7 @@ function TryToConvertToDouble(aValue: string; out aOutValue: Double): boolean;
 function TryToConvertToInteger(aValue: string; out aOutValue: Integer): boolean;
 function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
 function IsNumeric(const aValue: string; const aAllowFloat: Boolean): Boolean;
+function ExtractFirstInteger(aValue: string; out aOutValue: Integer): boolean;
 
 implementation
 
@@ -166,6 +167,24 @@ begin
     Result := TryToConvertToDouble(aValue, tmpDouble)
   else
     Result := TryStrToInt(aValue, tmpInt);
+end;
+
+function ExtractFirstInteger(aValue: string; out aOutValue: Integer): boolean;
+var
+  i : integer;
+  candidate: String;
+begin
+  Result := false;
+  candidate := '';
+  for i := 1 to Length(aValue) do
+  begin
+    if IsNumeric(aValue[i], false) then
+      candidate := candidate + aValue[i]
+    else if candidate <> '' then
+      break;
+  end;
+  if candidate <> '' then
+    Result := TryToConvertToInteger(candidate, aOutValue);
 end;
 
 function RoundToExt(const aValue: double; const aRoundingMethod: TRoundingMethod; const Digits: integer): double;
