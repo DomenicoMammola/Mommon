@@ -49,7 +49,7 @@ type
   // https://forum.lazarus.freepascal.org/index.php?topic=36579.0
   function GetTextWidth(const aText: String; const aFont: TFont): Integer;
 
-  procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
+  procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
 
   {$IFDEF FPC}
   function IsDoubleBufferedNeeded: boolean;
@@ -89,7 +89,7 @@ begin
   end;
 end;
 
-procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
+procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
 var
   {$IFNDEF WINDOWS}
   xPos, tw, len1, len2 : integer;
@@ -101,76 +101,79 @@ var
   w, h : integer;
   lastSize : integer;
 begin
-  SetBkMode(ACanvas.Handle, TRANSPARENT);
+  SetBkMode(aCanvas.Handle, TRANSPARENT);
 
-  lastSize := ACanvas.Font.Size;
+  if aAdjustFontSize then
+  begin
+    lastSize := aCanvas.Font.Size;
 
-  w := ACanvas.TextWidth(AText);
-  h := ACanvas.TextHeight(AText);
-  if (w > ARect.Width) or (h > Arect.Height) then
-  begin
-    while ((w > ARect.Width) or (h > Arect.Height)) and (aCanvas.Font.Size > 8) do
+    w := aCanvas.TextWidth(aText);
+    h := aCanvas.TextHeight(aText);
+    if (w > aRect.Width) or (h > Arect.Height) then
     begin
-      ACanvas.Font.Size := ACanvas.Font.Size - 1;
-      w := ACanvas.TextWidth(AText);
-      h := ACanvas.TextHeight(AText);
-    end;
-  end
-  else if (w < ARect.Width) and (h < ARect.Height) then
-  begin
-    while (w < ARect.Width) and (h < ARect.Height) do
+      while ((w > aRect.Width) or (h > Arect.Height)) and (aCanvas.Font.Size > 8) do
+      begin
+        aCanvas.Font.Size := aCanvas.Font.Size - 1;
+        w := aCanvas.TextWidth(aText);
+        h := aCanvas.TextHeight(aText);
+      end;
+    end
+    else if (w < aRect.Width) and (h < aRect.Height) then
     begin
-      lastSize := ACanvas.Font.Size;
-      ACanvas.Font.Size := ACanvas.Font.Size + 1;
-      w := ACanvas.TextWidth(AText);
-      h := ACanvas.TextHeight(AText);
+      while (w < aRect.Width) and (h < aRect.Height) do
+      begin
+        lastSize := aCanvas.Font.Size;
+        aCanvas.Font.Size := aCanvas.Font.Size + 1;
+        w := aCanvas.TextWidth(aText);
+        h := aCanvas.TextHeight(aText);
+      end;
+      aCanvas.Font.Size:= lastSize;
     end;
-    ACanvas.Font.Size:= lastSize;
+    // aCanvas.Font.Size := min(max(8, (aRect.Bottom - aRect.Top) - 30), max(8, (aRect.Right - aRect.Left) - 24));
   end;
-  // ACanvas.Font.Size := min(max(8, (ARect.Bottom - ARect.Top) - 30), max(8, (ARect.Right - ARect.Left) - 24));
   {$IFNDEF WINDOWS}
-  newText := AText;
-  if (ARect.Width < ACanvas.TextWidth('..')) then
+  newText := aText;
+  if (aRect.Width < aCanvas.TextWidth('..')) then
     exit;
-  tw := ACanvas.TextWidth(newText);
-  if tw > (ARect.Right - ARect.Left) then
+  tw := aCanvas.TextWidth(newText);
+  if tw > (aRect.Right - aRect.Left) then
   begin
-    len1 := Length(AText);
+    len1 := Length(aText);
     if len1 = 2 then
         newText := Copy(newText, 1, 1) + '.'
     else if len1 > 2 then
     begin
-      while tw > (ARect.Right - ARect.Left) do
+      while tw > (aRect.Right - aRect.Left) do
       begin
         len2 := Length(newText);
         newText := Copy(newText, 1, len2 - 3) + '..';
         if newText = '..' then
         begin
-          newText := Copy(AText, 1, 1) + '.';
+          newText := Copy(aText, 1, 1) + '.';
           break;
         end;
-        tw := ACanvas.TextWidth(newText);
+        tw := aCanvas.TextWidth(newText);
       end;
     end;
   end;
-  case ATextAlignment of
-    taLeftJustify: xPos := ARect.Left;
-    taRightJustify: xPos := ARect.Right - tw;
-    taCenter: xPos := ARect.Left + ((ARect.Width - tw) div 2);
+  case aTextAlignment of
+    taLeftJustify: xPos := aRect.Left;
+    taRightJustify: xPos := aRect.Right - tw;
+    taCenter: xPos := aRect.Left + ((aRect.Width - tw) div 2);
   end;
-  ACanvas.TextOut(xPos, ARect.Top, newText);
-  //DebugLn(IntToStr(xPos) + ' ' + newText + ' ' + IntToStr(ACanvas.Font.Size));
+  aCanvas.TextOut(xPos, aRect.Top, newText);
+  //DebugLn(IntToStr(xPos) + ' ' + newText + ' ' + IntToStr(aCanvas.Font.Size));
   {$ELSE}
   TempFlags := 0;
-  case ATextAlignment of
+  case aTextAlignment of
     taLeftJustify: TempFlags := DT_LEFT;
     taRightJustify: TempFlags := DT_RIGHT;
     taCenter: TempFlags := DT_CENTER;
   end;
   TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE {$ifndef fpc}DT_WORD_ELLIPSIS{$endif});
 
-  tmpRect := ARect;
-  if DrawText(ACanvas.Handle, PChar(AText), -1, tmpRect, TempFlags) = 0 then
+  tmpRect := aRect;
+  if DrawText(aCanvas.Handle, PChar(aText), -1, tmpRect, TempFlags) = 0 then
     RaiseLastOSError;
   {$ENDIF}
 end;
