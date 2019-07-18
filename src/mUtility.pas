@@ -404,8 +404,7 @@ begin
             year := 2000 + year;
           if day <= DaysInAMonth(year, month) then
           begin
-            aValue := EncodeDate(year, month, day);
-            Result := true;
+            Result := TryEncodeDate(year, month, day, aValue);
             exit;
           end;
         end;
