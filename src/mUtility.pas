@@ -411,8 +411,6 @@ begin
       end;
     end;
   end;
-
-
 end;
 
 function TryToUnderstandTimeString(const aInputString: String; out aValue: TDateTime): boolean;

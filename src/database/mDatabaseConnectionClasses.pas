@@ -69,6 +69,7 @@ type
     procedure Assign(const aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0); overload;
     procedure Assign(const aFilter : TmFilter); overload;
     procedure Assign(const aValue : Variant; const aType: TmParameterDataType); overload;
+    procedure Assign(const aField : TField); overload;
     procedure AssignStrings(const aList : TStringList);
     procedure AssignIntegers(const aList : TIntegerList);
     procedure AssignDoubles(const aList: TDoubleList);
@@ -140,6 +141,7 @@ type
     procedure LoadFromXMLElement (const aXMLElement : TmXmlElement; const aCryptPassword : string);
     procedure Assign (aSource : TmDatabaseConnectionInfo);
     procedure GetReport (aReport : TStringList);
+    function IsEqual(const aOther : TmDatabaseConnectionInfo): boolean;
 
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
     property Server : String read GetServer write SetServer;
@@ -339,6 +341,17 @@ begin
   aReport.Add('User: ' + UserName);
   aReport.Add('Windows integrated security: ' + BoolToStr(WindowsIntegratedSecurity, true));
   aReport.Add('Extra settings: ' + ExtraSettings);
+end;
+
+function TmDatabaseConnectionInfo.IsEqual(const aOther: TmDatabaseConnectionInfo): boolean;
+begin
+  Result := (VendorType = aOther.VendorType) and
+    (CompareText(Server, aOther.Server) = 0) and
+    (CompareText(DatabaseName, aOther.DatabaseName) = 0) and
+    (CompareText(UserName, aOther.UserName) = 0) and
+    (CompareText(Password, aOther.Password) = 0) and
+    (CompareText(ExtraSettings, aOther.ExtraSettings) = 0) and
+    (WindowsIntegratedSecurity  = aOther.WindowsIntegratedSecurity);
 end;
 
 { TmQueryParameter }
@@ -619,6 +632,11 @@ begin
     Self.SetNull
   else
     FValue:= aValue;
+end;
+
+procedure TmQueryParameter.Assign(const aField: TField);
+begin
+  Self.Assign(aField.AsVariant, DataTypeToParameterDataType(aField.DataType));
 end;
 
 procedure TmQueryParameter.AssignStrings(const aList: TStringList);

@@ -40,6 +40,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function SQLSnippetForCondition(const aFieldName : String; const aOperator : TmFilterOperator; const aParamNameWithoutDelimiter : String) : String;
+    function SQLSnippetForValue(const aParamNameWithoutDelimiter : String) : String;
     procedure PrepareSQL (aSQL : string);
     function ParamByName(const Value: string): TmQueryParameter;
     function BuildSQL : string;
@@ -88,6 +89,11 @@ begin
     raise TmDataConnectionException.Create('No database vendor was set. Unable to build definitive sql command');
 
   Result := '(' + aFieldName + ' ' + FSQLDialectExpert.GetSQLForConditionOperator(aOperator) + ' ' + PARAMETER_DELIMITER + aParamNameWithoutDelimiter + PARAMETER_DELIMITER +')';
+end;
+
+function TmSQLBuilder.SQLSnippetForValue(const aParamNameWithoutDelimiter: String): String;
+begin
+  Result := PARAMETER_DELIMITER + aParamNameWithoutDelimiter + PARAMETER_DELIMITER;
 end;
 
 procedure TmSQLBuilder.PrepareSQL(aSQL: string);
