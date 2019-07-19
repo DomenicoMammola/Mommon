@@ -36,7 +36,7 @@ implementation
 
 uses
   SysUtils,
-  mSQLServerSQLDialect;
+  mSQLDialectSQLServer;
 
 { TSQLDialectExpertImplSQLServer }
 
