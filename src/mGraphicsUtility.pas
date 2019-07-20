@@ -111,7 +111,7 @@ begin
     h := aCanvas.TextHeight(aText);
     if (w > aRect.Width) or (h > Arect.Height) then
     begin
-      while ((w > aRect.Width) or (h > Arect.Height)) and (aCanvas.Font.Size > 8) do
+      while ((w > aRect.Width) or (h > Arect.Height)) and (aCanvas.Font.Size > 7) do
       begin
         aCanvas.Font.Size := aCanvas.Font.Size - 1;
         w := aCanvas.TextWidth(aText);
