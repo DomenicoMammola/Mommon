@@ -28,7 +28,9 @@ type
   public
     constructor Create; virtual; abstract;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; virtual; abstract;
-    function GetSQLForConditionOperator (const aOperator : TmFilterOperator) : string; virtual;
+    function GetSQLForConditionOperator (const aOperator: TmFilterOperator) : string; virtual;
+    function GetSQLForFieldname(const aFieldName: String): String; virtual;
+    function GetSQLForTablename(const aTableName: String): String; virtual;
   end;
 
   TSQLDialectExpertImplementationClass = class of TSQLDialectExpertImpl;
@@ -60,6 +62,16 @@ begin
     Result := 'BETWEEN'
   else
     Result := '?';
+end;
+
+function TSQLDialectExpertImpl.GetSQLForFieldname(const aFieldName: String): String;
+begin
+  Result := aFieldName;
+end;
+
+function TSQLDialectExpertImpl.GetSQLForTablename(const aTableName: String): String;
+begin
+  Result := aTableName;
 end;
 
 end.
