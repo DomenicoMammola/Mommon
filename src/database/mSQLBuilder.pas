@@ -46,12 +46,14 @@ type
     function BuildSQL : string;
 
     property VendorType : TmDatabaseVendor read GetVendorType write SetVendorType;
+    property SQLDialectExpert : TSQLDialectExpertImpl read FSQLDialectExpert;
   end;
 
 implementation
 
 uses
-  SysUtils, mSQLDialectExpertImplRegister, mSQLDialectExpertImplSQLServer;
+  SysUtils, mSQLDialectExpertImplRegister,
+  mSQLDialectExpertImplSQLServer, mSQLDialectExpertImplMySQL, mSQLDialectExpertImplPostgreSQL;
 
 { TmSQLBuilder }
 
@@ -88,7 +90,7 @@ begin
   if not Assigned(FSQLDialectExpert) then
     raise TmDataConnectionException.Create('No database vendor was set. Unable to build definitive sql command');
 
-  Result := '(' + aFieldName + ' ' + FSQLDialectExpert.GetSQLForConditionOperator(aOperator) + ' ' + PARAMETER_DELIMITER + aParamNameWithoutDelimiter + PARAMETER_DELIMITER +')';
+  Result := '(' + FSQLDialectExpert.GetSQLForFieldname(aFieldName) + ' ' + FSQLDialectExpert.GetSQLForConditionOperator(aOperator) + ' ' + PARAMETER_DELIMITER + aParamNameWithoutDelimiter + PARAMETER_DELIMITER +')';
 end;
 
 function TmSQLBuilder.SQLSnippetForValue(const aParamNameWithoutDelimiter: String): String;
