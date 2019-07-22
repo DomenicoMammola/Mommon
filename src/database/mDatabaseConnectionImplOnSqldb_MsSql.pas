@@ -12,7 +12,7 @@
 // please check:
 // http://wiki.freepascal.org/mssqlconn
 
-unit mDatabaseConnectionImplOnMsSql;
+unit mDatabaseConnectionImplOnSqldb_MsSql;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
