@@ -18,7 +18,7 @@ interface
 
 uses
   DB, Contnrs, SysUtils, Variants, Classes, {$IFDEF FPC}base64,{$ELSE}EncdDecd, {$ENDIF}
-  mNullables, mXML, mUtility, mIntList, mDoubleList, mFilter, mFilterOperators;
+  mNullables, mXML, mUtility, mIntList, mDoubleList, mFilter, mFilterOperators, mMaps;
 
 type
   TmDataConnectionException = class (Exception);
@@ -99,6 +99,7 @@ type
   TmQueryParameters = class
   strict private
     FList : TObjectList;
+    FIndex : TmStringDictionary;
   public
     constructor Create;
     destructor Destroy; override;
@@ -228,10 +229,12 @@ end;
 constructor TmQueryParameters.Create;
 begin
   FList:= TObjectList.Create;
+  FIndex := TmStringDictionary.Create(false);
 end;
 
 destructor TmQueryParameters.Destroy;
 begin
+  FIndex.Free;
   FList.Free;
   inherited Destroy;
 end;
@@ -243,11 +246,13 @@ begin
   TempParam := TmQueryParameter.Create;
   FList.Add(TempParam);
   TempParam.ImportFromParam(aSource);
+  FIndex.Clear;
 end;
 
 procedure TmQueryParameters.Add(aParam: TmQueryParameter);
 begin
   FList.Add(aParam);
+  FIndex.Clear;
 end;
 
 function TmQueryParameters.FindByName(const aName: String): TmQueryParameter;
@@ -255,18 +260,17 @@ var
   i : integer;
 begin
   Result := nil;
-  for i := 0 to FList.Count - 1 do
+  if FIndex.Count = 0 then
   begin
-    if CompareText((FList.Items[i] as TmQueryParameter).Name, aName) = 0 then
-    begin
-      Result := FList.Items[i] as TmQueryParameter;
-      exit;
-    end;
+    for i := 0 to FList.Count - 1 do
+      FIndex.Add(Uppercase((FList.Items[i] as TmQueryParameter).Name), FList.Items[i] as TmQueryParameter);
   end;
+  Result := FIndex.Find(Uppercase(aName)) as TmQueryParameter;
 end;
 
 procedure TmQueryParameters.Clear;
 begin
+  FIndex.Clear;
   FList.Clear;
 end;
 
@@ -277,6 +281,7 @@ end;
 
 function TmQueryParameters.GetParam(aIndex: integer): TmQueryParameter;
 begin
+  FIndex.Clear;
   Result := FList.Items[aIndex] as TmQueryParameter;
 end;
 
