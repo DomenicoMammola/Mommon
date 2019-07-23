@@ -52,7 +52,6 @@ end;
 function DateToSQLString (aValue : TDate) : String;
 var
   TempYear, TempMonth, TempDay : word;
-  tmpQuotes : String;
 begin
   DecodeDate(aValue, TempYear, TempMonth, TempDay);
   Result := 'to_date(''' + AddZerosFront(TempYear, 4) + AddZerosFront(TempMonth, 2) + AddZerosFront(TempDay, 2) + ''', ''YYYYMMDD'')';

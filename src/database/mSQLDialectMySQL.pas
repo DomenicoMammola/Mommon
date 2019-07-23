@@ -54,7 +54,6 @@ end;
 function DateToSQLString (aValue : TDate) : String;
 var
   TempYear, TempMonth, TempDay : word;
-  tmpQuotes : String;
 begin
   DecodeDate(aValue, TempYear, TempMonth, TempDay);
   // STR_TO_DATE('04/31/2004', '%m/%d/%Y')
