@@ -1943,7 +1943,6 @@ end;
 *)
 function SanitizeFileName(const aSrc: String): String;
 var
-  i : integer;
   tmp : String;
 begin
   Result := '';
