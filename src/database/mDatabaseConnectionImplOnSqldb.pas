@@ -111,7 +111,10 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, syncobjs;
+
+var
+  _ConnectionCriticalSection : TCriticalSection;
 
 { TAbstractSqldbDatabaseCommandImpl }
 
@@ -379,17 +382,21 @@ end;
 
 procedure TAbstractSqldbDatabaseConnectionImpl.Connect;
 begin
-  if (not FConnection.Connected) then
-  begin
-    FConnection.HostName:= FConnectionInfo.Server;
-    FConnection.DatabaseName:= FConnectionInfo.DatabaseName;
-    if (not FConnectionInfo.WindowsIntegratedSecurity) then
+  _ConnectionCriticalSection.Acquire;
+  try
+    if (not FConnection.Connected) then
     begin
-      FConnection.Username := FConnectionInfo.UserName;
-      FConnection.Password := FConnectionInfo.Password;
+      FConnection.HostName:= FConnectionInfo.Server;
+      FConnection.DatabaseName:= FConnectionInfo.DatabaseName;
+      if (not FConnectionInfo.WindowsIntegratedSecurity) then
+      begin
+        FConnection.Username := FConnectionInfo.UserName;
+        FConnection.Password := FConnectionInfo.Password;
+      end;
+      FConnection.Open;
     end;
-
-    FConnection.Open;
+  finally
+    _ConnectionCriticalSection.Leave;
   end;
 end;
 
@@ -419,5 +426,12 @@ begin
   Result := FConnection.Connected;
 end;
 
+
+initialization
+  _ConnectionCriticalSection := TCriticalSection.Create;
+
+finalization
+
+  FreeAndNil(_ConnectionCriticalSection);
 
 end.

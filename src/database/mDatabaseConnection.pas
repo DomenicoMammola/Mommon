@@ -144,6 +144,7 @@ uses
 var
   _LastSQLScript: string;
   _LastSQLScriptCriticalSection: TCriticalSection;
+  _CreateImplementationCriticalSection: TCriticalSection;
 
 procedure TraceSQL (const aSQLScript: string);
 begin
@@ -486,19 +487,24 @@ end;
 
 procedure TmDatabaseConnection.CreateImplementation;
 begin
-  if Assigned(FConnectionInfo) then
-  begin
-    if not Assigned(FImplementation) then
+  _CreateImplementationCriticalSection.Acquire;
+  try
+    if Assigned(FConnectionInfo) then
     begin
-      FImplementation := GetDataConnectionClassesRegister.GetConnectionImpl(FConnectionInfo.VendorType);
       if not Assigned(FImplementation) then
-        raise TmDataConnectionException.Create('No connection implementation available for ' + DatabaseVendorToString(FConnectionInfo.VendorType) + '.');
-      FImplementation.ConnectionInfo := FConnectionInfo;
+      begin
+        FImplementation := GetDataConnectionClassesRegister.GetConnectionImpl(FConnectionInfo.VendorType);
+        if not Assigned(FImplementation) then
+          raise TmDataConnectionException.Create('No connection implementation available for ' + DatabaseVendorToString(FConnectionInfo.VendorType) + '.');
+        FImplementation.ConnectionInfo := FConnectionInfo;
+      end;
+    end
+    else
+    begin
+      raise TmDataConnectionException.Create('Connection info is unavailable.');
     end;
-  end
-  else
-  begin
-    raise TmDataConnectionException.Create('Connection info is unavailable.');
+  finally
+    _CreateImplementationCriticalSection.Leave;
   end;
 end;
 
@@ -563,9 +569,11 @@ end;
 initialization
   _LastSQLScript := '';
   _LastSQLScriptCriticalSection := TCriticalSection.Create;
+  _CreateImplementationCriticalSection := TCriticalSection.Create;
   RegisterExceptionLogTracer(GetLastSQLScript);
 
 finalization
-  _LastSQLScriptCriticalSection.Free;
+  FreeAndNil(_LastSQLScriptCriticalSection);
+  FreeAndNil(_CreateImplementationCriticalSection);
 
 end.
