@@ -39,7 +39,7 @@ var
   TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli : word;
 begin
   DecodeDateTime(aValue, TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli);
-  Result := 'STR_TO_DATE(''' + AddZerosFront(TempYear, 4) + '-' + AddZerosFront(TempMonth, 2) + '-' + AddZerosFront(TempDay, 2) + ' ' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + ''', ''%Y-%m-%d %H:%i:%s''))';
+  Result := 'STR_TO_DATE(''' + AddZerosFront(TempYear, 4) + '-' + AddZerosFront(TempMonth, 2) + '-' + AddZerosFront(TempDay, 2) + ' ' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + ''', ''%Y-%m-%d %H:%i:%s'')';
 end;
 
 function TimeToSQLString(aValue: TDateTime): String;
