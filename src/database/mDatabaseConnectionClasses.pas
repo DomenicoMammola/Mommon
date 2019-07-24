@@ -212,6 +212,10 @@ begin
     Result := 'dvUnknown'
   else if aValue = dvSQLServer then
     Result := 'dvSQLServer'
+  else if aValue = dvMySQL56 then
+    Result := 'dvMySQL56'
+  else if aValue = dvPostgresql then
+    Result := 'dvPostgresql'
   else
     Result := '';
 end;
@@ -220,6 +224,10 @@ function StringToDatabaseVendor(aValue: String): TmDatabaseVendor;
 begin
   if aValue = 'dvSQLServer' then
     Result := dvSQLServer
+  else if aValue = 'dvMySQL56' then
+    Result := dvMySQL56
+  else if aValue = 'dvPostgresql' then
+    Result := dvPostgresql
   else
     Result := dvUnknown;
 end;
