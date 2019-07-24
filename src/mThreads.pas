@@ -59,7 +59,7 @@ type
     function Count : integer;
   end;
 
-  TDoJobProcedure = procedure (aProgress: ImProgress; aJobResult : TJobResult) of object;
+  TDoJobProcedure = procedure (aProgress: ImProgress; aData: TObject; aJobResult : TJobResult) of object;
   TOnEndJobCallback = procedure (const aJobsResult : TJobResults) of object;
 
   TmJob = class
@@ -67,6 +67,7 @@ type
     FDoJobProcedure : TDoJobProcedure;
     FDescription : String;
     FTrapExceptions : boolean;
+    FData : TObject;
   private
     FJobId : integer;
   public
@@ -74,6 +75,7 @@ type
     property JobId : integer read FJobId;
     property Description : String read FDescription write FDescription;
     property TrapExceptions : boolean read FTrapExceptions write FTrapExceptions;
+    property Data : TObject read FData write FData;
   end;
 
   { TmBatchExecutor }
@@ -82,12 +84,15 @@ type
     FRunning : boolean;
     FControlThread : TThread;
     FCanEndEvent : TSimpleEvent;
+    FMaxConcurrentThreads : integer;
+    procedure SetMaxConcurrentThreads(AValue: integer);
   public
     constructor Create;
     destructor Destroy; override;
 
     function QueueJob : TmJob;
     procedure Execute ({$ifdef gui}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
+    property MaxConcurrentThreads : integer read FMaxConcurrentThreads write SetMaxConcurrentThreads;
   end;
 
   function BatchExecutor : TmBatchExecutor;
@@ -95,7 +100,10 @@ type
 implementation
 
 uses
-  mProgressClasses;
+  mProgressClasses, mIntList;
+
+const
+  MAX_CONCURRENT_THREADS_LIMIT = 999;
 
 type
 
@@ -131,11 +139,14 @@ type
     FCallBack : TOnEndJobCallback;
     FRunning : boolean;
     FCurrentJobResults : TJobResults;
+    FJobsRunning : TIntegerList;
+    FMaxConcurrentThreads : integer;
     {$ifdef gui}
     FParentForm: TForm;
     {$endif}
 
     procedure RunEndCallBack;
+    procedure SetMaxConcurrentThreads(AValue: integer);
   public
     constructor Create; reintroduce;
     destructor Destroy; override;
@@ -148,6 +159,7 @@ type
 
     property CallBack : TOnEndJobCallback read FCallBack write FCallBack;
     property Running : boolean read FRunning;
+    property MaxConcurrentThreads : integer read FMaxConcurrentThreads write SetMaxConcurrentThreads;
     {$ifdef gui}
     property ParentForm: TForm read FParentForm write FParentForm;
     {$endif}
@@ -230,6 +242,12 @@ begin
   FreeAndNil(FCurrentJobResults);
 end;
 
+procedure TControlThread.SetMaxConcurrentThreads(AValue: integer);
+begin
+  if (FMaxConcurrentThreads=AValue) or (AValue <= 0) then Exit;
+  FMaxConcurrentThreads:=AValue;
+end;
+
 constructor TControlThread.Create;
 begin
   inherited Create(false);
@@ -238,6 +256,8 @@ begin
   FJobs := TObjectList.Create (true);
   FThreads := TObjectList.Create(true);
   FCanDieEvents := TObjectList.Create(true);
+  FJobsRunning := TIntegerList.Create;
+  FMaxConcurrentThreads:= MAX_CONCURRENT_THREADS_LIMIT;
 end;
 
 destructor TControlThread.Destroy;
@@ -254,6 +274,7 @@ begin
   FreeAndNil(FJobs);
   FCanStartEvent.Free;
   FreeAndNil(FCurrentJobResults);
+  FreeAndNil(FJobsRunning);
   FCanDieEvent.SetEvent;
   inherited Destroy;
 end;
@@ -261,13 +282,15 @@ end;
 procedure TControlThread.Execute;
 var
   i : integer;
-  runningJobs : integer;
   tmpThread : TJobThread;
   tmpJobResult : TJobResult;
   tmpCanDiedEvent : TSimpleEvent;
+
+  lastRunJobIdx : integer;
 begin
   try
-    runningJobs := 0;
+    lastRunJobIdx := -1;
+    FJobsRunning.Clear;
 
     while not Terminated do
     begin
@@ -281,12 +304,14 @@ begin
         begin
           FCurrentJobResults := TJobResults.Create;
 
-          runningJobs := FJobs.Count;
-          for i := 0 to FJobs.Count -1 do
+          while (lastRunJobIdx < FJobs.Count - 1) and (FJobsRunning.Count < FMaxConcurrentThreads) do
           begin
+            inc (lastRunJobIdx);
+            FJobsRunning.Add(lastRunJobIdx);
+
             tmpJobResult := TJobResult.Create;
             FCurrentJobResults.Add(tmpJobResult);
-            tmpThread := TJobThread.Create(FJobs.Items[i] as TmJob, tmpJobResult);
+            tmpThread := TJobThread.Create(FJobs.Items[lastRunJobIdx] as TmJob, tmpJobResult);
             tmpCanDiedEvent := TSimpleEvent.Create;
             tmpThread.CanDieEvent := tmpCanDiedEvent;
             FThreads.Add(tmpThread);
@@ -295,14 +320,32 @@ begin
           end;
         end;
 
-        while (not Terminated) and (runningJobs > 0) do
+        while (not Terminated) and (FJobsRunning.Count > 0) do
         begin
-          for i := 0 to FJobs.Count - 1 do
+          for i:= FJobsRunning.Count - 1 downto 0 do
           begin
-            if (FCanDieEvents.Items[i] as TSimpleEvent).WaitFor(10) <> wrTimeout then
-              dec(runningJobs);
-            if Terminated or (runningJobs = 0) then
+            if (FCanDieEvents.Items[FJobsRunning.Items[i]] as TSimpleEvent).WaitFor(10) <> wrTimeout then
+              FJobsRunning.Delete(i);
+            if Terminated then
               break;
+          end;
+
+          if Terminated then
+            break;
+
+          while (not Terminated) and (lastRunJobIdx < FJobs.Count - 1) and (FJobsRunning.Count < FMaxConcurrentThreads) do
+          begin
+            inc (lastRunJobIdx);
+            FJobsRunning.Add(lastRunJobIdx);
+
+            tmpJobResult := TJobResult.Create;
+            FCurrentJobResults.Add(tmpJobResult);
+            tmpThread := TJobThread.Create(FJobs.Items[i] as TmJob, tmpJobResult);
+            tmpCanDiedEvent := TSimpleEvent.Create;
+            tmpThread.CanDieEvent := tmpCanDiedEvent;
+            FThreads.Add(tmpThread);
+            FCanDieEvents.Add(tmpCanDiedEvent);
+            tmpThread.CanStartEvent.SetEvent;
           end;
         end;
 
@@ -361,7 +404,7 @@ begin
   if (not Terminated) then
   begin
     try
-      FJob.DoJobProcedure (FProgress, FJobResult);
+      FJob.DoJobProcedure (FProgress, FJob.Data, FJobResult);
       Self.FProgress.Close;
     except
       on e:Exception do
@@ -390,9 +433,16 @@ end;
 
 { TmBatchExecutor }
 
+procedure TmBatchExecutor.SetMaxConcurrentThreads(AValue: integer);
+begin
+  if (FMaxConcurrentThreads=AValue) or (AValue <= 0) then Exit;
+  FMaxConcurrentThreads:=AValue;
+end;
+
 constructor TmBatchExecutor.Create;
 begin
   FRunning:= false;
+  MaxConcurrentThreads:= MAX_CONCURRENT_THREADS_LIMIT;
   FCanEndEvent := TSimpleEvent.Create;
   FControlThread := TControlThread.Create;
   GetControlThread(Self).CanDieEvent := FCanEndEvent;
@@ -419,6 +469,7 @@ begin
   Result := TmJob.Create;
   GetControlThread(Self).Jobs.Add(Result);
   Result.FJobId:= GetControlThread(Self).Jobs.Count;
+  Result.Data := nil;
 end;
 
 procedure TmBatchExecutor.Execute({$ifdef gui}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
@@ -429,9 +480,9 @@ begin
   if GetControlThread(Self).Jobs.Count = 0 then
     exit;
 
-  GetControlThread(Self).ParentForm := nil;
 
   {$ifdef gui}
+  GetControlThread(Self).ParentForm := nil;
   if Assigned(aParentForm) then
   begin
     GetControlThread(Self).ParentForm := aParentForm;
@@ -440,6 +491,7 @@ begin
   end;
   {$endif}
   GetControlThread(Self).CallBack:= aCallBack;
+  GetControlThread(Self).MaxConcurrentThreads:= FMaxConcurrentThreads;
   FRunning := true;
 
   GetControlThread(Self).CanStartEvent.SetEvent;
