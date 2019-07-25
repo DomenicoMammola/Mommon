@@ -81,6 +81,6 @@ end;
 
 initialization
 
-  GetDataConnectionClassesRegister.RegisterImplementations(TMsSqlDatabaseConnectionImpl.GetImplementationName, dvSQLServer, TMsSqlDatabaseConnectionImpl, TMsSqlDatabaseQueryImpl, TMsSqlDatabaseCommandImpl);
+  GetDataConnectionClassesRegister.RegisterImplementations(TMsSqlDatabaseConnectionImpl.GetImplementationName, dvSQLServer, '', TMsSqlDatabaseConnectionImpl, TMsSqlDatabaseQueryImpl, TMsSqlDatabaseCommandImpl);
 
 end.

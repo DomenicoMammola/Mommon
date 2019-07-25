@@ -46,6 +46,7 @@ constructor TPostgreSQLDatabaseConnectionImpl.Create;
 begin
   inherited Create;
   FConnection := TPQConnection.Create(nil);
+  FConnection.CharSet:='UTF8';
   FConnection.Transaction := FTransaction;
 end;
 
@@ -61,6 +62,6 @@ end;
 
 initialization
 
-  GetDataConnectionClassesRegister.RegisterImplementations(TPostgreSQLDatabaseConnectionImpl.GetImplementationName, dvPostgresql, TPostgreSQLDatabaseConnectionImpl, TPostgreSQLDatabaseQueryImpl, TPostgreSQLDatabaseCommandImpl);
+  GetDataConnectionClassesRegister.RegisterImplementations(TPostgreSQLDatabaseConnectionImpl.GetImplementationName, dvPostgresql, '11', TPostgreSQLDatabaseConnectionImpl, TPostgreSQLDatabaseQueryImpl, TPostgreSQLDatabaseCommandImpl);
 
 end.

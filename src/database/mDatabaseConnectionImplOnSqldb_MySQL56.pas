@@ -56,6 +56,7 @@ constructor TMySQL56DatabaseConnectionImpl.Create;
 begin
   inherited Create;
   FConnection := TMySQL56Connection.Create(nil);
+  FConnection.CharSet:='UTF8';
   FConnection.Transaction := FTransaction;
 end;
 
@@ -74,6 +75,6 @@ end;
 
 initialization
 
-  GetDataConnectionClassesRegister.RegisterImplementations(TMySQL56DatabaseConnectionImpl.GetImplementationName, dvMySQL56, TMySQL56DatabaseConnectionImpl, TMySQL56DatabaseQueryImpl, TMySQL56DatabaseCommandImpl);
+  GetDataConnectionClassesRegister.RegisterImplementations(TMySQL56DatabaseConnectionImpl.GetImplementationName, dvMySQL, '5.6', TMySQL56DatabaseConnectionImpl, TMySQL56DatabaseQueryImpl, TMySQL56DatabaseCommandImpl);
 
 end.
