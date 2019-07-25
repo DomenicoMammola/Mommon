@@ -1505,10 +1505,7 @@ end;
 
 procedure TNullableBoolean.Assign(const aValue: Variant);
 begin
-  if VarIsNull(aValue) then
-    Self.IsNull:= true
-  else
-    Self.Value:= aValue;
+  CheckIfDifferentAndAssign(aValue);
   SetTagChanged(false);
 end;
 
@@ -1715,11 +1712,16 @@ begin
 end;
 
 class function TNullableBoolean.StringToVariant(const aValue: String): Variant;
+var
+  tmp : boolean;
 begin
   if (aValue = '') then
     Result := Null
   else
-    Result:= StrToBool(aValue);
+    if TryToUnderstandBooleanString(aValue, tmp) then
+      Result := tmp
+    else
+      Result := Null;
 end;
 
 class function TNullableBoolean.VariantToString(const aValue: Variant): String;
@@ -2011,11 +2013,16 @@ begin
 end;
 
 class function TNullableDouble.StringToVariant(const aValue: String): Variant;
+var
+  tmp : double;
 begin
   if (aValue = '') then
     Result := Null
   else
-    Result:= StrToFloat(aValue);
+    if mMathUtility.TryToConvertToDouble(aValue, tmp) then
+      Result := tmp
+    else
+      Result := null;
 end;
 
 class function TNullableDouble.VariantToString(const aValue: Variant; const aDisplayFormat: string): String;
