@@ -55,6 +55,7 @@ function TryToUnderstandTimeString(const aInputString : String; out aValue : TDa
 {$IFDEF GRAPHICS_AVAILABLE}
 function TryToUndestandColorString(const aInputString : String; out Value : TColor) : boolean;
 {$ENDIF}
+function TryToUnderstandBooleanString(const aInputString : String; out aValue : Boolean): Boolean;
 
 // http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11
 function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string): TDateTime;
@@ -552,6 +553,25 @@ begin
       end;
     end;
   end;
+end;
+
+function TryToUnderstandBooleanString(const aInputString: String; out aValue: Boolean): Boolean;
+begin
+  Result := TryStrToBool(aInputString, aValue);
+  if not Result then
+  begin
+    if (aInputString = '0') or (CompareText(aInputString, 'false') = 0) then
+    begin
+      aValue := false;
+      Result := true;
+    end
+    else if (aInputString = '1') or (CompareText(aInputString, 'true') = 0) then
+    begin
+      aValue := true;
+      Result := true;
+    end
+  end;
+
 end;
 
 {$IFDEF GRAPHICS_AVAILABLE}
