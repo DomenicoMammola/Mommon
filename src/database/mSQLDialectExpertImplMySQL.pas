@@ -62,6 +62,11 @@ begin
   else
   begin
     case aParam.DataType of
+      ptBoolean:
+        if aParam.AsBoolean then
+          Result := '1'
+        else
+          Result := '0';
       ptDate:
         begin
           if (aParam.Operator = TmFilterOperator.foIn) then
@@ -310,6 +315,7 @@ begin
 end;
 
 initialization
-  GetSQLDialectExpertsRegister.RegisterImplementations(dvMySQL56, TSQLDialectExpertImplMySQL);
+  GetSQLDialectExpertsRegister.RegisterImplementations(dvMySQL, TSQLDialectExpertImplMySQL);
+  GetSQLDialectExpertsRegister.RegisterImplementations(dvMariaDB, TSQLDialectExpertImplMySQL);
 
 end.

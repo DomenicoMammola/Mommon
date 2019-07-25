@@ -20,6 +20,7 @@ function DateTimeToSQLString (aValue : TDateTime) : String;
 function TimeToSQLString (aValue : TDateTime): String;
 function DateToSQLString(aValue : TDate) : String;
 function FloatToSQLString(aValue : Double): String;
+function BooleanToSQLString(aValue : Boolean): String;
 function StringToSQLString(aValue : String): String; overload;
 function StringToSQLString(aValue : WideString): WideString; overload;
 function WideStringToSQLString (aValue : WideString): String;
@@ -61,6 +62,14 @@ function FloatToSQLString(aValue: Double): String;
 begin
   Result := FloatToStr(aValue);
   Result := StringReplace(Result, ',', '.', [rfReplaceAll]);
+end;
+
+function BooleanToSQLString(aValue: Boolean): String;
+begin
+  if aValue then
+    Result := 'true'
+  else
+    Result := 'false';
 end;
 
 function StringToSQLString(aValue : String): String;

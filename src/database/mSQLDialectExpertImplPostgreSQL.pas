@@ -64,6 +64,8 @@ begin
   else
   begin
     case aParam.DataType of
+      ptBoolean:
+          Result := BooleanToSQLString(aParam.AsBoolean);
       ptDate:
         begin
           if (aParam.Operator = TmFilterOperator.foIn) then
