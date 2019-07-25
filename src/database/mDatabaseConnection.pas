@@ -493,7 +493,7 @@ begin
     begin
       if not Assigned(FImplementation) then
       begin
-        FImplementation := GetDataConnectionClassesRegister.GetConnectionImpl(FConnectionInfo.VendorType);
+        FImplementation := GetDataConnectionClassesRegister.GetConnectionImpl(FConnectionInfo.VendorType, FConnectionInfo.DatabaseVersion);
         if not Assigned(FImplementation) then
           raise TmDataConnectionException.Create('No connection implementation available for ' + DatabaseVendorToString(FConnectionInfo.VendorType) + '.');
         FImplementation.ConnectionInfo := FConnectionInfo;

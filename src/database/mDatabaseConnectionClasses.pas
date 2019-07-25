@@ -23,11 +23,11 @@ uses
 type
   TmDataConnectionException = class (Exception);
 
-  TmDatabaseVendor = (dvUnknown, dvSQLServer, dvMySQL56, dvPostgresql);
+  TmDatabaseVendor = (dvUnknown, dvSQLServer, dvMySQL, dvPostgresql, dvMariaDB);
 
-  TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptTime, ptInteger, ptFloat, ptString, ptWideString);
+  TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptTime, ptInteger, ptFloat, ptString, ptWideString, ptBoolean);
 
-  TmBooleanParameterConvention = (bpcUseIntegers, bpcUseIntegersButStrings, bpcUseIntegersAvoidNull, bpcUseIntegersButStringsAvoidNull);
+  TmBooleanParameterConvention = (bpcUseBooleans, bpcUseIntegers, bpcUseIntegersButStrings, bpcUseIntegersAvoidNull, bpcUseIntegersButStringsAvoidNull);
 
 { TmQueryParameter }
 
@@ -44,6 +44,8 @@ type
     function GetAsString: String;
     function GetAsTime: TDateTime;
     function GetAsWideString: WideString;
+    function GetAsBoolean: Boolean;
+    procedure SetAsBoolean(AValue: Boolean);
     procedure SetAsDate(AValue: TDate);
     procedure SetAsDateTime(AValue: TDateTime);
     procedure SetAsFloat(AValue: Double);
@@ -54,6 +56,7 @@ type
     procedure SetParameterDataType (value : TmParameterDataType);
     function GetParameterDataType : TmParameterDataType;
     function ValueAsDouble : Double;
+    function ValueAsBoolean : Boolean;
   public
     constructor Create;
     procedure ImportFromParam (aSource : TParam);
@@ -91,6 +94,7 @@ type
     property AsDateTime : TDateTime read GetAsDateTime write SetAsDateTime;
     property AsDate : TDate read GetAsDate write SetAsDate;
     property AsTime : TDateTime read GetAsTime write SetAsTime;
+    property AsBoolean : Boolean read GetAsBoolean write SetAsBoolean;
     property Operator : TmFilterOperator read FOperator write FOperator;
   end;
 
@@ -116,6 +120,7 @@ type
   TmDatabaseConnectionInfo = class
   strict private
     FVendorType : TmDatabaseVendor;
+    FDatabaseVersion: String;
     FServer : String;
     FDatabaseName : String;
     FUserName : String;
@@ -145,6 +150,7 @@ type
     function IsEqual(const aOther : TmDatabaseConnectionInfo): boolean;
 
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
+    property DatabaseVersion : String read FDatabaseVersion write FDatabaseVersion;
     property Server : String read GetServer write SetServer;
     property DatabaseName : String read GetDatabaseName write SetDatabaseName;
     property UserName : String read GetUserName write SetUserName;
@@ -179,6 +185,8 @@ begin
       Result := ptTime;
     ftWideString:
       Result := ptWideString;
+    ftBoolean:
+      Result := ptBoolean
     else
       Result := ptString;
   end;
@@ -201,6 +209,8 @@ begin
       Result := ftTime;
     ptWideString:
       Result := ftWideString;
+    ptBoolean:
+      Result := ftBoolean
     else
       Result := ftString;
     end;
@@ -212,10 +222,12 @@ begin
     Result := 'dvUnknown'
   else if aValue = dvSQLServer then
     Result := 'dvSQLServer'
-  else if aValue = dvMySQL56 then
-    Result := 'dvMySQL56'
+  else if aValue = dvMySQL then
+    Result := 'dvMySQL'
   else if aValue = dvPostgresql then
     Result := 'dvPostgresql'
+  else if aValue = dvMariaDB then
+    Result := 'dvMariaDB'
   else
     Result := '';
 end;
@@ -224,10 +236,12 @@ function StringToDatabaseVendor(aValue: String): TmDatabaseVendor;
 begin
   if aValue = 'dvSQLServer' then
     Result := dvSQLServer
-  else if aValue = 'dvMySQL56' then
-    Result := dvMySQL56
+  else if aValue = 'dvMySQL' then
+    Result := dvMySQL
   else if aValue = 'dvPostgresql' then
     Result := dvPostgresql
+  else if aValue = 'dvMariaDB' then
+    Result := dvMariaDB
   else
     Result := dvUnknown;
 end;
@@ -298,12 +312,14 @@ end;
 constructor TmDatabaseConnectionInfo.Create;
 begin
   FVendorType:= dvUnknown;
+  FDatabaseVersion:= '';
   FExtraSettings:= '';
 end;
 
 procedure TmDatabaseConnectionInfo.SaveToXMLElement(aXMLElement: TmXmlElement; const aCryptPassword : string);
 begin
   aXMLElement.SetAttribute('vendorType', DatabaseVendorToString(Self.VendorType));
+  aXMLElement.SetAttribute('databaseVersion', Self.DatabaseVersion);
   aXMLElement.SetAttribute('server', Self.Server);
   aXMLElement.SetAttribute('databaseName', Self.DatabaseName);
   aXMLElement.SetAttribute('userName', Self.UserName);
@@ -320,6 +336,7 @@ var
   tmpPsw: String;
 begin
   VendorType := StringToDatabaseVendor(aXMLElement.GetAttribute('vendorType'));
+  DatabaseVersion:= aXMLElement.GetAttribute('databaseVersion', '');
   Self.Server := aXMLElement.GetAttribute('server');
   Self.DatabaseName := aXMLElement.GetAttribute('databaseName');
   Self.UserName := aXMLElement.GetAttribute('userName');
@@ -335,6 +352,7 @@ end;
 procedure TmDatabaseConnectionInfo.Assign(aSource: TmDatabaseConnectionInfo);
 begin
   Self.VendorType := aSource.VendorType;
+  Self.DatabaseVersion:= aSource.DatabaseVersion;
   Self.Server := aSource.Server;
   Self.DatabaseName := aSource.DatabaseName;
   Self.UserName := aSource.UserName;
@@ -349,6 +367,7 @@ var
 begin
   WriteStr(tmp, VendorType);
   aReport.Add('Vendor: ' + tmp );
+  aReport.Add('Database version: ' + DatabaseVersion);
   aReport.Add('Server: ' + Server);
   aReport.Add('Database: ' + DatabaseName);
   aReport.Add('User: ' + UserName);
@@ -359,6 +378,7 @@ end;
 function TmDatabaseConnectionInfo.IsEqual(const aOther: TmDatabaseConnectionInfo): boolean;
 begin
   Result := (VendorType = aOther.VendorType) and
+    (CompareText(DatabaseVersion, aOther.DatabaseVersion) = 0) and
     (CompareText(Server, aOther.Server) = 0) and
     (CompareText(DatabaseName, aOther.DatabaseName) = 0) and
     (CompareText(UserName, aOther.UserName) = 0) and
@@ -467,6 +487,24 @@ begin
   end;
 end;
 
+function TmQueryParameter.GetAsBoolean: Boolean;
+begin
+  if (FDataType = ptBoolean) then
+  begin
+    Result := ValueAsBoolean;
+  end
+  else
+  begin
+    raise TmDataConnectionException.Create('Datatype of parameter is not boolean');
+  end;
+end;
+
+procedure TmQueryParameter.SetAsBoolean(AValue: Boolean);
+begin
+  FValue:= aValue;
+  FDataType:= ptBoolean;
+end;
+
 procedure TmQueryParameter.SetAsDate(AValue: TDate);
 begin
   FValue := AValue;
@@ -520,6 +558,19 @@ begin
     Result := 0
   else
     Result := FValue;
+end;
+
+function TmQueryParameter.ValueAsBoolean: Boolean;
+var
+  tmpNullable : TNullableBoolean;
+begin
+  tmpNullable := TNullableBoolean.Create();
+  try
+    tmpNullable.Assign(FValue);
+    Result := tmpNullable.AsBoolean;
+  finally
+    tmpNullable.Free;
+  end;
 end;
 
 constructor TmQueryParameter.Create;
@@ -598,6 +649,9 @@ begin
     Self.SetNull
   else
   begin
+    if (aConvention = bpcUseBooleans) then
+      Self.AsBoolean := aValue.AsBoolean
+    else
     if (aConvention = bpcUseIntegers) or (aConvention = bpcUseIntegersAvoidNull) then
     begin
       if aValue.AsBoolean then
@@ -639,12 +693,24 @@ begin
 end;
 
 procedure TmQueryParameter.Assign(const aValue: Variant; const aType: TmParameterDataType);
+var
+  tmpbool : Boolean;
 begin
   Self.FDataType:= aType;
   if VarIsNull(aValue) then
     Self.SetNull
   else
-    FValue:= aValue;
+  begin
+    if aType = ptBoolean then
+    begin
+      if TryToUnderstandBooleanString(VarToStr(aValue), tmpBool) then
+        FValue:= tmpbool
+      else
+        raise Exception.Create('Unable to convert ' + VarToStr(aValue) + ' to boolean');
+    end
+    else
+      FValue:= aValue;
+  end;
 end;
 
 procedure TmQueryParameter.Assign(const aField: TField);
