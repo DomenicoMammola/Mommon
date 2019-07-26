@@ -387,6 +387,7 @@ begin
   tmp := tmp + '#' + UserName;
   tmp := tmp + '#' + BoolToStr(WindowsIntegratedSecurity, true);
   tmp := tmp + '#' + ExtraSettings;
+  Result := tmp;
 end;
 
 function TmDatabaseConnectionInfo.IsEqual(const aOther: TmDatabaseConnectionInfo): boolean;
