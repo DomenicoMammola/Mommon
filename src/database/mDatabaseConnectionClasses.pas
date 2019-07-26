@@ -147,6 +147,7 @@ type
     procedure LoadFromXMLElement (const aXMLElement : TmXmlElement; const aCryptPassword : string);
     procedure Assign (aSource : TmDatabaseConnectionInfo);
     procedure GetReport (aReport : TStringList);
+    function AsString: String;
     function IsEqual(const aOther : TmDatabaseConnectionInfo): boolean;
 
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
@@ -373,6 +374,19 @@ begin
   aReport.Add('User: ' + UserName);
   aReport.Add('Windows integrated security: ' + BoolToStr(WindowsIntegratedSecurity, true));
   aReport.Add('Extra settings: ' + ExtraSettings);
+end;
+
+function TmDatabaseConnectionInfo.AsString: String;
+var
+  tmp : String;
+begin
+  WriteStr(tmp, VendorType);
+  tmp := tmp + '#' + DatabaseVersion;
+  tmp := tmp + '#' + Server;
+  tmp := tmp + '#' + DatabaseName;
+  tmp := tmp + '#' + UserName;
+  tmp := tmp + '#' + BoolToStr(WindowsIntegratedSecurity, true);
+  tmp := tmp + '#' + ExtraSettings;
 end;
 
 function TmDatabaseConnectionInfo.IsEqual(const aOther: TmDatabaseConnectionInfo): boolean;
