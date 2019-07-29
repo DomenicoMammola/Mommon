@@ -1380,9 +1380,18 @@ function IsUniqueIdentifier(const aUI: String): boolean;
 var
   s : String;
   tmpGuid : TGuid;
+  lg : integer;
 begin
-  s := '{' + aUI + '}';
-  Result := TryStringToGUID(s, tmpGuid);
+  Result := false;
+  lg := Length(aUI);
+  if lg > 2 then
+  begin
+    if (aUI[1] <> '{') and (aUI[lg] <> '}') then
+      s := '{' + aUI + '}'
+    else
+      s := aUI;
+    Result := TryStringToGUID(s, tmpGuid);
+  end;
 end;
 
 function CreateHumanReadableUniqueIdentier(const aLanguageCode : String): String;
