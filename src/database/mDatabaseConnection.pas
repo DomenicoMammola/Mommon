@@ -10,6 +10,8 @@
 
 unit mDatabaseConnection;
 
+// {$DEFINE CACHE_CONNECTIONS}
+
 {$IFDEF FPC}
 {$MODE DELPHI}
 // {$MODE DELPHIUNICODE}
@@ -18,8 +20,8 @@ unit mDatabaseConnection;
 interface
 
 uses
-  Classes, DB, sysutils,
-  mDatabaseConnectionClasses, mDatabaseConnectionImpl, mDataManagerClasses;
+  Classes, DB, sysutils, contnrs, syncobjs,
+  mDatabaseConnectionClasses, mDatabaseConnectionImpl, mDataManagerClasses, mMaps;
 
 type
   { TmDatabaseConnection }
@@ -28,6 +30,8 @@ type
   private
     FConnectionInfo : TmDatabaseConnectionInfo;
     FOwnsConnectionInfo : boolean;
+    FLocked : boolean;
+    FCached : boolean;
 
     FImplementation : TmDatabaseConnectionImpl;
     procedure CreateImplementation;
@@ -133,18 +137,35 @@ type
     function Execute : integer;
   end;
 
+  { TmDatabaseConnectionsCache }
+
+  TmDatabaseConnectionsCache = class
+  strict private
+    FIndex : TmStringDictionary;
+    FList : TList;
+    FCriticalSection : TCriticalSection;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure CloseAll;
+
+    function GetConnection(const aConnectionInfo : TmDatabaseConnectionInfo): TmDatabaseConnection;
+    procedure ReleaseConnection (aConnection : TmDatabaseConnection);
+  end;
+
 function GetLastSQLScript (var aTitle: string) : string;
 
 implementation
 
 uses
-  syncobjs,
   mDatabaseConnectionImplRegister, mExceptionLog;
 
 var
   _LastSQLScript: string;
   _LastSQLScriptCriticalSection: TCriticalSection;
   _CreateImplementationCriticalSection: TCriticalSection;
+  _ConnectionsCache : TmDatabaseConnectionsCache;
 
 procedure TraceSQL (const aSQLScript: string);
 begin
@@ -160,6 +181,88 @@ function GetLastSQLScript(var aTitle: string): string;
 begin
   aTitle := 'LAST SQL SCRIPT';
   Result := _LastSQLScript;
+end;
+
+{ TmDatabaseConnectionsCache }
+
+constructor TmDatabaseConnectionsCache.Create;
+begin
+  FIndex := TmStringDictionary.Create(true);
+  FList := TList.Create;
+  FCriticalSection := TCriticalSection.Create;
+end;
+
+destructor TmDatabaseConnectionsCache.Destroy;
+begin
+  Self.CloseAll;
+  FIndex.Free;
+  FList.Free;
+  FCriticalSection.Free;
+  inherited Destroy;
+end;
+
+procedure TmDatabaseConnectionsCache.CloseAll;
+var
+  i : integer;
+  curConn : TmDatabaseConnection;
+begin
+  FCriticalSection.Acquire;
+  try
+    for i := 0 to FList.Count -  1 do
+    begin
+      curConn := TmDatabaseConnection(FList.Items[i]);
+      if curConn.Connected then
+        curConn.Close;
+    end;
+  finally
+    FCriticalSection.Leave;
+  end;
+end;
+
+function TmDatabaseConnectionsCache.GetConnection(const aConnectionInfo: TmDatabaseConnectionInfo): TmDatabaseConnection;
+var
+  curList : TObjectList;
+  curConn : TmDatabaseConnection;
+  i : integer;
+begin
+  FCriticalSection.Acquire;
+  try
+    curList := FIndex.Find(aConnectionInfo.AsString) as TObjectList;
+    if not Assigned(curList) then
+    begin
+      curList := TObjectList.Create(true);
+      FIndex.Add(aConnectionInfo.AsString, curList);
+    end;
+    curConn := nil;
+    for i := 0 to curList.Count - 1 do
+    begin
+      if not (curList.Items[i] as TmDatabaseConnection).FLocked then
+      begin
+        curConn := curList.Items[i] as TmDatabaseConnection;
+        // it must be replaced as the old instance could be freed
+        curConn.ConnectionInfo := aConnectionInfo;
+        break;
+      end;
+    end;
+    if not Assigned(curConn) then
+    begin
+      curConn := TmDatabaseConnection.Create(aConnectionInfo);
+      curConn.FCached:= true;
+      curList.Add(curConn);
+    end;
+
+    curConn.FLocked:= true;
+
+    Result := curConn;
+  finally
+    FCriticalSection.Leave;
+  end;
+end;
+
+procedure TmDatabaseConnectionsCache.ReleaseConnection(aConnection: TmDatabaseConnection);
+begin
+  if Assigned(aConnection) then
+    aConnection.FLocked:= false;
 end;
 
 
@@ -195,15 +298,27 @@ procedure TmDatabaseConnectionsTandem.CreateOwnedConnectionIfNeeded;
 begin
   if not Assigned(FOwnedConnection) then
   begin
-    FOwnedConnection := TmDatabaseConnection.Create;
-    if Assigned(FConnectionInfo) then
-      FOwnedConnection.ConnectionInfo := FConnectionInfo;
+    {$IFDEF CACHE_CONNECTIONS}
+      if Assigned(FConnectionInfo) then
+        FOwnedConnection := _ConnectionsCache.GetConnection(FConnectionInfo)
+      else
+        FOwnedConnection := TmDatabaseConnection.Create;
+    {$ELSE}
+      FOwnedConnection := TmDatabaseConnection.Create;
+      if Assigned(FConnectionInfo) then
+        FOwnedConnection.ConnectionInfo := FConnectionInfo;
+    {$ENDIF}
   end;
 end;
 
 destructor TmDatabaseConnectionsTandem.Destroy;
 begin
+  {$IFDEF CACHE_CONNECTIONS}
+  if Assigned(FOwnedConnection) then
+    _ConnectionsCache.ReleaseConnection(FOwnedConnection);
+  {$ELSE}
   FreeAndNil(FOwnedConnection);
+  {$ENDIF}
   inherited Destroy;
 end;
 
@@ -212,7 +327,12 @@ begin
   if not Assigned(FSharedConnection) then
   begin
     CreateOwnedConnectionIfNeeded;
+    {$IFDEF CACHE_CONNECTIONS}
+    if not FOwnedConnection.Connected then
+      FOwnedConnection.Connect;
+    {$ELSE}
     FOwnedConnection.Connect;
+    {$ENDIF}
   end;
 end;
 
@@ -221,7 +341,11 @@ begin
   if not Assigned(FSharedConnection) then
   begin
     CreateOwnedConnectionIfNeeded;
+    {$IFDEF CACHE_CONNECTIONS}
+    //
+    {$ELSE}
     FOwnedConnection.Close;
+    {$ENDIF}
   end;
 end;
 
@@ -512,6 +636,8 @@ constructor TmDatabaseConnection.Create;
 begin
   FImplementation := nil;
   FOwnsConnectionInfo:= false;
+  FCached:= false;
+  FLocked:= false;
 end;
 
 constructor TmDatabaseConnection.Create(aConnectionInfo: TmDatabaseConnectionInfo; const aOwnsConnectionInfo: boolean);
@@ -570,10 +696,12 @@ initialization
   _LastSQLScript := '';
   _LastSQLScriptCriticalSection := TCriticalSection.Create;
   _CreateImplementationCriticalSection := TCriticalSection.Create;
+  _ConnectionsCache := TmDatabaseConnectionsCache.Create;
   RegisterExceptionLogTracer(GetLastSQLScript);
 
 finalization
   FreeAndNil(_LastSQLScriptCriticalSection);
   FreeAndNil(_CreateImplementationCriticalSection);
+  FreeAndNil(_ConnectionsCache);
 
 end.
