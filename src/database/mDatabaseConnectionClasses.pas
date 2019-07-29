@@ -694,6 +694,8 @@ begin
     Self.FDataType:= ptTime
   else if aFilter.DataType = fdtInteger then
     Self.FDataType:=ptInteger
+  else if aFilter.DataType = fdtBoolean then
+    Self.FDataType:=ptBoolean
   else if aFilter.DataType= fdtFloat then
     Self.FDataType := ptFloat
   else

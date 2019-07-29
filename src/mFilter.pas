@@ -21,7 +21,7 @@ uses
   mUtility, mFilterOperators, mMaps;
 
 type
-  TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtTime, fdtInteger, fdtFloat);
+  TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtTime, fdtInteger, fdtFloat, fdtBoolean);
 
   { TmFilter }
 
