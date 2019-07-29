@@ -32,7 +32,7 @@ type
 implementation
 
 uses
-  pqconnection, PQEventMonitor,
+  pqconnection,
   mDatabaseConnectionImplRegister;
 
 { TPostgreSQLDatabaseConnectionImpl }
