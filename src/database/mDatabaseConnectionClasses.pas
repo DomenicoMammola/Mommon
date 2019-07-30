@@ -174,18 +174,20 @@ begin
   case aValue of
     ftUnknown:
       Result := ptUnknown;
-    ftInteger:
+    ftInteger, ftSmallint, ftLargeint:
       Result := ptInteger;
-    ftFloat:
+    ftFloat, ftFMTBcd, ftCurrency:
       Result := ptFloat;
     ftDate:
       Result := ptDate;
-    ftDateTime:
+    ftDateTime, ftTimeStamp:
       Result := ptDateTime;
     ftTime:
       Result := ptTime;
     ftWideString:
       Result := ptWideString;
+    ftGuid:
+      Result := ptString;
     ftBoolean:
       Result := ptBoolean
     else
