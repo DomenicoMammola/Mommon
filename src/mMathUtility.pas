@@ -97,76 +97,91 @@ function TryToConvertToInteger(aValue: string; out aOutValue: Integer): boolean;
 var
   tmpValueInt : integer;
   tmp : String;
-  posDot, posDotR, posComma, posCommaR : integer;
+  i, curpos, ln : integer;
 begin
   Result := TryStrToInt(aValue, tmpValueInt);
   if Result then
     aOutValue := tmpValueInt
   else
   begin
-    posComma := Pos(',', aValue);
-    posCommaR := RPos(',', aValue);
-    posDot := Pos('.', aValue);
-    posDotR := RPos('.', aValue);
-
-    if (SysUtils.FormatSettings.ThousandSeparator = '.') and (posDot = posDotR) then // 1.023
+    curpos := 4;
+    tmp := '';
+    ln := length(aValue);
+    for i := ln downto 1 do
     begin
-      tmp := StringReplace(aValue, '.', '', [rfReplaceAll]);
-      Result := TryStrToInt(tmp, tmpValueInt);
-      if Result then
+      if (aValue[i] = SysUtils.FormatSettings.ThousandSeparator) then
       begin
-        aOutValue := tmpValueInt;
-        exit;
-      end;
+        if (ln - i + 1) = curpos then
+          curpos := curpos + 4
+        else
+          exit;
+      end
+      else
+        tmp := aValue[i] + tmp;
     end;
-    if (SysUtils.FormatSettings.ThousandSeparator = ',') and (posComma = posCommaR) then // 1,023
+    Result := TryStrToInt(tmp, tmpValueInt);
+    if Result then
     begin
-      tmp := StringReplace(aValue, ',', '', [rfReplaceAll]);
-      Result := TryStrToInt(tmp, tmpValueInt);
-      if Result then
-      begin
-        aOutValue := tmpValueInt;
-        exit;
-      end;
+      aOutValue := tmpValueInt;
+      exit;
     end;
   end;
 end;
 
+
 function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
 var
+  tmpValueInt : Int64;
   tmp : String;
-  posDot, posDotR, posComma, posCommaR : integer;
+  i, curpos, ln : integer;
 begin
-  Result := false;
-  tmp := Trim(aValue);
-  posComma := Pos(',', aValue);
-  posCommaR := RPos(',', aValue);
-  posDot := Pos('.', aValue);
-  posDotR := RPos('.', aValue);
-  if (SysUtils.FormatSettings.ThousandSeparator = '.') and (posDot = posDotR) then // 1.023
-    tmp := StringReplace(aValue, '.', '', [rfReplaceAll])
-  else if (SysUtils.FormatSettings.ThousandSeparator = ',') and (posComma = posCommaR) then // 1,023
-    tmp := StringReplace(aValue, ',', '', [rfReplaceAll]);
-  try
-    aOutValue := StrToInt64(tmp);
-    Result := true;
-  except
-    on e: exception do
+  Result := TryStrToInt64(aValue, tmpValueInt);
+  if Result then
+    aOutValue := tmpValueInt
+  else
+  begin
+    curpos := 4;
+    tmp := '';
+    ln := length(aValue);
+    for i := ln downto 1 do
     begin
-      // ignored
+      if (aValue[i] = SysUtils.FormatSettings.ThousandSeparator) then
+      begin
+        if (ln - i + 1) = curpos then
+          curpos := curpos + 4
+        else
+          exit;
+      end
+      else
+        tmp := aValue[i] + tmp;
+    end;
+    Result := TryStrToInt64(tmp, tmpValueInt);
+    if Result then
+    begin
+      aOutValue := tmpValueInt;
+      exit;
     end;
   end;
 end;
 
 function IsNumeric(const aValue: string; const aAllowFloat: Boolean): Boolean;
 var
-  tmpInt : integer;
+  i, lg : integer;
   tmpDouble : double;
 begin
   if aAllowFloat then
     Result := TryToConvertToDouble(aValue, tmpDouble)
   else
-    Result := TryStrToInt(aValue, tmpInt);
+  begin
+    Result := false;
+    lg := Length(aValue);
+    for i := 1 to lg do
+    begin
+      if not (aValue[i] in ['0'..'9']) then
+        exit;
+    end;
+    Result := true;
+  end;
 end;
 
 function ExtractFirstInteger(aValue: string; out aOutValue: Integer): boolean;

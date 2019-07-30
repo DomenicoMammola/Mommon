@@ -22,6 +22,7 @@ type
   published
     procedure TestRounding;
     procedure TestGetFractionalPartDigits;
+    procedure TestConversions;
   end;
 
 implementation
@@ -118,6 +119,17 @@ begin
   CheckEquals(3, GetFractionalPartDigits(-99.123));
   CheckEquals(5, GetFractionalPartDigits(58.00001));
   CheckEquals(5, GetFractionalPartDigits(58.99999));
+end;
+
+procedure TTestCase1.TestConversions;
+var
+  i : integer;
+begin
+  CheckTrue(IsNumeric('19072320140648820000001', false));
+  CheckTrue(TryToConvertToInteger('87998540', i));
+  CheckFalse(TryToConvertToInteger('879.98540', i));
+  CheckTrue(TryToConvertToInteger('87.998.540', i));
+  CheckFalse(TryToConvertToInteger('879.9854O', i));
 end;
 
 
