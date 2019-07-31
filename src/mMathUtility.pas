@@ -175,6 +175,8 @@ begin
   begin
     Result := false;
     lg := Length(aValue);
+    if lg = 0 then
+      exit;
     for i := 1 to lg do
     begin
       if not (aValue[i] in ['0'..'9']) then
