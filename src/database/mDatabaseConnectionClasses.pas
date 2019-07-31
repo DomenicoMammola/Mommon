@@ -184,7 +184,7 @@ begin
       Result := ptDateTime;
     ftTime:
       Result := ptTime;
-    ftWideString:
+    ftWideString, ftWideMemo:
       Result := ptWideString;
     ftGuid:
       Result := ptString;
