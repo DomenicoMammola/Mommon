@@ -100,7 +100,9 @@ type
 implementation
 
 uses
-  mProgressClasses, mIntList;
+  mProgressClasses, mIntList
+  {$IFDEF DEBUG}, mLog{$ENDIF}
+  ;
 
 const
   MAX_CONCURRENT_THREADS_LIMIT = 999;
@@ -167,6 +169,9 @@ type
 
 var
   internalBatchExecutor : TmBatchExecutor;
+  {$IFDEF DEBUG}
+  logger : TmLog;
+  {$ENDIF}
 
 function GetControlThread (aExecutor : TmBatchExecutor) : TControlThread;
 begin
@@ -289,12 +294,17 @@ var
   lastRunJobIdx : integer;
 begin
   try
-    lastRunJobIdx := -1;
-    FJobsRunning.Clear;
-
     while not Terminated do
     begin
       FCanStartEvent.WaitFor(INFINITE);
+
+      lastRunJobIdx := -1;
+      FJobsRunning.Clear;
+
+      {$IFDEF DEBUG}
+      logger.Debug('[TControlThread] Scheduled jobs:' + IntToStr(FJobs.Count));
+      logger.Debug('[TControlThread] Max parallel jobs:' + IntToStr(FMaxConcurrentThreads));
+      {$ENDIF}
 
       if FJobs.Count > 0 then
       begin
@@ -308,6 +318,9 @@ begin
           begin
             inc (lastRunJobIdx);
             FJobsRunning.Add(lastRunJobIdx);
+            {$IFDEF DEBUG}
+            logger.Debug('[TControlThread] Starting job ' + IntToStr(lastRunJobIdx) + '...');
+            {$ENDIF}
 
             tmpJobResult := TJobResult.Create;
             FCurrentJobResults.Add(tmpJobResult);
@@ -325,7 +338,12 @@ begin
           for i:= FJobsRunning.Count - 1 downto 0 do
           begin
             if (FCanDieEvents.Items[FJobsRunning.Items[i]] as TSimpleEvent).WaitFor(10) <> wrTimeout then
+            begin
+              {$IFDEF DEBUG}
+              logger.Debug('[TControlThread] Job ' + IntToStr(FJobsRunning.Items[i]) + ' is terminated');
+              {$ENDIF}
               FJobsRunning.Delete(i);
+            end;
             if Terminated then
               break;
           end;
@@ -337,6 +355,9 @@ begin
           begin
             inc (lastRunJobIdx);
             FJobsRunning.Add(lastRunJobIdx);
+            {$IFDEF DEBUG}
+            logger.Debug('[TControlThread] Starting job ' + IntToStr(lastRunJobIdx) + '...');
+            {$ENDIF}
 
             tmpJobResult := TJobResult.Create;
             FCurrentJobResults.Add(tmpJobResult);
@@ -352,6 +373,9 @@ begin
         if not Terminated then
         begin
           FCanStartEvent.ResetEvent;
+          {$IFDEF DEBUG}
+          logger.Debug('[TControlThread] Running callback...');
+          {$ENDIF}
           Synchronize(@RunEndCallBack);
           FThreads.Clear;
           FCanDieEvents.Clear;
@@ -474,11 +498,25 @@ end;
 
 procedure TmBatchExecutor.Execute({$ifdef gui}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
 begin
+  {$IFDEF DEBUG}
+  logger.Debug('Start execution..');
+  {$ENDIF}
+
   if GetControlThread(Self).Running then
+  begin
+    {$IFDEF DEBUG}
+    logger.Debug('Control thread is not running: aborting...');
+    {$ENDIF}
     exit;
+  end;
 
   if GetControlThread(Self).Jobs.Count = 0 then
+  begin
+    {$IFDEF DEBUG}
+    logger.Debug('No scheduled jobs: aborting..,');
+    {$ENDIF}
     exit;
+  end;
 
 
   {$ifdef gui}
@@ -497,8 +535,13 @@ begin
   GetControlThread(Self).CanStartEvent.SetEvent;
 end;
 
-finalization
 
-FreeAndNil(internalBatchExecutor);
+{$IFDEF DEBUG}
+initialization
+  Logger := logManager.AddLog('mThreads');
+{$ENDIF DEBUG}
+
+finalization
+  FreeAndNil(internalBatchExecutor);
 
 end.
