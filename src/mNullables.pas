@@ -1775,6 +1775,8 @@ begin
 end;
 
 procedure TNullableString.Assign(const aSourceField: TField; const aAllowBlankValues : boolean);
+var
+  lg : integer;
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -1782,7 +1784,13 @@ begin
   begin
     Self.Assign(TNullableString.StringToVariant(aSourceField.AsString, aAllowBlankValues));
     if Self.NotNull and (aSourceField.DataType = ftGuid) then
+    begin
       Self.Trim();
+      // remove braces
+      lg := Length(Self.AsString);
+      if (Self.AsString[1] = '{') and (Self.AsString[lg] = '}') then
+        Self.Value := Copy(Self.AsString, 2, lg - 2);
+    end;
   end;
   SetTagChanged(false);
 end;
