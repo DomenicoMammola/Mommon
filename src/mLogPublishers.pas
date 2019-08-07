@@ -45,12 +45,22 @@ type
   end;
   {$endif}
 
+  { TmFilePublisher }
+
   TmFilePublisher = class (TmLogPublisher)
   strict private
     FCurrentLevel : TmLogMessageLevel;
     FFileName : TFileName;
+    FFileFolder : TFileName;
+    FFileNameTemplate : TFileName;
     FFileStream : TFileStream;
-    FMaxFileSizeInMb : integer;
+    FCycleEveryDay : boolean;
+    FKeepDays : integer;
+    FFileDay : integer;
+
+    function EncodeFileName (const aDay : integer): String;
+    function DecodeFileName (const aFileName: String) : integer;
+    procedure ClearOldLogFiles;
   public
     procedure AfterCreate; override;
     destructor Destroy; override;
@@ -61,7 +71,11 @@ type
 
     property CurrentLevel : TmLogMessageLevel read FCurrentLevel write FCurrentLevel;
     property FileName : TFileName read FFileName write FFileName;
-    property MaxFileSizeInMb : integer read FMaxFileSizeInMb write FMaxFileSizeInMb;
+
+    property FileFolder : TFileName read FFileFolder write FFileFolder;
+    property FileNameTemplate : TFileName read FFileNameTemplate write FFileNameTemplate;
+    property CycleEveryDay : boolean read FCycleEveryDay write FCycleEveryDay;
+    property KeepDays : integer read FKeepDays write FKeepDays;
   end;
 
   { TmConsolePublisher }
@@ -83,8 +97,8 @@ type
 implementation
 
 uses
-  FileUtil,
-  mUtility;
+  FileUtil, LazFileUtils,
+  mUtility, mMathUtility;
 
 { TmConsolePublisher }
 
@@ -160,11 +174,63 @@ begin
   Result := false;
 end;
 
+function TmFilePublisher.EncodeFileName(const aDay: integer): String;
+begin
+  if FFileFolder = '' then
+    FFileFolder := ExtractFileDir(FFileName);
+  if FFileNameTemplate = '' then
+    FFileNameTemplate:= LazFileUtils.ExtractFileNameOnly(FFileName);
+  Result := IncludeTrailingPathDelimiter(FFileFolder) + mUtility.GetTimeStampForFileName(aDay, false) + FFileNameTemplate;
+end;
+
+function TmFilePublisher.DecodeFileName(const aFileName: String): integer;
+var
+  tmp : String;
+begin
+  Result := -1;
+  tmp := LazFileUtils.ExtractFileNameOnly(aFileName);
+  if Length(tmp) >= 8 then
+  begin
+    tmp := Copy(tmp, 1, 8);
+    if IsNumeric(tmp, false) then
+      Result := round(DecodeTimeStampForFileName(tmp));
+  end;
+end;
+
+procedure TmFilePublisher.ClearOldLogFiles;
+var
+  tmpFiles : TStringList;
+  i, curDay : integer;
+begin
+  if FCycleEveryDay and (FKeepDays > 0) then
+  begin
+    tmpFiles := TStringList.Create;
+    try
+      FindAllFiles(tmpFiles, FFileFolder, '*' + FFileNameTemplate);
+      for i := 0 to tmpFiles.Count - 1 do
+      begin
+        curDay := DecodeFileName(tmpFiles.Strings[i]);
+        if curDay > 0 then
+        begin
+          if (round(Date) - curDay) > FKeepDays then
+            DeleteFile(tmpFiles.Strings[i]);
+        end;
+      end;
+    finally
+      tmpFiles.Free;
+    end;
+  end;
+end;
+
 procedure TmFilePublisher.AfterCreate;
 begin
   FFileName := '';
+  FFileFolder:= '';
+  FFileNameTemplate:= '';
   FFileStream := nil;
-  FMaxFileSizeInMb:= 0;
+  FCycleEveryDay := false;
+  FKeepDays := 0;
+  FFileDay := 0;
 end;
 
 destructor TmFilePublisher.Destroy;
@@ -184,25 +250,42 @@ end;
 procedure TmFilePublisher.Publish(aContext, aLevel, aMessage: string; aDate: TDateTime);
 var
   s: RawByteString;
+  actualFileName : String;
 begin
+  if FFileName = '' then
+    FFileName:= IncludeTrailingPathDelimiter(FFileFolder) + FFileNameTemplate;
+
   if FFileName <> '' then
   begin
+    if FCycleEveryDay and (FFileDay <> trunc(Date)) then
+    begin
+      if Assigned(FFileStream) then
+      begin
+        FFileStream.WriteByte(10);
+        FreeAndNil(FFileStream);
+      end;
+      ClearOldLogFiles;
+    end;
+
     if not Assigned(FFileStream) then
     begin
-      if FileExists(FFileName) then
+      if FCycleEveryDay then
       begin
-        (*
-        if (FMaxFileSizeInMb > 0) and ((FileUtil.FileSize(FFileName) div 1024) > FMaxFileSizeInMb) then
-        begin
-          RenameFile(FFileName, FFileName + '.bak');
-        end;
-        *)
-        FFileStream := TFileStream.Create(FFileName, fmOpenWrite);
+        FFileDay:= trunc(Date);
+        actualFileName:= EncodeFileName(FFileDay);
+        ClearOldLogFiles;
+      end
+      else
+        actualFileName:= FFileName;
+
+      if FileExists(actualFileName) then
+      begin
+        FFileStream := TFileStream.Create(actualFileName, fmOpenWrite);
         FFileStream.Seek(0, soFromEnd);
       end
       else
       begin
-        FFileStream := TFileStream.Create(FFileName, fmCreate);
+        FFileStream := TFileStream.Create(actualFileName, fmCreate);
         AddUTF8BOMToStream(FFileStream);
       end;
     end;
