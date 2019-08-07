@@ -125,6 +125,7 @@ function SanitizeFileName(const aSrc: String) : String;
 function SanitizeSubstringForFileName(const aSubString : String): String;
 
 function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : boolean = true): string;
+function DecodeTimeStampForFileName(const aTimestamp: String) : TDateTime;
 
 // encode a file to base64
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
@@ -2015,6 +2016,38 @@ begin
   Result := AddZerosFront(year, 4) + AddZerosFront(month, 2) + AddZerosFront(day, 2);
   if aAddTime then
     Result := Result  + '-' + AddZerosFront(hour, 2) + AddZerosFront(minute, 2) + AddZerosFront(second, 2);
+end;
+
+function DecodeTimeStampForFileName(const aTimestamp: String) : TDateTime;
+var
+  year, month, day, hours, minutes, seconds: word;
+  lg : integer;
+begin
+  year := 0;
+  month := 0;
+  day := 0;
+  hours := 0;
+  minutes := 0;
+  seconds := 0;
+  lg := Length(aTimestamp);
+  if lg >= 4 then
+    year := StrToInt(Copy(aTimestamp, 1, 4));
+  if lg >= 6 then
+    month := StrToInt(RemoveZerosFromFront(Copy(aTimestamp, 5, 2)));
+  if lg >= 8 then
+    day := StrToInt(RemoveZerosFromFront(Copy(aTimestamp, 7, 2)));
+  if (lg >= 9) and (aTimestamp[9] = '-') then
+  begin
+    if lg >= 11 then
+      hours := StrToInt(Copy(aTimestamp, 10, 2));
+    if lg >= 13 then
+      minutes := StrToInt(Copy(aTimestamp, 12, 2));
+    if lg >= 15 then
+      seconds := StrToInt(Copy(aTimestamp, 14, 2));
+    Result := EncodeDateTime(year, month, day, hours, minutes, seconds, 0);
+  end
+  else
+    Result := EncodeDate(year, month, day);
 end;
 
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
