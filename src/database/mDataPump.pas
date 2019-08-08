@@ -45,7 +45,7 @@ implementation
 
 uses
   SysUtils, md5, variants,
-  mSQLBuilder, mFilterOperators, mMaps, mUtility;
+  mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog;
 
 type
 
@@ -57,6 +57,9 @@ type
 
     constructor Create(const aParameterType : TmParameterDataType);
   end;
+
+var
+  logger : TmLog;
 
 function ComposeDestinationSelectQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
 var
@@ -145,6 +148,7 @@ var
   tmpsql: String;
   tmpparameter : TmQueryParameter;
   paramshell : TParameterTypeShell;
+  rows, performedInserts, performedUpdates : longint;
 begin
   Result := false;
   sourceConnection := TmDatabaseConnection.Create(aTable.SourceConnectionInfo);
@@ -180,6 +184,9 @@ begin
 
         sourceFieldsMap.Clear;
         sourceQuery.Open;
+        rows := 0;
+        performedInserts := 0;
+        performedUpdates := 0;
         while not sourceQuery.Eof do
         begin
           if sourceFieldsMap.Count = 0 then
@@ -216,7 +223,12 @@ begin
               destinationfld := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
               performUpdate := MD5Print(MD5String(sourcefld.AsString)) <> MD5Print(MD5String(destinationfld.AsString));
               if performUpdate then
+              begin
+                {$IFDEF DEBUG}
+                logger.Debug('Value [' + destinationfld.AsString +'] of field ' + destinationfld.FieldName + ' of table ' + aTable.DestinationTableName + ' is different from value [' + sourcefld.AsString + '] of original field ' + sourcefld.FieldName );
+                {$ENDIF}
                 break;
+              end;
             end;
           end;
           destinationQuery.Close;
@@ -241,6 +253,7 @@ begin
             command.SetSQL(tmpsql);
             //writeln(tmpSql);
             command.Execute;
+            inc(performedInserts);
           end
           else
           if performUpdate then begin
@@ -253,9 +266,11 @@ begin
             //writeln(tmpSQL);
             command.SetSQL(tmpsql);
             command.Execute;
+            inc(performedUpdates);
           end;
 
           sourceQuery.Next;
+          inc(rows);
         end;
       finally
         sourceFieldsMap.Free;
@@ -284,6 +299,12 @@ begin
     sourceConnection.Free;
   end;
 
+  {$IFDEF DEBUG}
+  logger.Debug('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
+  logger.Debug('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
+  logger.Debug('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+  {$ENDIF}
+
   Result := true;
 end;
 
@@ -291,7 +312,7 @@ end;
 
 procedure TReplicaEngine.InternalReplicaTable(aProgress: ImProgress; aData : TObject; aJobResult: TJobResult);
 begin
-  if DoReplicaTable((aData as TDataReplicaTableToTable)) then
+  if DoReplicaTable(aData as TDataReplicaTableToTable) then
     aJobResult.ReturnCode:= 1
   else
     aJobResult.ReturnCode:= -1;
@@ -346,5 +367,8 @@ constructor TParameterTypeShell.Create(const aParameterType: TmParameterDataType
 begin
   ParamType:= aParameterType;
 end;
+
+initialization
+  logger := logManager.AddLog('mDataPump');
 
 end.
