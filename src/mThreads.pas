@@ -9,7 +9,11 @@
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit mThreads;
 
-{$mode objfpc}{$H+}
+//{$mode objfpc}{$H+}
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 
 interface
 
@@ -62,6 +66,8 @@ type
   TDoJobProcedure = procedure (aProgress: ImProgress; aData: TObject; aJobResult : TJobResult) of object;
   TOnEndJobCallback = procedure (const aJobsResult : TJobResults) of object;
 
+  { TmJob }
+
   TmJob = class
   strict private
     FDoJobProcedure : TDoJobProcedure;
@@ -71,6 +77,8 @@ type
   private
     FJobId : integer;
   public
+    constructor Create;
+
     property DoJobProcedure : TDoJobProcedure read FDoJobProcedure write FDoJobProcedure;
     property JobId : integer read FJobId;
     property Description : String read FDescription write FDescription;
@@ -183,6 +191,13 @@ begin
   if not Assigned(internalBatchExecutor) then
     internalBatchExecutor := TmBatchExecutor.Create;
   Result := internalBatchExecutor;
+end;
+
+{ TmJob }
+
+constructor TmJob.Create;
+begin
+  FData := nil;
 end;
 
 { TJobResults }
@@ -361,7 +376,7 @@ begin
 
             tmpJobResult := TJobResult.Create;
             FCurrentJobResults.Add(tmpJobResult);
-            tmpThread := TJobThread.Create(FJobs.Items[i] as TmJob, tmpJobResult);
+            tmpThread := TJobThread.Create(FJobs.Items[lastRunJobIdx] as TmJob, tmpJobResult);
             tmpCanDiedEvent := TSimpleEvent.Create;
             tmpThread.CanDieEvent := tmpCanDiedEvent;
             FThreads.Add(tmpThread);
@@ -376,7 +391,7 @@ begin
           {$IFDEF DEBUG}
           logger.Debug('[TControlThread] Running callback...');
           {$ENDIF}
-          Synchronize(@RunEndCallBack);
+          Synchronize(RunEndCallBack);
           FThreads.Clear;
           FCanDieEvents.Clear;
           FJobs.Clear;
@@ -390,7 +405,7 @@ begin
     begin
       DumpExceptionBackTrace;
       FLastException := e;
-      Synchronize(@ReRaiseLastException);
+      Synchronize(ReRaiseLastException);
     end;
   end;
 end;
@@ -441,7 +456,7 @@ begin
         if not FJob.TrapExceptions then
         begin
           FLastException := e;
-          Synchronize(@ReRaiseLastException);
+          Synchronize(ReRaiseLastException);
         end;
       end;
     end;
@@ -493,7 +508,6 @@ begin
   Result := TmJob.Create;
   GetControlThread(Self).Jobs.Add(Result);
   Result.FJobId:= GetControlThread(Self).Jobs.Count;
-  Result.Data := nil;
 end;
 
 procedure TmBatchExecutor.Execute({$ifdef gui}aParentForm : TForm;{$endif}aCallBack : TOnEndJobCallback);
