@@ -429,6 +429,6 @@ end;
 
 initialization
 
-  GetDataConnectionClassesRegister.RegisterImplementations(TSdacDatabaseConnectionImpl.GetImplementationName, dvSQLServer, TSdacDatabaseConnectionImpl, TSdacDatabaseQueryImpl, TSdacDatabaseCommandImpl);
+  GetDataConnectionClassesRegister.RegisterImplementations(TSdacDatabaseConnectionImpl.GetImplementationName, dvSQLServer, '', TSdacDatabaseConnectionImpl, TSdacDatabaseQueryImpl, TSdacDatabaseCommandImpl);
 
 end.
