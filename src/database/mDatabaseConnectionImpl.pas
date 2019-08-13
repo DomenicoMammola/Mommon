@@ -76,8 +76,6 @@ type
     function AsDataset : TDataset; virtual; abstract;
     function GetUnidirectional : boolean; virtual; abstract;
     procedure SetUnidirectional(const aValue : boolean); virtual; abstract;
-    procedure SetParamCheck(const aValue : boolean); virtual; abstract;
-    function GetParamCheck : boolean; virtual; abstract;
   end;
 
   TmDatabaseQueryImplClass = class of TmDatabaseQueryImpl;
