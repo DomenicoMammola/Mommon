@@ -39,8 +39,9 @@ var
   TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli : word;
 begin
   DecodeDateTime(aValue, TempYear, TempMonth, TempDay, TempHour, TempMinute, TempSecond, TempMilli);
+  Result := '(timestamp ''' + AddZerosFront(TempYear, 4) + '-' + AddZerosFront(TempMonth, 2) + '-' + AddZerosFront(TempDay, 2) + ' ' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + ''')';
   // date '2019-01-15' + time '16:27:42'
-  Result := 'date ''' + AddZerosFront(TempYear, 4) + '-' + AddZerosFront(TempMonth, 2) + '-' + AddZerosFront(TempDay, 2) + ''' + time ''' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + '''';
+  // Result := 'date ''' + AddZerosFront(TempYear, 4) + '-' + AddZerosFront(TempMonth, 2) + '-' + AddZerosFront(TempDay, 2) + ''' + time ''' + AddZerosFront(TempHour, 2) + ':' + AddZerosFront(TempMinute, 2) + ':' + AddZerosFront(TempSecond, 2) + '''';
 end;
 
 function TimeToSQLString(aValue: TDateTime): String;
