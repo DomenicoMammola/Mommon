@@ -108,7 +108,9 @@ type
 
   TmDatabaseQuery = class (TmAbstractDatabaseCommand)
   strict private
+    function GetParamCheck: boolean;
     function GetUnidirectional: boolean;
+    procedure SetParamCheck(const AValue: boolean);
     procedure SetUnidirectional(const AValue: boolean);
   protected
     procedure CreateImplementation; override;
@@ -123,11 +125,15 @@ type
     function Eof : boolean;
     function AsDataset : TDataset;
     property Unidirectional : boolean read GetUnidirectional write SetUnidirectional;
+    property ParamCheck : boolean read GetParamCheck write SetParamCheck;
   end;
 
   { TmDatabaseCommand }
 
   TmDatabaseCommand = class (TmAbstractDatabaseCommand)
+  private
+    function GetParamCheck: boolean;
+    procedure SetParamCheck(const AValue: boolean);
   protected
     procedure CreateImplementation; override;
   public
@@ -135,6 +141,7 @@ type
     destructor Destroy; override;
 
     function Execute : integer;
+    property ParamCheck : boolean read GetParamCheck write SetParamCheck;
   end;
 
   { TmDatabaseConnectionsCache }
@@ -480,6 +487,18 @@ end;
 
 { TmDatabaseCommand }
 
+function TmDatabaseCommand.GetParamCheck: boolean;
+begin
+  CreateImplementation;
+  Result := FImplementation.GetParamCheck;
+end;
+
+procedure TmDatabaseCommand.SetParamCheck(const AValue: boolean);
+begin
+  CreateImplementation;
+  FImplementation.SetParamCheck(AValue);
+end;
+
 procedure TmDatabaseCommand.CreateImplementation;
 begin
   if not Assigned(FImplementation) then
@@ -521,10 +540,22 @@ end;
 
 { TmDatabaseQuery }
 
+function TmDatabaseQuery.GetParamCheck: boolean;
+begin
+  CreateImplementation;
+  Result := (FImplementation as TmDatabaseQueryImpl).GetParamCheck;
+end;
+
 function TmDatabaseQuery.GetUnidirectional: boolean;
 begin
   CreateImplementation;
   Result := (FImplementation as TmDatabaseQueryImpl).GetUnidirectional;
+end;
+
+procedure TmDatabaseQuery.SetParamCheck(const AValue: boolean);
+begin
+  CreateImplementation;
+  (FImplementation as TmDatabaseQueryImpl).SetParamCheck(aValue);
 end;
 
 procedure TmDatabaseQuery.SetUnidirectional(const AValue: boolean);

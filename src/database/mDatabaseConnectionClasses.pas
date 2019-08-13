@@ -167,6 +167,9 @@ function ParameterDataTypeToDataType(aValue : TmParameterDataType) : TFieldType;
 function DatabaseVendorToString (aValue : TmDatabaseVendor) : string;
 function StringToDatabaseVendor (aValue : String) : TmDatabaseVendor;
 
+var
+  DefaultParamCheck : boolean = true;
+
 implementation
 
 function DataTypeToParameterDataType(aValue: TFieldType): TmParameterDataType;

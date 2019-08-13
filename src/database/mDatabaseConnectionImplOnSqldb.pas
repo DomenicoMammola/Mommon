@@ -76,6 +76,8 @@ type
     function Prepared : boolean; override;
     function GetUnidirectional : boolean; override;
     procedure SetUnidirectional(const aValue : boolean); override;
+    procedure SetParamCheck(const aValue : boolean); override;
+    function GetParamCheck : boolean; override;
   end;
 
   { TAbstractSqldbDatabaseCommandImpl }
@@ -102,6 +104,8 @@ type
     function ParamCount : integer; override;
     procedure SetParamValue(aParam : TmQueryParameter); override;
     function GetParam (aIndex : integer) : TParam; override;
+    procedure SetParamCheck(const aValue : boolean); override;
+    function GetParamCheck : boolean; override;
 
     function Prepared : boolean; override;
   end;
@@ -132,6 +136,7 @@ end;
 constructor TAbstractSqldbDatabaseCommandImpl.Create;
 begin
   FCommand := TSQLQuery.Create(nil);
+  FCommand.ParamCheck:= DefaultParamCheck;
   FPrepared := false;
 end;
 
@@ -217,6 +222,16 @@ begin
   Result := FCommand.Params[aIndex];
 end;
 
+procedure TAbstractSqldbDatabaseCommandImpl.SetParamCheck(const aValue: boolean);
+begin
+  FCommand.ParamCheck:= aValue;
+end;
+
+function TAbstractSqldbDatabaseCommandImpl.GetParamCheck: boolean;
+begin
+  Result := FCommand.ParamCheck;
+end;
+
 function TAbstractSqldbDatabaseCommandImpl.Prepared: boolean;
 begin
   Result := FPrepared;
@@ -241,6 +256,7 @@ begin
   FQuery.UniDirectional:= true;
   FQuery.ParseSQL := False;
   FQuery.ReadOnly := True;
+  FQuery.ParamCheck:= DefaultParamCheck;
   FPrepared := false;
 end;
 
@@ -363,6 +379,16 @@ end;
 procedure TAbstractSqldbDatabaseQueryImpl.SetUnidirectional(const aValue: boolean);
 begin
   FQuery.UniDirectional:= aValue;
+end;
+
+procedure TAbstractSqldbDatabaseQueryImpl.SetParamCheck(const aValue: boolean);
+begin
+  FQuery.ParamCheck:= aValue;
+end;
+
+function TAbstractSqldbDatabaseQueryImpl.GetParamCheck: boolean;
+begin
+  Result := FQuery.ParamCheck;
 end;
 
 { TAbstractSqldbDatabaseConnectionImpl }
