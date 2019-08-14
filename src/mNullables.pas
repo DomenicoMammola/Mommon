@@ -51,6 +51,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; virtual; abstract;
     function AsString: String; virtual; abstract;
+    function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; virtual;
 
     property IsNull: Boolean read GetIsNull write SetIsNull;
     property NotNull: Boolean read GetNotNull;
@@ -252,6 +253,7 @@ type
       function AsString (const aShowTime : boolean) : String; overload;
       function AsString : String; override; overload;
       function AsStringForFilename (const aShowTime, aUseSeparators: boolean): String;
+      function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; override;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -279,6 +281,7 @@ type
     class function VariantToString(const aValue: Variant): String;
 
     function AsString : String; override;
+    function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; override;
 
     property Value : TDateTime read GetValue write SetValue;
   end;
@@ -464,7 +467,8 @@ type
 implementation
 
 uses
-  sysutils, dateutils {$IFDEF FPC}, LazUtf8{$ENDIF};
+  sysutils, dateutils {$IFDEF FPC}, LazUtf8{$ENDIF}
+  , mISOTime;
 
 { TNullableValue }
 
@@ -934,6 +938,18 @@ begin
   Result := TNullableTime.VariantToString(Self.AsVariant);
 end;
 
+function TNullableTime.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+  begin
+    Result := '"' + aFieldName + '":"' + ISOTimeToStr(Self.Value) + '"';
+    if aAddComma then
+      Result := Result + ',';
+  end;
+end;
+
 { TNullablesList }
 
 constructor TNullablesList.Create;
@@ -1389,6 +1405,7 @@ begin
   else
     Result := FormatFloat(aFormat, Self.Value);
 end;
+
 
 procedure TNullableInteger.Add(const aValue: integer);
 begin
@@ -1902,6 +1919,7 @@ begin
   Result := SysUtils.Uppercase(Self.AsString);
 end;
 
+
 { TNullableDouble }
 
 function TNullableDouble.GetValue: Double;
@@ -2101,6 +2119,7 @@ begin
   else
     Result := FormatFloat(aFormat, Self.Value);
 end;
+
 
 { TNullableAnsiString }
 (*
@@ -2344,6 +2363,18 @@ begin
   end;
 end;
 
+function TNullableDateTime.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+  begin
+    Result := '"' + aFieldName + '":"' + ISODateTimeToStr(Self.Value) + '"';
+    if aAddComma then
+      Result := Result + ',';
+  end;
+end;
+
 { TAbstractNullable }
 
 function TAbstractNullable.GetIsUnassigned: Boolean;
@@ -2394,6 +2425,18 @@ begin
   FIsNull:= true;
   FIsUnassigned:= false;
   SetTagChanged(false);
+end;
+
+function TAbstractNullable.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+  begin
+    Result := '"' + aFieldName + '":"' + Self.AsString + '"';
+    if aAddComma then
+      Result := Result + ',';
+  end;
 end;
 
 end.
