@@ -53,7 +53,6 @@ type
     function GetBySourceFieldName (const aSourceFieldName : String): TDataReplicaFieldToField;
   end;
 
-
   { TDataReplicaTableToTable }
 
   TDataReplicaTableToTable = class
@@ -64,6 +63,8 @@ type
     FDestinationTableName : String;
     FSourceKeyFields : TStringList;
     FFieldsMapping : TDataReplicaFields;
+    FAllowInsert : boolean;
+    FAllowUpdate : boolean;
 
     FSourceConnectionInfo: TmDatabaseConnectionInfo;
     FDestinationConnectionInfo : TmDatabaseConnectionInfo;
@@ -79,6 +80,8 @@ type
 
     property SourceConnectionInfo: TmDatabaseConnectionInfo read FSourceConnectionInfo;
     property DestinationConnectionInfo : TmDatabaseConnectionInfo read FDestinationConnectionInfo;
+    property AllowInsert : boolean read FAllowInsert write FAllowInsert;
+    property AllowUpdate : boolean read FAllowUpdate write FAllowUpdate;
   end;
 
   { TDataReplicaTables }
@@ -139,6 +142,8 @@ begin
   FDestinationTableName:= '';
   FSourceConnectionInfo:= TmDatabaseConnectionInfo.Create;
   FDestinationConnectionInfo:= TmDatabaseConnectionInfo.Create;
+  FAllowInsert := true;
+  FAllowUpdate := true;
 end;
 
 destructor TDataReplicaTableToTable.Destroy;

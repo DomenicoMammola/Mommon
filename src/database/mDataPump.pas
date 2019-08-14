@@ -145,7 +145,7 @@ var
   command : TmDatabaseCommand;
   sourcefld, destinationfld : TField;
   destinationFieldsMap, sourceFieldsMap : TmStringDictionary;
-  tmpsql: String;
+  tmpsql, tmp: String;
   tmpparameter : TmQueryParameter;
   paramshell : TParameterTypeShell;
   rows, performedInserts, performedUpdates : longint;
@@ -235,38 +235,44 @@ begin
 
           if performInsert then
           begin
-            for q := 0 to aTable.FieldsMapping.Count - 1 do
+            if aTable.AllowInsert then
             begin
-              sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
-              if not Assigned(sourcefld) then
-                raise Exception.Create('Field ' + aTable.FieldsMapping.Get (q).SourceField.AsString + ' not found as source field in configuration');
-              tmpparameter := SQLBuilderInsert.ParamByName(sourcefld.FieldName);
-              if not Assigned(tmpparameter) then
-                raise Exception.Create('Parameter ' + sourcefld.FieldName + ' not found in insert query');
+              for q := 0 to aTable.FieldsMapping.Count - 1 do
+              begin
+                sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
+                if not Assigned(sourcefld) then
+                  raise Exception.Create('Field ' + aTable.FieldsMapping.Get (q).SourceField.AsString + ' not found as source field in configuration');
+                tmpparameter := SQLBuilderInsert.ParamByName(sourcefld.FieldName);
+                if not Assigned(tmpparameter) then
+                  raise Exception.Create('Parameter ' + sourcefld.FieldName + ' not found in insert query');
 
-              paramshell := destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell;
-              if not Assigned(paramshell) then
-                raise Exception.Create('Field ' + aTable.FieldsMapping.Get(q).DestinationField.AsString + ' not found in destination table');
-              tmpparameter.Assign(sourcefld.AsVariant, paramshell.ParamType);
+                paramshell := destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell;
+                if not Assigned(paramshell) then
+                  raise Exception.Create('Field ' + aTable.FieldsMapping.Get(q).DestinationField.AsString + ' not found in destination table');
+                tmpparameter.Assign(sourcefld.AsVariant, paramshell.ParamType);
+              end;
+              tmpsql:= SQLBuilderInsert.BuildSQL;
+              command.SetSQL(tmpsql);
+              //writeln(tmpSql);
+              command.Execute;
+              inc(performedInserts);
             end;
-            tmpsql:= SQLBuilderInsert.BuildSQL;
-            command.SetSQL(tmpsql);
-            //writeln(tmpSql);
-            command.Execute;
-            inc(performedInserts);
           end
           else
           if performUpdate then begin
-            for q := 0 to aTable.FieldsMapping.Count - 1 do
+            if aTable.AllowUpdate then
             begin
-              sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
-              SQLBuilderUpdate.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+              for q := 0 to aTable.FieldsMapping.Count - 1 do
+              begin
+                sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
+                SQLBuilderUpdate.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+              end;
+              tmpsql:= SQLBuilderUpdate.BuildSQL;
+              //writeln(tmpSQL);
+              command.SetSQL(tmpsql);
+              command.Execute;
+              inc(performedUpdates);
             end;
-            tmpsql:= SQLBuilderUpdate.BuildSQL;
-            //writeln(tmpSQL);
-            command.SetSQL(tmpsql);
-            command.Execute;
-            inc(performedUpdates);
           end;
 
           sourceQuery.Next;
@@ -288,6 +294,7 @@ begin
       on e : Exception do
       begin
         destinationConnection.Rollback;
+        writeln(GetLastSQLScript(tmp));
         raise;
       end;
     end;
