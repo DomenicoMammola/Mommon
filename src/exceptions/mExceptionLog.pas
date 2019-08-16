@@ -32,7 +32,7 @@ type
     property TraceLogMailDestination : string read FTraceLogMailDestination write FTraceLogMailDestination;
   end;
 
-  TExceptionLogGetTraceFunction = function(var aTitle: string):string;
+  TExceptionLogGetTraceFunction = function(out aTitle: string):string;
   TExceptionLogShowCallStackProcedure = procedure (const aReport: String; out aWantsToShutDown: boolean);
 
 {$IFDEF FPC}

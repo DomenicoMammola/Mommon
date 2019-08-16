@@ -230,7 +230,7 @@ type
 
     // event dispatch methods
     procedure DoDeleteRecord(AIndex: Integer); virtual;
-    procedure DoGetFieldValue(AField : TField; AIndex : Integer; var AValue : variant); virtual;
+    procedure DoGetFieldValue(AField : TField; AIndex : Integer; out AValue : variant); virtual;
     procedure DoPostData(AIndex: Integer); virtual;
 
     function InternalGetRecord(ABuffer  : TRecordBuffer; AGetMode : TGetMode; ADoCheck : Boolean): TGetResult; virtual;
@@ -811,7 +811,7 @@ begin
 end;
 
 procedure TmCustomVirtualDataset.DoGetFieldValue(AField: TField; AIndex: Integer;
-  var AValue: variant);
+  out AValue: variant);
 begin
   assert (Assigned(FVirtualDatasetProvider));
   FVirtualDatasetProvider.GetFieldValue(aField.FieldName, aIndex, aValue);

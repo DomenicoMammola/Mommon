@@ -161,7 +161,7 @@ type
     procedure ReleaseConnection (aConnection : TmDatabaseConnection);
   end;
 
-function GetLastSQLScript (var aTitle: string) : string;
+function GetLastSQLScript (out aTitle: string) : string;
 
 implementation
 
@@ -184,7 +184,7 @@ begin
   end;
 end;
 
-function GetLastSQLScript(var aTitle: string): string;
+function GetLastSQLScript(out aTitle: string): string;
 begin
   aTitle := 'LAST SQL SCRIPT';
   Result := _LastSQLScript;
