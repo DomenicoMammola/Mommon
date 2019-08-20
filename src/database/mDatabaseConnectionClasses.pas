@@ -55,7 +55,6 @@ type
     procedure SetAsWideString(AValue: WideString);
     procedure SetParameterDataType (value : TmParameterDataType);
     function GetParameterDataType : TmParameterDataType;
-    function ValueAsDouble : Double;
     function ValueAsBoolean : Boolean;
   public
     constructor Create;
@@ -171,6 +170,8 @@ var
   DefaultParamCheck : boolean = true;
 
 implementation
+uses
+  FmtBCD;
 
 function DataTypeToParameterDataType(aValue: TFieldType): TmParameterDataType;
 begin
@@ -418,7 +419,10 @@ function TmQueryParameter.GetAsDateTime: TDateTime;
 begin
   if (FDataType = ptDate) or (FDataType = ptDateTime) then
   begin
-    Result := ValueAsDouble;
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      Result := VarToDateTime(FValue);
   end
   else
   begin
@@ -430,7 +434,10 @@ function TmQueryParameter.GetAsDate: TDate;
 begin
   if (FDataType = ptDate) or (FDataType = ptDateTime) then
   begin
-    Result := trunc(ValueAsDouble);
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      Result := trunc(VarToDateTime(FValue));
   end
   else
   begin
@@ -442,7 +449,13 @@ function TmQueryParameter.GetAsFloat: Double;
 begin
   if (FDataType = ptFloat) then
   begin
-    Result := ValueAsDouble;
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      if VarIsFMTBcd(FValue) then
+        Result := BCDToDouble(VarToBCD(FValue))
+      else
+        Result := FValue;
   end
   else
   begin
@@ -454,10 +467,13 @@ function TmQueryParameter.GetAsInteger: Integer;
 begin
   if (FDataType = ptInteger) then
   begin
-    if (FValue = Null) then
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
       Result := 0
     else
-      Result := FValue;
+      if VarIsFMTBcd(FValue) then
+        Result := BCDToInteger(VarToBCD(FValue))
+      else
+        Result := FValue;
   end
   else
   begin
@@ -469,10 +485,10 @@ function TmQueryParameter.GetAsString: String;
 begin
   if (FDataType = ptString) then
   begin
-    if (FValue = Null) then
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
       Result := ''
     else
-      Result := FValue;
+      Result := VarToStr(FValue);
   end
   else
   begin
@@ -484,7 +500,10 @@ function TmQueryParameter.GetAsTime: TDateTime;
 begin
   if (FDataType = ptTime) then
   begin
-    Result := ValueAsDouble;
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      Result := VarToDateTime(FValue);
   end
   else
   begin
@@ -496,10 +515,10 @@ function TmQueryParameter.GetAsWideString: WideString;
 begin
   if (FDataType = ptString) or (FDataType = ptWideString) then
   begin
-    if (FValue = Null) then
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
       Result := ''
     else
-      Result := FValue;
+      Result := VarToWideStr(FValue);
   end
   else
   begin
@@ -570,14 +589,6 @@ end;
 function TmQueryParameter.GetParameterDataType: TmParameterDataType;
 begin
   Result := FDataType;
-end;
-
-function TmQueryParameter.ValueAsDouble: Double;
-begin
-  if (FValue = Null) then
-    Result := 0
-  else
-    Result := FValue;
 end;
 
 function TmQueryParameter.ValueAsBoolean: Boolean;
