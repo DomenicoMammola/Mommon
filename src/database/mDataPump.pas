@@ -199,7 +199,10 @@ begin
           begin
             sourcefld := sourceFieldsMap.Find(Uppercase(aTable.SourceKeyFields.Strings[q])) as TField;
             if not Assigned(sourcefld) then
-              raise Exception.Create('Field ' + aTable.SourceKeyFields.Strings[q] + ' not found in source query');
+            begin
+              logger.Error('Field "' + aTable.SourceKeyFields.Strings[q] + '" not found in source query');
+              raise Exception.Create('Field "' + aTable.SourceKeyFields.Strings[q] + '" not found in source query');
+            end;
             SQLBuilderDestination.ParamByName(aTable.SourceKeyFields.Strings[q]).Assign(sourcefld);
           end;
 
@@ -241,20 +244,45 @@ begin
               begin
                 sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
                 if not Assigned(sourcefld) then
-                  raise Exception.Create('Field ' + aTable.FieldsMapping.Get (q).SourceField.AsString + ' not found as source field in configuration');
+                begin
+                  logger.Error('Field "' + aTable.FieldsMapping.Get (q).SourceField.AsString + '" not found as source field in configuration');
+                  raise Exception.Create('Field "' + aTable.FieldsMapping.Get (q).SourceField.AsString + '" not found as source field in configuration');
+                end;
                 tmpparameter := SQLBuilderInsert.ParamByName(sourcefld.FieldName);
                 if not Assigned(tmpparameter) then
-                  raise Exception.Create('Parameter ' + sourcefld.FieldName + ' not found in insert query');
+                begin
+                  logger.Error('Parameter "' + sourcefld.FieldName + '" not found in insert query');
+                  raise Exception.Create('Parameter "' + sourcefld.FieldName + '" not found in insert query');
+                end;
 
                 paramshell := destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell;
                 if not Assigned(paramshell) then
-                  raise Exception.Create('Field ' + aTable.FieldsMapping.Get(q).DestinationField.AsString + ' not found in destination table');
-                tmpparameter.Assign(sourcefld.AsVariant, paramshell.ParamType);
+                begin
+                  logger.Error('Field "' + aTable.FieldsMapping.Get(q).DestinationField.AsString + '" not found in destination table');
+                  raise Exception.Create('Field "' + aTable.FieldsMapping.Get(q).DestinationField.AsString + '" not found in destination table');
+                end;
+                try
+                  tmpparameter.Assign(sourcefld.AsVariant, paramshell.ParamType);
+                except
+                  on e : Exception do
+                  begin
+                    logger.Error('source field ' + sourcefld.FieldName + ' Error:' + e.Message);
+                    raise;
+                  end;
+                end;
               end;
               tmpsql:= SQLBuilderInsert.BuildSQL;
-              command.SetSQL(tmpsql);
-              //writeln(tmpSql);
-              command.Execute;
+              try
+                command.SetSQL(tmpsql);
+                command.Execute;
+              except
+                on e : Exception do
+                begin
+                  logger.Error('Error in query ' + tmpsql);
+                  logger.Error(e.Message);
+                  raise;
+                end;
+              end;
               inc(performedInserts);
             end;
           end
@@ -268,9 +296,17 @@ begin
                 SQLBuilderUpdate.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
               end;
               tmpsql:= SQLBuilderUpdate.BuildSQL;
-              //writeln(tmpSQL);
-              command.SetSQL(tmpsql);
-              command.Execute;
+              try
+                command.SetSQL(tmpsql);
+                command.Execute;
+              except
+                on e : Exception do
+                begin
+                  logger.Error('Error in query ' + tmpsql);
+                  logger.Error(e.Message);
+                  raise;
+                end;
+              end;
               inc(performedUpdates);
             end;
           end;
