@@ -18,7 +18,7 @@ unit mPerformedOperationResults;
 interface
 
 uses
-  Classes, contnrs;
+  Classes, contnrs, syncobjs;
 
 type
   IPerformedOperationResults = interface
@@ -30,6 +30,7 @@ type
     procedure GetMessagesAsStrings(aResults : TStringList);
     function Count : integer;
     procedure Get (const aIndex : integer; out aLevel, aMessage : String; out aTime : TDateTime);
+    procedure SetThreadSafe;
   end;
 
   { TPerformedOperation }
@@ -81,6 +82,8 @@ type
     FResults : TPerformedOperations;
     FPerformedOperations : TPerformedOperations;
     FMessages : TStringList;
+    FCriticalSection : TCriticalSection;
+    FThreadSafe : boolean;
 
     function GetMessages: TStrings;
   public
@@ -96,6 +99,7 @@ type
     procedure GetMessagesAsStrings(aMessages : TStringList);
     function Count : integer;
     procedure Get (const aIndex : integer; out aLevel, aMessage : String; out aTime : TDateTime);
+    procedure SetThreadSafe;
 
     property Messages : TStrings read GetMessages;
     property PerformedOperations : TPerformedOperations read FPerformedOperations;
@@ -184,6 +188,8 @@ begin
   FResults := TPerformedOperations.Create();
   FMessages := TStringList.Create;
   FPerformedOperations := TPerformedOperations.Create();
+  FCriticalSection := TCriticalSection.Create;
+  FThreadSafe:= false;
 end;
 
 destructor TPerformedOperationResultsAsLog.Destroy;
@@ -194,51 +200,94 @@ begin
   FResults.Free;
   FMessages.Free;
   FPerformedOperations.Free;
+  FCriticalSection.Free;
   inherited Destroy;
 end;
 
 procedure TPerformedOperationResultsAsLog.Clear;
 begin
-  FErrors.Clear;
-  FWarnings.Clear;
-  FInfos.Clear;
-  FResults.Clear;
-  FMessages.Clear;
-  FPerformedOperations.Clear;
+  if FThreadSafe then
+    FCriticalSection.Acquire;
+  try
+    FErrors.Clear;
+    FWarnings.Clear;
+    FInfos.Clear;
+    FResults.Clear;
+    FMessages.Clear;
+    FPerformedOperations.Clear;
+  finally
+    if FThreadSafe then
+      FCriticalSection.Leave;
+  end;
 end;
 
 procedure TPerformedOperationResultsAsLog.AddError(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append('['+ TPerformedOperation.ERROR + '] ' + aMessage);
-  FErrors.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.ERROR, aMustBeValidated));
-  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.ERROR, aMustBeValidated));
+  if FThreadSafe then
+    FCriticalSection.Acquire;
+  try
+    FMessages.Append('['+ TPerformedOperation.ERROR + '] ' + aMessage);
+    FErrors.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.ERROR, aMustBeValidated));
+    FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.ERROR, aMustBeValidated));
+  finally
+    if FThreadSafe then
+      FCriticalSection.Leave;
+  end;
 end;
 
 procedure TPerformedOperationResultsAsLog.AddWarning(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append ('[' + TPerformedOperation.WARNING + '] ' + aMessage);
-  FWarnings.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.WARNING, aMustBeValidated));
-  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.WARNING, aMustBeValidated));
+  if FThreadSafe then
+    FCriticalSection.Acquire;
+  try
+    FMessages.Append ('[' + TPerformedOperation.WARNING + '] ' + aMessage);
+    FWarnings.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.WARNING, aMustBeValidated));
+    FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.WARNING, aMustBeValidated));
+  finally
+    if FThreadSafe then
+      FCriticalSection.Leave;
+  end;
 end;
 
 procedure TPerformedOperationResultsAsLog.AddInfo(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append ('[' + TPerformedOperation.INFO + '] ' + aMessage);
-  FInfos.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.INFO, aMustBeValidated));
-  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.INFO, aMustBeValidated));
+  if FThreadSafe then
+    FCriticalSection.Acquire;
+  try
+    FMessages.Append ('[' + TPerformedOperation.INFO + '] ' + aMessage);
+    FInfos.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.INFO, aMustBeValidated));
+    FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.INFO, aMustBeValidated));
+  finally
+    if FThreadSafe then
+      FCriticalSection.Leave;
+  end;
 end;
 
 procedure TPerformedOperationResultsAsLog.AddResult(const aMessage: String; const aMustBeValidated : boolean = false);
 begin
-  FMessages.Append('[' + TPerformedOperation.RESULT + '] ' + aMessage);
-  FResults.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.RESULT, aMustBeValidated));
-  FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.RESULT, aMustBeValidated));
+  if FThreadSafe then
+    FCriticalSection.Acquire;
+  try
+    FMessages.Append('[' + TPerformedOperation.RESULT + '] ' + aMessage);
+    FResults.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.RESULT, aMustBeValidated));
+    FPerformedOperations.Add(TPerformedOperation.Create(aMessage, TPerformedOperation.RESULT, aMustBeValidated));
+  finally
+    if FThreadSafe then
+      FCriticalSection.Leave;
+  end;
 end;
 
 procedure TPerformedOperationResultsAsLog.GetMessagesAsStrings(aMessages: TStringList);
 begin
-  aMessages.Clear;
-  aMessages.AddStrings(FMessages);
+  if FThreadSafe then
+    FCriticalSection.Acquire;
+  try
+    aMessages.Clear;
+    aMessages.AddStrings(FMessages);
+  finally
+    if FThreadSafe then
+      FCriticalSection.Leave;
+  end;
 end;
 
 function TPerformedOperationResultsAsLog.Count: integer;
@@ -251,6 +300,11 @@ begin
   aLevel := FPerformedOperations.Get(aIndex).Level;
   aMessage := FPerformedOperations.Get(aIndex).Message;
   aTime := FPerformedOperations.Get(aIndex).Time;
+end;
+
+procedure TPerformedOperationResultsAsLog.SetThreadSafe;
+begin
+  FThreadSafe:= true;
 end;
 
 end.
