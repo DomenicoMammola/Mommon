@@ -19,10 +19,15 @@ interface
 {$I mDefines.inc}
 
 uses
-  DB, Classes,
+  DB, Classes, {$ifdef gui}Forms,{$endif}
   mDatabaseConnection, mDatabaseConnectionClasses,
-  mProgress, mThreads,
+  mProgress, mThreads, mPerformedOperationResults,
   mDataPumpConfiguration;
+
+resourcestring
+  SMsgStartProcessingTable = 'Start processing table %s...';
+  SMsgProcessedRows = 'Processed %d rows against table %s...';
+  SMsgTableDone = 'Table %s done (%d rows processed)';
 
 type
 
@@ -35,16 +40,16 @@ type
     procedure InternalReplicaTable (aProgress: ImProgress; aData : TObject; aJobResult : TJobResult);
     procedure DoTerminate(const aJobsResult : TJobResults);
   public
-    function ProcessTables (const aTables : TDataReplicaTables; const aMaxConcurrentThreads : integer = -1) : boolean;
+    function ProcessTables ({$ifdef gui}aParentForm : TForm;{$endif} const aTables : TDataReplicaTables; const aResults : IPerformedOperationResults = nil; const aMaxConcurrentThreads : integer = -1) : boolean;
   end;
 
-  function DoReplicaTable (const aTable : TDataReplicaTableToTable) : boolean;
+  function DoReplicaTable (const aTable : TDataReplicaTableToTable; aProgress: ImProgress; aResults : IPerformedOperationResults) : boolean;
 
 
 implementation
 
 uses
-  SysUtils, md5, variants,
+  SysUtils, md5, variants, contnrs,
   mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog;
 
 type
@@ -56,6 +61,12 @@ type
     ParamType : TmParameterDataType;
 
     constructor Create(const aParameterType : TmParameterDataType);
+  end;
+
+  TJobData = class
+  public
+    results : IPerformedOperationResults;
+    table : TDataReplicaTableToTable;
   end;
 
 var
@@ -135,7 +146,7 @@ begin
   end;
 end;
 
-function DoReplicaTable(const aTable : TDataReplicaTableToTable): boolean;
+function DoReplicaTable(const aTable : TDataReplicaTableToTable; aProgress: ImProgress; aResults : IPerformedOperationResults): boolean;
 var
   q: integer;
   sourceConnection, destinationConnection: TmDatabaseConnection;
@@ -145,12 +156,15 @@ var
   command : TmDatabaseCommand;
   sourcefld, destinationfld : TField;
   destinationFieldsMap, sourceFieldsMap : TmStringDictionary;
-  tmpsql, tmp: String;
+  tmpsql, tmp, msg: String;
   tmpparameter : TmQueryParameter;
   paramshell : TParameterTypeShell;
   rows, performedInserts, performedUpdates : longint;
 begin
   Result := false;
+
+  aProgress.Notify(Format(SMsgStartProcessingTable, [aTable.DestinationTableName]));
+
   sourceConnection := TmDatabaseConnection.Create(aTable.SourceConnectionInfo);
   destinationConnection := TmDatabaseConnection.Create(aTable.DestinationConnectionInfo);
   try
@@ -200,8 +214,11 @@ begin
             sourcefld := sourceFieldsMap.Find(Uppercase(aTable.SourceKeyFields.Strings[q])) as TField;
             if not Assigned(sourcefld) then
             begin
-              logger.Error('Field "' + aTable.SourceKeyFields.Strings[q] + '" not found in source query');
-              raise Exception.Create('Field "' + aTable.SourceKeyFields.Strings[q] + '" not found in source query');
+              msg := 'Field "' + aTable.SourceKeyFields.Strings[q] + '" not found in source query';
+              logger.Error(msg);
+              if Assigned(aResults) then
+                aResults.AddError(msg);
+              raise Exception.Create(msg);
             end;
             SQLBuilderDestination.ParamByName(aTable.SourceKeyFields.Strings[q]).Assign(sourcefld);
           end;
@@ -245,28 +262,40 @@ begin
                 sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
                 if not Assigned(sourcefld) then
                 begin
-                  logger.Error('Field "' + aTable.FieldsMapping.Get (q).SourceField.AsString + '" not found as source field in configuration');
-                  raise Exception.Create('Field "' + aTable.FieldsMapping.Get (q).SourceField.AsString + '" not found as source field in configuration');
+                  msg := 'Field "' + aTable.FieldsMapping.Get (q).SourceField.AsString + '" not found as source field in configuration';
+                  logger.Error(msg);
+                  if Assigned(aResults) then
+                    aResults.AddError(msg);
+                  raise Exception.Create(msg);
                 end;
                 tmpparameter := SQLBuilderInsert.ParamByName(sourcefld.FieldName);
                 if not Assigned(tmpparameter) then
                 begin
-                  logger.Error('Parameter "' + sourcefld.FieldName + '" not found in insert query');
-                  raise Exception.Create('Parameter "' + sourcefld.FieldName + '" not found in insert query');
+                  msg := 'Parameter "' + sourcefld.FieldName + '" not found in insert query';
+                  logger.Error(msg);
+                  if Assigned(aResults) then
+                    aResults.AddError(msg);
+                  raise Exception.Create(msg);
                 end;
 
                 paramshell := destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell;
                 if not Assigned(paramshell) then
                 begin
-                  logger.Error('Field "' + aTable.FieldsMapping.Get(q).DestinationField.AsString + '" not found in destination table');
-                  raise Exception.Create('Field "' + aTable.FieldsMapping.Get(q).DestinationField.AsString + '" not found in destination table');
+                  msg := 'Field "' + aTable.FieldsMapping.Get(q).DestinationField.AsString + '" not found in destination table';
+                  logger.Error(msg);
+                  if Assigned(aResults) then
+                    aResults.AddError(msg);
+                  raise Exception.Create(msg);
                 end;
                 try
                   tmpparameter.Assign(sourcefld.AsVariant, paramshell.ParamType);
                 except
                   on e : Exception do
                   begin
-                    logger.Error('source field ' + sourcefld.FieldName + ' Error:' + e.Message);
+                    msg := 'source field ' + sourcefld.FieldName + ' Error:' + e.Message;
+                    logger.Error(msg);
+                    if Assigned(aResults) then
+                      aResults.AddError(msg);
                     raise;
                   end;
                 end;
@@ -278,8 +307,14 @@ begin
               except
                 on e : Exception do
                 begin
-                  logger.Error('Error in query ' + tmpsql);
+                  msg := 'Error in query ' + tmpsql;
+                  logger.Error(msg);
                   logger.Error(e.Message);
+                  if Assigned(aResults) then
+                  begin
+                    aResults.AddError(msg);
+                    aResults.AddError(e.Message);
+                  end;
                   raise;
                 end;
               end;
@@ -302,8 +337,14 @@ begin
               except
                 on e : Exception do
                 begin
-                  logger.Error('Error in query ' + tmpsql);
+                  msg := 'Error in query ' + tmpsql;
+                  logger.Error(msg);
                   logger.Error(e.Message);
+                  if Assigned(aResults) then
+                  begin
+                    aResults.AddError(msg);
+                    aResults.AddError(e.Message);
+                  end;
                   raise;
                 end;
               end;
@@ -313,7 +354,10 @@ begin
 
           sourceQuery.Next;
           inc(rows);
+          if rows mod 10 = 0 then
+            aProgress.Notify(Format(SMsgProcessedRows,[rows, aTable.DestinationTableName]));
         end;
+        aProgress.Notify(Format(SMsgTableDone,[aTable.DestinationTableName, rows]));
       finally
         sourceFieldsMap.Free;
         destinationFieldsMap.Free;
@@ -347,6 +391,12 @@ begin
   logger.Debug('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
   logger.Debug('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
   {$ENDIF}
+  if Assigned(aResults) then
+  begin
+    aResults.AddResult('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
+    aResults.AddResult('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
+    aResults.AddResult('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+  end;
 
   Result := true;
 end;
@@ -355,7 +405,7 @@ end;
 
 procedure TReplicaEngine.InternalReplicaTable(aProgress: ImProgress; aData : TObject; aJobResult: TJobResult);
 begin
-  if DoReplicaTable(aData as TDataReplicaTableToTable) then
+  if DoReplicaTable((aData as TJobData).table, aProgress, (aData as TJobData).results) then
     aJobResult.ReturnCode:= 1
   else
     aJobResult.ReturnCode:= -1;
@@ -366,15 +416,19 @@ begin
   FCanTerminate:= true;
 end;
 
-function TReplicaEngine.ProcessTables(const aTables: TDataReplicaTables; const aMaxConcurrentThreads: integer): boolean;
+function TReplicaEngine.ProcessTables({$ifdef gui}aParentForm : TForm;{$endif} const aTables: TDataReplicaTables; const aResults : IPerformedOperationResults; const aMaxConcurrentThreads: integer): boolean;
 var
   batchexec : TmBatchExecutor;
   newjob : TmJob;
   i : integer;
+  tmpJobData : TJobData;
+  jobDataList : TObjectList;
 begin
   Result := false;
   if aTables.Count = 0 then
     exit;
+
+  jobDataList:= TObjectList.Create(true);
   batchexec := TmBatchExecutor.Create;
   try
     if aMaxConcurrentThreads > 0 then
@@ -382,16 +436,23 @@ begin
     else
       batchexec.MaxConcurrentThreads:= GetCPUCores;
 
+    if Assigned(aResults) and (batchexec.MaxConcurrentThreads > 1) and (aTables.Count > 1) then
+      aResults.SetThreadSafe;
+
     for i := 0 to aTables.Count - 1 do
     begin
       newjob := batchexec.QueueJob;
       newjob.Description:= aTables.Get(i).DestinationTableName;
       newjob.DoJobProcedure := InternalReplicaTable;
-      newJob.Data := aTables.Get(i);
+      tmpJobData := TJobData.Create;
+      jobDataList.Add(tmpJobData);
+      tmpJobData.table := aTables.Get(i);
+      tmpJobData.results := aResults;
+      newJob.Data := tmpJobData;
     end;
 
     FCanTerminate:= false;
-    batchexec.Execute(DoTerminate);
+    batchexec.Execute({$ifdef gui}aParentForm,{$endif}DoTerminate);
     while not FCanTerminate do
     begin
       sleep(100);
@@ -401,6 +462,7 @@ begin
     end;
   finally
     batchexec.Free;
+    jobDataList.Free;
   end;
 end;
 
