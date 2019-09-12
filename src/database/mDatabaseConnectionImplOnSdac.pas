@@ -115,7 +115,7 @@ implementation
 
 uses
   mDatabaseConnectionImplRegister,
-  SysUtils;
+  SysUtils {$IFDEF WINDOWS},ActiveX{$ENDIF};
 
 { TSdacDatabaseCommandImpl }
 
@@ -366,6 +366,7 @@ constructor TSdacDatabaseConnectionImpl.Create;
 begin
   FConnection := TMSConnection.Create(nil);
   FConnection.Options.DefaultLockTimeout := 60000;
+  // FConnection.Options.Provider:= prDirect;
 end;
 
 destructor TSdacDatabaseConnectionImpl.Destroy;
@@ -392,6 +393,9 @@ begin
       FConnection.Password := FConnectionInfo.Password;
     end;
 
+    {$IFDEF WINDOWS}
+    CoInitializeEx(nil, COINIT_APARTMENTTHREADED);
+    {$ENDIF}
     FConnection.Connect;
   end;
 end;
