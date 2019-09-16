@@ -158,9 +158,11 @@ begin
     FForm := TForm.Create(nil);
     FMemo := TMemo.Create(FForm);
     FMemo.Parent := FForm;
+    FForm.ShowInTaskBar:= stAlways;
     FMemo.Align := alClient;
     FMemo.ScrollBars:= ssAutoVertical;
     FForm.Show;
+    FForm.BringToFront;
   end;
   if (FForm <> nil) and (FMemo <> nil) then
     FMemo.Lines.Append(Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
