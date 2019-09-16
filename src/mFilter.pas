@@ -427,6 +427,7 @@ begin
   Self.FFilterOperator := aSource.FFilterOperator;
   Self.FValue := aSource.FValue;
   Self.FDisplayValue := aSource.FDisplayValue;
+  Self.FDataType:= aSource.FDataType;
 end;
 
 end.
