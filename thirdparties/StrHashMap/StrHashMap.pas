@@ -264,7 +264,9 @@ begin
   I := Length(S);
   while I > 0 do
   begin
-    Result := (Result shl cOneEight) + Ord(P^);
+    // copied from https://github.com/project-jedi/jcl/commit/5157e54a672d947290c3377a1928a5ff683145c5#diff-81d44df5c90da769aa676fff27506660
+    //Result := (Result shl cOneEight) + Ord(P^);
+    Result := (Result shl cOneEight) or Ord(P^);
     Temp := Result and cHighBits;
     if Temp <> 0 then
       Result := (Result xor (Temp shr cThreeFourths)) and (not cHighBits);
@@ -290,7 +292,9 @@ begin
   I := Length(S);
   while I > 0 do
   begin
-    Result := (Result shl cOneEight) + Ord(UpCase(P^));
+    // copied from https://github.com/project-jedi/jcl/commit/5157e54a672d947290c3377a1928a5ff683145c5#diff-81d44df5c90da769aa676fff27506660
+    // Result := (Result shl cOneEight) + Ord(UpCase(P^));
+    Result := (Result shl cOneEight) or Ord(UpCase(P^));
     Temp := Result and cHighBits;
     if Temp <> 0 then
       Result := (Result xor (Temp shr cThreeFourths)) and (not cHighBits);
