@@ -1324,6 +1324,8 @@ begin
 end;
 
 procedure TNullableInteger.Assign(const aSourceField: TField);
+var
+  tmpValue : integer;
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -1436,9 +1438,12 @@ begin
 end;
 
 class function TNullableInteger.StringToVariant(const aValue: String): Variant;
+var
+  tmp : String;
 begin
-  if IsNumeric(aValue, false) then
-    Result := StrToInt(aValue)
+  tmp := Trim(aValue);
+  if IsNumeric(tmp, false) then
+    Result := StrToInt(tmp)
   else
     Result := Null;
 end;
