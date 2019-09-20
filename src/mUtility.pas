@@ -71,7 +71,8 @@ function SafeVariantToInteger(aValue: variant; aDefaultValue : integer): integer
 // this to avoid singleton dilemma when comparing operations needs extra data
 // as in virtualdataset Sort method and it is possible to write thread-safe code without shared singleton resources
 // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
-procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare);
+procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare); overload;
+procedure MergeSort(List: TList; const OnCompare: TListSortCompare); overload;
 
 {$IFDEF FPC}
 function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
@@ -1100,6 +1101,24 @@ procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare);
 begin
   if List=nil then exit;
   _MergeSort(List,0,List.Count-1,OnCompare);
+end;
+
+procedure MergeSort(List: TList; const OnCompare: TListSortCompare);
+var
+  tmpList : TFPList;
+  i : integer;
+begin
+  tmpList := TFPList.Create;
+  try
+    for i := 0 to List.Count - 1 do
+      tmpList.Add(List.Items[i]);
+    MergeSort(tmpList, OnCompare);
+    List.Clear;
+    for i := 0 to tmpList.Count - 1 do
+      List.Add(tmpList.Items[i]);
+  finally
+    tmpList.Free;
+  end
 end;
 
 
