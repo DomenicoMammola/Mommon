@@ -456,7 +456,11 @@ begin
         if not FJob.TrapExceptions then
         begin
           FLastException := e;
+          {$IFDEF NOGUI}
+          ReRaiseLastException;
+          {$ELSE}
           Synchronize(ReRaiseLastException);
+          {$ENDIF}
         end;
       end;
     end;
