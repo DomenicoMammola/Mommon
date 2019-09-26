@@ -36,7 +36,7 @@ implementation
 
 uses
   SysUtils,
-  mSQLServerSQLDialect;
+  mSQLDialectSQLServer;
 
 { TSQLDialectExpertImplSQLServer }
 
@@ -62,6 +62,8 @@ begin
   else
   begin
     case aParam.DataType of
+      ptBoolean:
+        raise Exception.Create('unimplemented');
       ptDate:
         begin
           if (aParam.Operator = TmFilterOperator.foIn) then

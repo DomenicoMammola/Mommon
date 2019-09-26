@@ -18,16 +18,16 @@ interface
 
 uses
   DB, Contnrs, SysUtils, Variants, Classes, {$IFDEF FPC}base64,{$ELSE}EncdDecd, {$ENDIF}
-  mNullables, mXML, mUtility, mIntList, mDoubleList, mFilter, mFilterOperators;
+  mNullables, mXML, mUtility, mIntList, mDoubleList, mFilter, mFilterOperators, mMaps;
 
 type
   TmDataConnectionException = class (Exception);
 
-  TmDatabaseVendor = (dvUnknown, dvSQLServer, dvMySQL56);
+  TmDatabaseVendor = (dvUnknown, dvSQLServer, dvMySQL, dvPostgresql, dvMariaDB);
 
-  TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptTime, ptInteger, ptFloat, ptString, ptWideString);
+  TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptTime, ptInteger, ptFloat, ptString, ptWideString, ptBoolean);
 
-  TmBooleanParameterConvention = (bpcUseIntegers, bpcUseIntegersButStrings, bpcUseIntegersAvoidNull, bpcUseIntegersButStringsAvoidNull);
+  TmBooleanParameterConvention = (bpcUseBooleans, bpcUseIntegers, bpcUseIntegersButStrings, bpcUseIntegersAvoidNull, bpcUseIntegersButStringsAvoidNull);
 
 { TmQueryParameter }
 
@@ -44,6 +44,8 @@ type
     function GetAsString: String;
     function GetAsTime: TDateTime;
     function GetAsWideString: WideString;
+    function GetAsBoolean: Boolean;
+    procedure SetAsBoolean(AValue: Boolean);
     procedure SetAsDate(AValue: TDate);
     procedure SetAsDateTime(AValue: TDateTime);
     procedure SetAsFloat(AValue: Double);
@@ -53,7 +55,7 @@ type
     procedure SetAsWideString(AValue: WideString);
     procedure SetParameterDataType (value : TmParameterDataType);
     function GetParameterDataType : TmParameterDataType;
-    function ValueAsDouble : Double;
+    function ValueAsBoolean : Boolean;
   public
     constructor Create;
     procedure ImportFromParam (aSource : TParam);
@@ -69,6 +71,7 @@ type
     procedure Assign(const aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0); overload;
     procedure Assign(const aFilter : TmFilter); overload;
     procedure Assign(const aValue : Variant; const aType: TmParameterDataType); overload;
+    procedure Assign(const aField : TField); overload;
     procedure AssignStrings(const aList : TStringList);
     procedure AssignIntegers(const aList : TIntegerList);
     procedure AssignDoubles(const aList: TDoubleList);
@@ -90,6 +93,7 @@ type
     property AsDateTime : TDateTime read GetAsDateTime write SetAsDateTime;
     property AsDate : TDate read GetAsDate write SetAsDate;
     property AsTime : TDateTime read GetAsTime write SetAsTime;
+    property AsBoolean : Boolean read GetAsBoolean write SetAsBoolean;
     property Operator : TmFilterOperator read FOperator write FOperator;
   end;
 
@@ -98,6 +102,7 @@ type
   TmQueryParameters = class
   strict private
     FList : TObjectList;
+    FIndex : TmStringDictionary;
   public
     constructor Create;
     destructor Destroy; override;
@@ -114,6 +119,7 @@ type
   TmDatabaseConnectionInfo = class
   strict private
     FVendorType : TmDatabaseVendor;
+    FDatabaseVersion: String;
     FServer : String;
     FDatabaseName : String;
     FUserName : String;
@@ -140,8 +146,11 @@ type
     procedure LoadFromXMLElement (const aXMLElement : TmXmlElement; const aCryptPassword : string);
     procedure Assign (aSource : TmDatabaseConnectionInfo);
     procedure GetReport (aReport : TStringList);
+    function AsString: String;
+    function IsEqual(const aOther : TmDatabaseConnectionInfo): boolean;
 
     property VendorType : TmDatabaseVendor read FVendorType write FVendorType;
+    property DatabaseVersion : String read FDatabaseVersion write FDatabaseVersion;
     property Server : String read GetServer write SetServer;
     property DatabaseName : String read GetDatabaseName write SetDatabaseName;
     property UserName : String read GetUserName write SetUserName;
@@ -157,25 +166,34 @@ function ParameterDataTypeToDataType(aValue : TmParameterDataType) : TFieldType;
 function DatabaseVendorToString (aValue : TmDatabaseVendor) : string;
 function StringToDatabaseVendor (aValue : String) : TmDatabaseVendor;
 
+var
+  DefaultParamCheck : boolean = true;
+
 implementation
+uses
+  FmtBCD;
 
 function DataTypeToParameterDataType(aValue: TFieldType): TmParameterDataType;
 begin
   case aValue of
     ftUnknown:
       Result := ptUnknown;
-    ftInteger:
+    ftInteger, ftSmallint, ftLargeint:
       Result := ptInteger;
-    ftFloat:
+    ftFloat, ftFMTBcd, ftCurrency:
       Result := ptFloat;
     ftDate:
       Result := ptDate;
-    ftDateTime:
+    ftDateTime, ftTimeStamp:
       Result := ptDateTime;
     ftTime:
       Result := ptTime;
-    ftWideString:
+    ftWideString, ftWideMemo:
       Result := ptWideString;
+    ftGuid:
+      Result := ptString;
+    ftBoolean:
+      Result := ptBoolean
     else
       Result := ptString;
   end;
@@ -198,6 +216,8 @@ begin
       Result := ftTime;
     ptWideString:
       Result := ftWideString;
+    ptBoolean:
+      Result := ftBoolean
     else
       Result := ftString;
     end;
@@ -209,6 +229,12 @@ begin
     Result := 'dvUnknown'
   else if aValue = dvSQLServer then
     Result := 'dvSQLServer'
+  else if aValue = dvMySQL then
+    Result := 'dvMySQL'
+  else if aValue = dvPostgresql then
+    Result := 'dvPostgresql'
+  else if aValue = dvMariaDB then
+    Result := 'dvMariaDB'
   else
     Result := '';
 end;
@@ -217,6 +243,12 @@ function StringToDatabaseVendor(aValue: String): TmDatabaseVendor;
 begin
   if aValue = 'dvSQLServer' then
     Result := dvSQLServer
+  else if aValue = 'dvMySQL' then
+    Result := dvMySQL
+  else if aValue = 'dvPostgresql' then
+    Result := dvPostgresql
+  else if aValue = 'dvMariaDB' then
+    Result := dvMariaDB
   else
     Result := dvUnknown;
 end;
@@ -226,10 +258,12 @@ end;
 constructor TmQueryParameters.Create;
 begin
   FList:= TObjectList.Create;
+  FIndex := TmStringDictionary.Create(false);
 end;
 
 destructor TmQueryParameters.Destroy;
 begin
+  FIndex.Free;
   FList.Free;
   inherited Destroy;
 end;
@@ -241,11 +275,13 @@ begin
   TempParam := TmQueryParameter.Create;
   FList.Add(TempParam);
   TempParam.ImportFromParam(aSource);
+  FIndex.Clear;
 end;
 
 procedure TmQueryParameters.Add(aParam: TmQueryParameter);
 begin
   FList.Add(aParam);
+  FIndex.Clear;
 end;
 
 function TmQueryParameters.FindByName(const aName: String): TmQueryParameter;
@@ -253,18 +289,17 @@ var
   i : integer;
 begin
   Result := nil;
-  for i := 0 to FList.Count - 1 do
+  if FIndex.Count = 0 then
   begin
-    if CompareText((FList.Items[i] as TmQueryParameter).Name, aName) = 0 then
-    begin
-      Result := FList.Items[i] as TmQueryParameter;
-      exit;
-    end;
+    for i := 0 to FList.Count - 1 do
+      FIndex.Add(Uppercase((FList.Items[i] as TmQueryParameter).Name), FList.Items[i] as TmQueryParameter);
   end;
+  Result := FIndex.Find(Uppercase(aName)) as TmQueryParameter;
 end;
 
 procedure TmQueryParameters.Clear;
 begin
+  FIndex.Clear;
   FList.Clear;
 end;
 
@@ -275,6 +310,7 @@ end;
 
 function TmQueryParameters.GetParam(aIndex: integer): TmQueryParameter;
 begin
+  FIndex.Clear;
   Result := FList.Items[aIndex] as TmQueryParameter;
 end;
 
@@ -283,12 +319,14 @@ end;
 constructor TmDatabaseConnectionInfo.Create;
 begin
   FVendorType:= dvUnknown;
+  FDatabaseVersion:= '';
   FExtraSettings:= '';
 end;
 
 procedure TmDatabaseConnectionInfo.SaveToXMLElement(aXMLElement: TmXmlElement; const aCryptPassword : string);
 begin
   aXMLElement.SetAttribute('vendorType', DatabaseVendorToString(Self.VendorType));
+  aXMLElement.SetAttribute('databaseVersion', Self.DatabaseVersion);
   aXMLElement.SetAttribute('server', Self.Server);
   aXMLElement.SetAttribute('databaseName', Self.DatabaseName);
   aXMLElement.SetAttribute('userName', Self.UserName);
@@ -305,6 +343,7 @@ var
   tmpPsw: String;
 begin
   VendorType := StringToDatabaseVendor(aXMLElement.GetAttribute('vendorType'));
+  DatabaseVersion:= aXMLElement.GetAttribute('databaseVersion', '');
   Self.Server := aXMLElement.GetAttribute('server');
   Self.DatabaseName := aXMLElement.GetAttribute('databaseName');
   Self.UserName := aXMLElement.GetAttribute('userName');
@@ -320,6 +359,7 @@ end;
 procedure TmDatabaseConnectionInfo.Assign(aSource: TmDatabaseConnectionInfo);
 begin
   Self.VendorType := aSource.VendorType;
+  Self.DatabaseVersion:= aSource.DatabaseVersion;
   Self.Server := aSource.Server;
   Self.DatabaseName := aSource.DatabaseName;
   Self.UserName := aSource.UserName;
@@ -334,11 +374,38 @@ var
 begin
   WriteStr(tmp, VendorType);
   aReport.Add('Vendor: ' + tmp );
+  aReport.Add('Database version: ' + DatabaseVersion);
   aReport.Add('Server: ' + Server);
   aReport.Add('Database: ' + DatabaseName);
   aReport.Add('User: ' + UserName);
   aReport.Add('Windows integrated security: ' + BoolToStr(WindowsIntegratedSecurity, true));
   aReport.Add('Extra settings: ' + ExtraSettings);
+end;
+
+function TmDatabaseConnectionInfo.AsString: String;
+var
+  tmp : String;
+begin
+  WriteStr(tmp, VendorType);
+  tmp := tmp + '#' + DatabaseVersion;
+  tmp := tmp + '#' + Server;
+  tmp := tmp + '#' + DatabaseName;
+  tmp := tmp + '#' + UserName;
+  tmp := tmp + '#' + BoolToStr(WindowsIntegratedSecurity, true);
+  tmp := tmp + '#' + ExtraSettings;
+  Result := tmp;
+end;
+
+function TmDatabaseConnectionInfo.IsEqual(const aOther: TmDatabaseConnectionInfo): boolean;
+begin
+  Result := (VendorType = aOther.VendorType) and
+    (CompareText(DatabaseVersion, aOther.DatabaseVersion) = 0) and
+    (CompareText(Server, aOther.Server) = 0) and
+    (CompareText(DatabaseName, aOther.DatabaseName) = 0) and
+    (CompareText(UserName, aOther.UserName) = 0) and
+    (CompareText(Password, aOther.Password) = 0) and
+    (CompareText(ExtraSettings, aOther.ExtraSettings) = 0) and
+    (WindowsIntegratedSecurity  = aOther.WindowsIntegratedSecurity);
 end;
 
 { TmQueryParameter }
@@ -352,7 +419,10 @@ function TmQueryParameter.GetAsDateTime: TDateTime;
 begin
   if (FDataType = ptDate) or (FDataType = ptDateTime) then
   begin
-    Result := ValueAsDouble;
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      Result := VarToDateTime(FValue);
   end
   else
   begin
@@ -364,7 +434,10 @@ function TmQueryParameter.GetAsDate: TDate;
 begin
   if (FDataType = ptDate) or (FDataType = ptDateTime) then
   begin
-    Result := trunc(ValueAsDouble);
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      Result := trunc(VarToDateTime(FValue));
   end
   else
   begin
@@ -376,7 +449,13 @@ function TmQueryParameter.GetAsFloat: Double;
 begin
   if (FDataType = ptFloat) then
   begin
-    Result := ValueAsDouble;
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      if VarIsFMTBcd(FValue) then
+        Result := BCDToDouble(VarToBCD(FValue))
+      else
+        Result := FValue;
   end
   else
   begin
@@ -388,10 +467,13 @@ function TmQueryParameter.GetAsInteger: Integer;
 begin
   if (FDataType = ptInteger) then
   begin
-    if (FValue = Null) then
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
       Result := 0
     else
-      Result := FValue;
+      if VarIsFMTBcd(FValue) then
+        Result := BCDToInteger(VarToBCD(FValue))
+      else
+        Result := FValue;
   end
   else
   begin
@@ -403,10 +485,10 @@ function TmQueryParameter.GetAsString: String;
 begin
   if (FDataType = ptString) then
   begin
-    if (FValue = Null) then
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
       Result := ''
     else
-      Result := FValue;
+      Result := VarToStr(FValue);
   end
   else
   begin
@@ -418,7 +500,10 @@ function TmQueryParameter.GetAsTime: TDateTime;
 begin
   if (FDataType = ptTime) then
   begin
-    Result := ValueAsDouble;
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
+      Result := 0
+    else
+      Result := VarToDateTime(FValue);
   end
   else
   begin
@@ -430,15 +515,33 @@ function TmQueryParameter.GetAsWideString: WideString;
 begin
   if (FDataType = ptString) or (FDataType = ptWideString) then
   begin
-    if (FValue = Null) then
+    if VarIsNull(FValue) or VarIsEmpty(FValue) then
       Result := ''
     else
-      Result := FValue;
+      Result := VarToWideStr(FValue);
   end
   else
   begin
     raise TmDataConnectionException.Create('Datatype of parameter is not wideString or string');
   end;
+end;
+
+function TmQueryParameter.GetAsBoolean: Boolean;
+begin
+  if (FDataType = ptBoolean) then
+  begin
+    Result := ValueAsBoolean;
+  end
+  else
+  begin
+    raise TmDataConnectionException.Create('Datatype of parameter is not boolean');
+  end;
+end;
+
+procedure TmQueryParameter.SetAsBoolean(AValue: Boolean);
+begin
+  FValue:= aValue;
+  FDataType:= ptBoolean;
 end;
 
 procedure TmQueryParameter.SetAsDate(AValue: TDate);
@@ -488,12 +591,17 @@ begin
   Result := FDataType;
 end;
 
-function TmQueryParameter.ValueAsDouble: Double;
+function TmQueryParameter.ValueAsBoolean: Boolean;
+var
+  tmpNullable : TNullableBoolean;
 begin
-  if (FValue = Null) then
-    Result := 0
-  else
-    Result := FValue;
+  tmpNullable := TNullableBoolean.Create();
+  try
+    tmpNullable.Assign(FValue);
+    Result := tmpNullable.AsBoolean;
+  finally
+    tmpNullable.Free;
+  end;
 end;
 
 constructor TmQueryParameter.Create;
@@ -572,6 +680,9 @@ begin
     Self.SetNull
   else
   begin
+    if (aConvention = bpcUseBooleans) then
+      Self.AsBoolean := aValue.AsBoolean
+    else
     if (aConvention = bpcUseIntegers) or (aConvention = bpcUseIntegersAvoidNull) then
     begin
       if aValue.AsBoolean then
@@ -599,6 +710,8 @@ begin
     Self.FDataType:= ptTime
   else if aFilter.DataType = fdtInteger then
     Self.FDataType:=ptInteger
+  else if aFilter.DataType = fdtBoolean then
+    Self.FDataType:=ptBoolean
   else if aFilter.DataType= fdtFloat then
     Self.FDataType := ptFloat
   else
@@ -613,12 +726,29 @@ begin
 end;
 
 procedure TmQueryParameter.Assign(const aValue: Variant; const aType: TmParameterDataType);
+var
+  tmpbool : Boolean;
 begin
   Self.FDataType:= aType;
   if VarIsNull(aValue) then
     Self.SetNull
   else
-    FValue:= aValue;
+  begin
+    if aType = ptBoolean then
+    begin
+      if TryToUnderstandBooleanString(VarToStr(aValue), tmpBool) then
+        FValue:= tmpbool
+      else
+        raise Exception.Create('Unable to convert ' + VarToStr(aValue) + ' to boolean');
+    end
+    else
+      FValue:= aValue;
+  end;
+end;
+
+procedure TmQueryParameter.Assign(const aField: TField);
+begin
+  Self.Assign(aField.AsVariant, DataTypeToParameterDataType(aField.DataType));
 end;
 
 procedure TmQueryParameter.AssignStrings(const aList: TStringList);

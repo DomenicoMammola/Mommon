@@ -48,6 +48,13 @@ type
     procedure GetMinimumFields(aFieldsForLookup : TStringList);
   end;
 
+  IVDInstantQueryManager = interface
+    ['{8462163A-558F-41C5-9268-BEAE64C96359}']
+    function GetDataProvider: IVDDataProvider;
+    procedure FilterDataProvider(const aLookForValue: String);
+    procedure Clear;
+  end;
+
   ISortableDatasetManager = interface
     ['{481EA485-3F80-46B1-BF24-587EF48EFE11}']
     function GetSorted : boolean;
@@ -78,7 +85,6 @@ type
     procedure RegisterListener (aOnRefresh : TNotifyEvent);
     //procedure RemoveListener (const aIndex : integer);
   end;
-
 
 
 function CompareByProperties(aFirstDatum, aSecondDatum : IVDDatum; const aFields : TStrings; var aLastCheckedConditionIndex : integer) : integer; // -1 <, 0 =, +1 >

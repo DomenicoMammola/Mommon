@@ -51,6 +51,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; virtual; abstract;
     function AsString: String; virtual; abstract;
+    function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; virtual;
 
     property IsNull: Boolean read GetIsNull write SetIsNull;
     property NotNull: Boolean read GetNotNull;
@@ -243,6 +244,8 @@ type
       function AsVariant: Variant; override;
       function CheckIfDifferentAndAssign(const aValue: Variant): boolean; override;
       function YearOf: variant;
+      function ValueIsEqual (const aValue : TDateTime) : boolean; overload;
+      function ValueIsEqual (const aValue : TNullableDateTime) : boolean; overload;
 
       class function StringToVariant(const aValue : String): Variant;
       class function VariantToString(const aValue: Variant; const aShowTime: boolean): String;
@@ -250,6 +253,7 @@ type
       function AsString (const aShowTime : boolean) : String; overload;
       function AsString : String; override; overload;
       function AsStringForFilename (const aShowTime, aUseSeparators: boolean): String;
+      function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; override;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -277,6 +281,7 @@ type
     class function VariantToString(const aValue: Variant): String;
 
     function AsString : String; override;
+    function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; override;
 
     property Value : TDateTime read GetValue write SetValue;
   end;
@@ -340,8 +345,20 @@ type
     procedure Assign(const aSource : TNullableBoolean); overload;
     procedure Assign(const aSourceField : TField); overload;
     procedure Assign(const aSourceField: TField; const aAllowNull: boolean); overload;
-    procedure Assign (const aValue : Variant); override; overload;
-    procedure Assign (const aValue : string); overload;
+    procedure Assign(const aValue : Variant); override; overload;
+    procedure Assign(const aValue : string); overload;
+
+    procedure AddAnd(const aSource : TNullableBoolean); overload;
+    procedure AddAnd(const aSourceField : TField); overload;
+    procedure AddAnd(const aSourceField: TField; const aAllowNull: boolean); overload;
+    procedure AddAnd(const aValue : Variant); overload;
+    procedure AddAnd(const aValue : string); overload;
+
+    procedure AddOr(const aSource : TNullableBoolean); overload;
+    procedure AddOr(const aSourceField : TField); overload;
+    procedure AddOr(const aSourceField: TField; const aAllowNull: boolean); overload;
+    procedure AddOr(const aValue : Variant); overload;
+    procedure AddOr(const aValue : string); overload;
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
@@ -450,7 +467,8 @@ type
 implementation
 
 uses
-  sysutils, dateutils {$IFDEF FPC}, LazUtf8{$ENDIF};
+  sysutils, dateutils {$IFDEF FPC}, LazUtf8{$ENDIF}
+  , mISOTime;
 
 { TNullableValue }
 
@@ -920,6 +938,18 @@ begin
   Result := TNullableTime.VariantToString(Self.AsVariant);
 end;
 
+function TNullableTime.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+  begin
+    Result := '"' + aFieldName + '":"' + ISOTimeToStr(Self.Value) + '"';
+    if aAddComma then
+      Result := Result + ',';
+  end;
+end;
+
 { TNullablesList }
 
 constructor TNullablesList.Create;
@@ -1294,6 +1324,8 @@ begin
 end;
 
 procedure TNullableInteger.Assign(const aSourceField: TField);
+var
+  tmpValue : integer;
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -1376,6 +1408,7 @@ begin
     Result := FormatFloat(aFormat, Self.Value);
 end;
 
+
 procedure TNullableInteger.Add(const aValue: integer);
 begin
   if Self.IsNull then
@@ -1405,9 +1438,12 @@ begin
 end;
 
 class function TNullableInteger.StringToVariant(const aValue: String): Variant;
+var
+  tmp : String;
 begin
-  if IsNumeric(aValue, false) then
-    Result := StrToInt(aValue)
+  tmp := Trim(aValue);
+  if IsNumeric(tmp, false) then
+    Result := StrToInt(tmp)
   else
     Result := Null;
 end;
@@ -1491,16 +1527,144 @@ end;
 
 procedure TNullableBoolean.Assign(const aValue: Variant);
 begin
-  if VarIsNull(aValue) then
-    Self.IsNull:= true
-  else
-    Self.Value:= aValue;
+  CheckIfDifferentAndAssign(aValue);
   SetTagChanged(false);
 end;
 
 procedure TNullableBoolean.Assign(const aValue: string);
 begin
   Self.Assign(TNullableBoolean.StringToVariant(aValue));
+end;
+
+procedure TNullableBoolean.AddAnd(const aSource: TNullableBoolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSource);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aSourceField: TField);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aSourceField: TField; const aAllowNull: boolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField, aAllowNull);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aValue: Variant);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddAnd(const aValue: string);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean and Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aSource: TNullableBoolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSource);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+
+end;
+
+procedure TNullableBoolean.AddOr(const aSourceField: TField);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aSourceField: TField; const aAllowNull: boolean);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aSourceField, aAllowNull);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aValue: Variant);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
+end;
+
+procedure TNullableBoolean.AddOr(const aValue: string);
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  try
+    tmp.Assign(aValue);
+    Self.Value:= tmp.AsBoolean or Self.AsBoolean;
+  finally
+    tmp.Free;
+  end;
 end;
 
 function TNullableBoolean.AsVariant: Variant;
@@ -1570,11 +1734,16 @@ begin
 end;
 
 class function TNullableBoolean.StringToVariant(const aValue: String): Variant;
+var
+  tmp : boolean;
 begin
   if (aValue = '') then
     Result := Null
   else
-    Result:= StrToBool(aValue);
+    if TryToUnderstandBooleanString(aValue, tmp) then
+      Result := tmp
+    else
+      Result := Null;
 end;
 
 class function TNullableBoolean.VariantToString(const aValue: Variant): String;
@@ -1628,6 +1797,8 @@ begin
 end;
 
 procedure TNullableString.Assign(const aSourceField: TField; const aAllowBlankValues : boolean);
+var
+  lg : integer;
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
@@ -1635,7 +1806,13 @@ begin
   begin
     Self.Assign(TNullableString.StringToVariant(aSourceField.AsString, aAllowBlankValues));
     if Self.NotNull and (aSourceField.DataType = ftGuid) then
+    begin
       Self.Trim();
+      // remove braces
+      lg := Length(Self.AsString);
+      if (Self.AsString[1] = '{') and (Self.AsString[lg] = '}') then
+        Self.Value := Copy(Self.AsString, 2, lg - 2);
+    end;
   end;
   SetTagChanged(false);
 end;
@@ -1746,6 +1923,7 @@ function TNullableString.AsUppercaseString: String;
 begin
   Result := SysUtils.Uppercase(Self.AsString);
 end;
+
 
 { TNullableDouble }
 
@@ -1866,11 +2044,16 @@ begin
 end;
 
 class function TNullableDouble.StringToVariant(const aValue: String): Variant;
+var
+  tmp : double;
 begin
   if (aValue = '') then
     Result := Null
   else
-    Result:= StrToFloat(aValue);
+    if mMathUtility.TryToConvertToDouble(aValue, tmp) then
+      Result := tmp
+    else
+      Result := null;
 end;
 
 class function TNullableDouble.VariantToString(const aValue: Variant; const aDisplayFormat: string): String;
@@ -1941,6 +2124,7 @@ begin
   else
     Result := FormatFloat(aFormat, Self.Value);
 end;
+
 
 { TNullableAnsiString }
 (*
@@ -2112,6 +2296,16 @@ begin
     Result := null;
 end;
 
+function TNullableDateTime.ValueIsEqual(const aValue: TDateTime): boolean;
+begin
+  Result := DoublesAreEqual(Self.Value, aValue);
+end;
+
+function TNullableDateTime.ValueIsEqual(const aValue: TNullableDateTime): boolean;
+begin
+  Result := (aValue.AsString = Self.AsString);
+end;
+
 class function TNullableDateTime.StringToVariant(const aValue: String): Variant;
 var
   tmpDate : TDateTime;
@@ -2174,6 +2368,18 @@ begin
   end;
 end;
 
+function TNullableDateTime.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+  begin
+    Result := '"' + aFieldName + '":"' + ISODateTimeToStr(Self.Value) + '"';
+    if aAddComma then
+      Result := Result + ',';
+  end;
+end;
+
 { TAbstractNullable }
 
 function TAbstractNullable.GetIsUnassigned: Boolean;
@@ -2224,6 +2430,18 @@ begin
   FIsNull:= true;
   FIsUnassigned:= false;
   SetTagChanged(false);
+end;
+
+function TAbstractNullable.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+  begin
+    Result := '"' + aFieldName + '":"' + Self.AsString + '"';
+    if aAddComma then
+      Result := Result + ',';
+  end;
 end;
 
 end.

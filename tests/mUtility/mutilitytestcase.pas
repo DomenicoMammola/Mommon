@@ -5,7 +5,7 @@ unit mUtilityTestCase;
 interface
 
 uses
-  Classes, SysUtils, fpcunit, testutils, testregistry,
+  Classes, SysUtils, fpcunit, testutils, testregistry, dateutils,
   mUtility, mISO6346Utility;
 
 type
@@ -19,9 +19,11 @@ type
     procedure TestISO6346Containers;
     procedure TestISO6346MRNs;
     procedure TestHumanReadableUniqueIdentifiers;
+    procedure TestEncodeDecodeTimestampForFilename;
   end;
 
 implementation
+
 
 procedure TTestCaseUtility.TestAddRemoveZeros;
 begin
@@ -259,6 +261,19 @@ begin
     list.Free;
   end;
 
+
+end;
+
+procedure TTestCaseUtility.TestEncodeDecodeTimestampForFilename;
+begin
+  CheckEquals(GetTimeStampForFileName(EncodeDate(2019,8,7), false), '20190807');
+  CheckEquals(DecodeTimeStampForFileName('20190807'), EncodeDate(2019,8,7));
+  CheckEquals(GetTimeStampForFileName(EncodeDate(2019,12,7), false), '20191207');
+  CheckEquals(DecodeTimeStampForFileName('20191207'), EncodeDate(2019,12,7));
+  CheckEquals(GetTimeStampForFileName(EncodeDateTime(2019,12,7, 11, 33, 0, 0)), '20191207-113300');
+  CheckEquals(DecodeTimeStampForFileName('20191207-113300'), EncodeDateTime(2019,12,7, 11, 33, 0, 0));
+  CheckEquals(GetTimeStampForFileName(EncodeDateTime(2019,12,7, 0, 0, 0, 0)), '20191207-000000');
+  CheckEquals(DecodeTimeStampForFileName('20191207-000000'), EncodeDateTime(2019,12,7, 0, 0, 0, 0));
 
 end;
 

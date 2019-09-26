@@ -58,6 +58,8 @@ type
     procedure SetParamValue(aParam : TmQueryParameter); virtual; abstract;
     function Prepared : boolean; virtual; abstract;
     procedure Unprepare; virtual; abstract;
+    procedure SetParamCheck(const aValue : boolean); virtual; abstract;
+    function GetParamCheck : boolean; virtual; abstract;
 
     property DatabaseConnectionImpl : TmDatabaseConnectionImpl read GetDatabaseConnectionImpl write SetDatabaseConnectionImpl;
   end;

@@ -30,11 +30,11 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure RegisterImplementations (const AName : String; const VendorType : TmDatabaseVendor; const ConnectionImplementationClass : TmDatabaseConnectionImplClass;
-      const QueryImplementationClass : TmDatabaseQueryImplClass; const CommandImplementationClass : TmDatabaseCommandImplClass);
+    procedure RegisterImplementations (const aName : String; const aVendorType : TmDatabaseVendor; const aDatabaseVersion : string; const aConnectionImplementationClass : TmDatabaseConnectionImplClass;
+      const aQueryImplementationClass : TmDatabaseQueryImplClass; const aCommandImplementationClass : TmDatabaseCommandImplClass);
 
 
-    function GetConnectionImpl (const VendorType : TmDatabaseVendor) : TmDatabaseConnectionImpl;
+    function GetConnectionImpl (const aVendorType: TmDatabaseVendor; const aDatabaseVersion : String) : TmDatabaseConnectionImpl;
     function GetQueryImpl(const AName : String): TmDatabaseQueryImpl;
     function GetCommandImpl(const AName : String) : TmDatabaseCommandImpl;
   end;
@@ -51,6 +51,7 @@ type
   public
     Name : String;
     VendorType : TmDatabaseVendor;
+    DatabaseVersion : String;
     ConnectionClass : TmDatabaseConnectionImplClass;
     QueryClass : TmDatabaseQueryImplClass;
     CommandClass : TmDatabaseCommandImplClass;
@@ -79,22 +80,23 @@ begin
   inherited Destroy;
 end;
 
-procedure TmDatabaseConnectionImplRegister.RegisterImplementations (const AName : String; const VendorType : TmDatabaseVendor; const ConnectionImplementationClass : TmDatabaseConnectionImplClass;
-    const QueryImplementationClass : TmDatabaseQueryImplClass; const CommandImplementationClass : TmDatabaseCommandImplClass);
+procedure TmDatabaseConnectionImplRegister.RegisterImplementations (const aName : String; const aVendorType : TmDatabaseVendor; const aDatabaseVersion : String; const aConnectionImplementationClass : TmDatabaseConnectionImplClass;
+    const aQueryImplementationClass : TmDatabaseQueryImplClass; const aCommandImplementationClass : TmDatabaseCommandImplClass);
 var
   temp : TImplementationClassesShell;
 begin
   temp := TImplementationClassesShell.Create;
-  temp.Name := AName;
-  temp.VendorType:= VendorType;
-  temp.ConnectionClass:= ConnectionImplementationClass;
-  temp.QueryClass:= QueryImplementationClass;
-  temp.CommandClass:= CommandImplementationClass;
+  temp.Name := aName;
+  temp.VendorType:= aVendorType;
+  temp.DatabaseVersion:= aDatabaseVersion;
+  temp.ConnectionClass:= aConnectionImplementationClass;
+  temp.QueryClass:= aQueryImplementationClass;
+  temp.CommandClass:= aCommandImplementationClass;
   FImplementationsList.Add(temp);
 end;
 
 
-function TmDatabaseConnectionImplRegister.GetConnectionImpl(const VendorType: TmDatabaseVendor): TmDatabaseConnectionImpl;
+function TmDatabaseConnectionImplRegister.GetConnectionImpl(const aVendorType: TmDatabaseVendor; const aDatabaseVersion : String): TmDatabaseConnectionImpl;
 var
   i : integer;
   TempShell : TImplementationClassesShell;
@@ -102,7 +104,7 @@ begin
   for i := 0 to FImplementationsList.Count -1 do
   begin
     TempShell := FImplementationsList[i] as TImplementationClassesShell;
-    if TempShell.VendorType = VendorType then
+    if (TempShell.VendorType = aVendorType) and (CompareText(TempShell.DatabaseVersion, aDatabaseVersion) = 0) then
     begin
       Result := TempShell.ConnectionClass.Create;
       exit;

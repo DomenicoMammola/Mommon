@@ -20,7 +20,10 @@ interface
 
 uses
   Classes, SysUtils, Variants, {$IFDEF WINDOWS}Windows, {$IFDEF FPC}{$IFDEF GRAPHICS_AVAILABLE}InterfaceBase,{$ENDIF}{$ENDIF} {$ENDIF}
-  {$IFDEF GRAPHICS_AVAILABLE}Graphics,{$ENDIF} {$IFDEF GUI}Forms,{$ENDIF}
+  {$IFDEF GRAPHICS_AVAILABLE}Graphics,{$ENDIF}
+  {$IFDEF GUI}
+  Forms,
+  {$ENDIF}
   mIntList, mDoubleList;
 
 const
@@ -52,6 +55,7 @@ function TryToUnderstandTimeString(const aInputString : String; out aValue : TDa
 {$IFDEF GRAPHICS_AVAILABLE}
 function TryToUndestandColorString(const aInputString : String; out Value : TColor) : boolean;
 {$ENDIF}
+function TryToUnderstandBooleanString(const aInputString : String; out aValue : Boolean): Boolean;
 
 // http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11
 function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string): TDateTime;
@@ -67,7 +71,8 @@ function SafeVariantToInteger(aValue: variant; aDefaultValue : integer): integer
 // this to avoid singleton dilemma when comparing operations needs extra data
 // as in virtualdataset Sort method and it is possible to write thread-safe code without shared singleton resources
 // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
-procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare);
+procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare); overload;
+procedure MergeSort(List: TList; const OnCompare: TListSortCompare); overload;
 
 {$IFDEF FPC}
 function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
@@ -118,8 +123,10 @@ function EncodeSVGString(const aSrc : String): String;
 
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
+function SanitizeSubstringForFileName(const aSubString : String): String;
 
 function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : boolean = true): string;
+function DecodeTimeStampForFileName(const aTimestamp: String) : TDateTime;
 
 // encode a file to base64
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
@@ -127,7 +134,7 @@ procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFil
 
 procedure AddUTF8BOMToStream (aStream : TStream);
 
-function IsRunningAsRoot : boolean;
+function IsRunningAsRoot: boolean;
 
 implementation
 
@@ -304,6 +311,9 @@ var
 begin
   Result := false;
   canTry := false;
+  dString := '';
+  mString := '';
+  yString := '';
 
   tmp := Trim(aInputString);
   l := Length(tmp);
@@ -397,16 +407,13 @@ begin
             year := 2000 + year;
           if day <= DaysInAMonth(year, month) then
           begin
-            aValue := EncodeDate(year, month, day);
-            Result := true;
+            Result := TryEncodeDate(year, month, day, aValue);
             exit;
           end;
         end;
       end;
     end;
   end;
-
-
 end;
 
 function TryToUnderstandTimeString(const aInputString: String; out aValue: TDateTime): boolean;
@@ -548,6 +555,25 @@ begin
       end;
     end;
   end;
+end;
+
+function TryToUnderstandBooleanString(const aInputString: String; out aValue: Boolean): Boolean;
+begin
+  Result := TryStrToBool(aInputString, aValue);
+  if not Result then
+  begin
+    if (aInputString = '0') or (CompareText(aInputString, 'false') = 0) then
+    begin
+      aValue := false;
+      Result := true;
+    end
+    else if (aInputString = '1') or (CompareText(aInputString, 'true') = 0) then
+    begin
+      aValue := true;
+      Result := true;
+    end
+  end;
+
 end;
 
 {$IFDEF GRAPHICS_AVAILABLE}
@@ -1077,6 +1103,24 @@ begin
   _MergeSort(List,0,List.Count-1,OnCompare);
 end;
 
+procedure MergeSort(List: TList; const OnCompare: TListSortCompare);
+var
+  tmpList : TFPList;
+  i : integer;
+begin
+  tmpList := TFPList.Create;
+  try
+    for i := 0 to List.Count - 1 do
+      tmpList.Add(List.Items[i]);
+    MergeSort(tmpList, OnCompare);
+    List.Clear;
+    for i := 0 to tmpList.Count - 1 do
+      List.Add(tmpList.Items[i]);
+  finally
+    tmpList.Free;
+  end
+end;
+
 
 function ConvertStringListToVariant(const aList: TStringList): Variant;
 var
@@ -1356,9 +1400,18 @@ function IsUniqueIdentifier(const aUI: String): boolean;
 var
   s : String;
   tmpGuid : TGuid;
+  lg : integer;
 begin
-  s := '{' + aUI + '}';
-  Result := TryStringToGUID(s, tmpGuid);
+  Result := false;
+  lg := Length(aUI);
+  if lg > 2 then
+  begin
+    if (aUI[1] <> '{') and (aUI[lg] <> '}') then
+      s := '{' + aUI + '}'
+    else
+      s := aUI;
+    Result := TryStringToGUID(s, tmpGuid);
+  end;
 end;
 
 function CreateHumanReadableUniqueIdentier(const aLanguageCode : String): String;
@@ -1889,6 +1942,40 @@ begin
   end;
 end;
 
+function InternalSanitizeSubstringForFileName(const aSubString: String; const aIgnoreDirectorySeparator : boolean): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := 1 to Length(aSubString) do
+  begin
+    if aSubString[i] = '<' then
+      Result := Result + '_'
+    else if aSubString[i] = '>' then
+      Result := Result + '_'
+    else if aSubString[i] = ':' then
+      Result := Result + '_'
+    else if aSubString[i] = '"' then
+      Result := Result + '_'
+    else if (aSubString[i] = '/') and ((not aIgnoreDirectorySeparator) or ('/' <> DirectorySeparator)) then
+      Result := Result + '_'
+    else if (aSubString[i] = '\') and ((not aIgnoreDirectorySeparator) or ('\' <> DirectorySeparator)) then
+      Result := Result + '_'
+    else if aSubString[i] = '|' then
+      Result := Result + '_'
+    else if aSubString[i] = '?' then
+      Result := Result + '_'
+    else if aSubString[i] = '*' then
+      Result := Result + '_'
+    else if aSubString[i] = '.' then
+      Result := Result + '_'
+    else if Ord(aSubString[i]) <= 31 then
+      Result := Result + '_'
+    else
+      Result := Result + aSubString[i];
+  end;
+end;
+
 
 (*
     https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
@@ -1905,43 +1992,21 @@ end;
 *)
 function SanitizeFileName(const aSrc: String): String;
 var
-  i : integer;
   tmp : String;
 begin
   Result := '';
   tmp := ChangeFileExt(ExtractFileName(aSrc), '');
-  for i := 1 to Length(tmp) do
-  begin
-    if tmp[i] = '<' then
-      Result := Result + '_'
-    else if tmp[i] = '>' then
-      Result := Result + '_'
-    else if tmp[i] = ':' then
-      Result := Result + '_'
-    else if tmp[i] = '"' then
-      Result := Result + '_'
-    else if tmp[i] = '/' then
-      Result := Result + '_'
-    else if tmp[i] = '\' then
-      Result := Result + '_'
-    else if tmp[i] = '|' then
-      Result := Result + '_'
-    else if tmp[i] = '?' then
-      Result := Result + '_'
-    else if tmp[i] = '*' then
-      Result := Result + '_'
-    else if tmp[i] = '.' then
-      Result := Result + '_'
-    else if Ord(tmp[i]) <= 31 then
-      Result := Result + '_'
-    else
-      Result := Result + tmp[i];
-  end;
+  Result := InternalSanitizeSubstringForFileName(tmp, true);
   tmp := ExtractFileDir(aSrc);
   if tmp <> '' then
     Result := IncludeTrailingPathDelimiter(tmp) + ChangeFileExt(Result, ExtractFileExt(aSrc))
   else
     Result := ChangeFileExt(Result, ExtractFileExt(aSrc));
+end;
+
+function SanitizeSubstringForFileName(const aSubString: String): String;
+begin
+  Result := InternalSanitizeSubstringForFileName(aSubString, false);
 end;
 
 procedure AddUTF8BOMToStream(aStream: TStream);
@@ -1970,6 +2035,38 @@ begin
   Result := AddZerosFront(year, 4) + AddZerosFront(month, 2) + AddZerosFront(day, 2);
   if aAddTime then
     Result := Result  + '-' + AddZerosFront(hour, 2) + AddZerosFront(minute, 2) + AddZerosFront(second, 2);
+end;
+
+function DecodeTimeStampForFileName(const aTimestamp: String) : TDateTime;
+var
+  year, month, day, hours, minutes, seconds: word;
+  lg : integer;
+begin
+  year := 0;
+  month := 0;
+  day := 0;
+  hours := 0;
+  minutes := 0;
+  seconds := 0;
+  lg := Length(aTimestamp);
+  if lg >= 4 then
+    year := StrToInt(Copy(aTimestamp, 1, 4));
+  if lg >= 6 then
+    month := StrToInt(RemoveZerosFromFront(Copy(aTimestamp, 5, 2)));
+  if lg >= 8 then
+    day := StrToInt(RemoveZerosFromFront(Copy(aTimestamp, 7, 2)));
+  if (lg >= 9) and (aTimestamp[9] = '-') then
+  begin
+    if lg >= 11 then
+      hours := StrToInt(Copy(aTimestamp, 10, 2));
+    if lg >= 13 then
+      minutes := StrToInt(Copy(aTimestamp, 12, 2));
+    if lg >= 15 then
+      seconds := StrToInt(Copy(aTimestamp, 14, 2));
+    Result := EncodeDateTime(year, month, day, hours, minutes, seconds, 0);
+  end
+  else
+    Result := EncodeDate(year, month, day);
 end;
 
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);

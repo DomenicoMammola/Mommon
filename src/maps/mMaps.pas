@@ -62,6 +62,7 @@ type
 
       procedure Add(const aIntegerKey : integer; aObject: TObject);
       function Find(const aIntegerKey : integer) : TObject;
+      function Contains(const aIntegerKey : integer): boolean;
       procedure Remove (const aIntegerKey : integer);
       procedure Clear;
       function Count : integer;
@@ -128,6 +129,14 @@ end;
 function TmIntegerDictionary.Find(const aIntegerKey: integer): TObject;
 begin
   Result := FImpl._Find(aIntegerKey);
+end;
+
+function TmIntegerDictionary.Contains(const aIntegerKey: integer): boolean;
+var
+  tmpObj : TObject;
+begin
+  tmpObj := Self.Find(aIntegerKey);
+  Result := Assigned(tmpObj);
 end;
 
 procedure TmIntegerDictionary.Remove(const aIntegerKey: integer);

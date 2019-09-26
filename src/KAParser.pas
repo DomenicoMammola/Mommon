@@ -753,6 +753,8 @@ function TKAParser.DoStrUserFunction(const funct: string; ParametersList: TStrin
 var
   TempSucc : boolean;
 begin
+  Result := '';
+
   TempSucc := false;
   if Assigned(FOnCalcStrUserFunction) then
     FOnCalcStrUserFunction(Self, funct, ParametersList, Result, TempSucc);

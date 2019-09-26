@@ -21,7 +21,7 @@ uses
   mUtility, mFilterOperators, mMaps;
 
 type
-  TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtTime, fdtInteger, fdtFloat);
+  TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtTime, fdtInteger, fdtFloat, fdtBoolean);
 
   { TmFilter }
 
@@ -427,6 +427,7 @@ begin
   Self.FFilterOperator := aSource.FFilterOperator;
   Self.FValue := aSource.FValue;
   Self.FDisplayValue := aSource.FDisplayValue;
+  Self.FDataType:= aSource.FDataType;
 end;
 
 end.

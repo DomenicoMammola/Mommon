@@ -19,7 +19,15 @@ unit mGraphicsUtility;
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows,{$ELSE} LCLIntf, LCLType,{$ENDIF} Forms, Controls, Graphics, Types, Classes;
+  {$IFDEF FPC}
+  LCLIntf,
+  LclType,
+  LclProc,
+  LResources,
+  LMessages,
+  InterfaceBase,
+  {$ENDIF}
+  {$IFDEF WINDOWS}Windows,{$ENDIF} Forms, Controls, Graphics, Types, Classes;
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
@@ -37,7 +45,18 @@ type
 
   function ScaleForDPI (const aValue : integer) : integer;
 
-  procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
+
+  // https://forum.lazarus.freepascal.org/index.php?topic=36579.0
+  function GetTextWidth(const aText: String; const aFont: TFont): Integer;
+
+  procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
+
+  {$IFDEF FPC}
+  function IsDoubleBufferedNeeded: boolean;
+  {$ENDIF}
+
+  function CtrlPressed: boolean;
+  function ShiftPressed: boolean;
 
 implementation
 
@@ -49,48 +68,114 @@ const
   HLSMAX = 255;
 {$ENDIF}
 
-procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
-var
-  TempFlags: cardinal;
-  {$ifndef windows}
-  xPos, tw : integer;
-  newText : string;
-  {$else}
-  tmpRect : TRect;
-  {$endif}
+{$IFDEF FPC}
+function IsDoubleBufferedNeeded: boolean;
 begin
-  SetBkMode(ACanvas.Handle, TRANSPARENT);
-  ACanvas.Font.Size := max(8, (ARect.Bottom - ARect.Top) - 10);
-  {$ifndef windows}
-  newText := AText;
-  if (ARect.Width < ACanvas.TextWidth('..')) then
-    exit;
-  tw := ACanvas.TextWidth(newText);
-  while tw > (ARect.Right - ARect.Left) do
+  Result:= WidgetSet.GetLCLCapability(lcCanDrawOutsideOnPaint) = LCL_CAPABILITY_YES;
+end;
+{$ENDIF}
+
+function GetTextWidth(const aText: String; const aFont: TFont): Integer;
+var
+  bmp: TBitmap;
+begin
+  Result := 0;
+  bmp := TBitmap.Create;
+  try
+    bmp.Canvas.Font.Assign(aFont);
+    Result := bmp.Canvas.TextWidth(aText);
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
+var
+  {$IFNDEF WINDOWS}
+  xPos, tw, len1, len2 : integer;
+  newText : string;
+  {$ELSE}
+  TempFlags: cardinal;
+  tmpRect : TRect;
+  {$ENDIF}
+  w, h : integer;
+  lastSize : integer;
+begin
+  SetBkMode(aCanvas.Handle, TRANSPARENT);
+
+  if aAdjustFontSize then
   begin
-    newText := Copy(newText, 1, Length(newText) - 3) + '..';
-    tw := ACanvas.TextWidth(newText);
+    lastSize := aCanvas.Font.Size;
+
+    w := aCanvas.TextWidth(aText);
+    h := aCanvas.TextHeight(aText);
+    if (w > aRect.Width) or (h > Arect.Height) then
+    begin
+      while ((w > aRect.Width) or (h > Arect.Height)) and (aCanvas.Font.Size > 7) do
+      begin
+        aCanvas.Font.Size := aCanvas.Font.Size - 1;
+        w := aCanvas.TextWidth(aText);
+        h := aCanvas.TextHeight(aText);
+      end;
+    end
+    else if (w < aRect.Width) and (h < aRect.Height) then
+    begin
+      while (w < aRect.Width) and (h < aRect.Height) do
+      begin
+        lastSize := aCanvas.Font.Size;
+        aCanvas.Font.Size := aCanvas.Font.Size + 1;
+        w := aCanvas.TextWidth(aText);
+        h := aCanvas.TextHeight(aText);
+      end;
+      aCanvas.Font.Size:= lastSize;
+    end;
+    // aCanvas.Font.Size := min(max(8, (aRect.Bottom - aRect.Top) - 30), max(8, (aRect.Right - aRect.Left) - 24));
   end;
-  case ATextAlignment of
-    taLeftJustify: xPos := ARect.Left;
-    taRightJustify: xPos := ARect.Right - tw;
-    taCenter: xPos := ARect.Left + ((ARect.Width - tw) div 2);
+  {$IFNDEF WINDOWS}
+  newText := aText;
+  if (aRect.Width < aCanvas.TextWidth('..')) then
+    exit;
+  tw := aCanvas.TextWidth(newText);
+  if tw > (aRect.Right - aRect.Left) then
+  begin
+    len1 := Length(aText);
+    if len1 = 2 then
+        newText := Copy(newText, 1, 1) + '.'
+    else if len1 > 2 then
+    begin
+      while tw > (aRect.Right - aRect.Left) do
+      begin
+        len2 := Length(newText);
+        newText := Copy(newText, 1, len2 - 3) + '..';
+        if newText = '..' then
+        begin
+          newText := Copy(aText, 1, 1) + '.';
+          break;
+        end;
+        tw := aCanvas.TextWidth(newText);
+      end;
+    end;
   end;
-  ACanvas.TextOut(xPos, ARect.Top, newText);
-  //DebugLn(IntToStr(xPos) + ' ' + newText + ' ' + IntToStr(ACanvas.Font.Size));
-  {$else}
+  case aTextAlignment of
+    taLeftJustify: xPos := aRect.Left;
+    taRightJustify: xPos := aRect.Right - tw;
+    taCenter: xPos := aRect.Left + ((aRect.Width - tw) div 2);
+  end;
+  aCanvas.TextOut(xPos, aRect.Top, newText);
+  //DebugLn(IntToStr(xPos) + ' ' + newText + ' ' + IntToStr(aCanvas.Font.Size));
+  {$ELSE}
   TempFlags := 0;
-  case ATextAlignment of
+  case aTextAlignment of
     taLeftJustify: TempFlags := DT_LEFT;
     taRightJustify: TempFlags := DT_RIGHT;
     taCenter: TempFlags := DT_CENTER;
   end;
   TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE {$ifndef fpc}DT_WORD_ELLIPSIS{$endif});
 
-  tmpRect := ARect;
-  if DrawText(ACanvas.Handle, PChar(AText), -1, tmpRect, TempFlags) = 0 then
+  tmpRect := aRect;
+  if DrawText(aCanvas.Handle, PChar(aText), -1, tmpRect, TempFlags) = 0 then
     RaiseLastOSError;
-  {$endif}
+  {$ENDIF}
 end;
 
 
@@ -304,6 +389,15 @@ begin
          Bitmap.Canvas.Handle, 0, 0, SRCCOPY);
 end;
 
+function CtrlPressed: boolean;
+begin
+  Result := ({$IFNDEF FPC}GetAsyncKeyState{$ELSE}GetKeyState{$ENDIF}(VK_CONTROL) and $8000 <> 0)
+end;
+
+function ShiftPressed: boolean;
+begin
+Result := ({$IFNDEF FPC}GetAsyncKeyState{$ELSE}GetKeyState{$ENDIF}(VK_SHIFT) and $8000 <> 0)
+end;
 
 {$IFNDEF GUI}
 ** This unit should not be compiled in a console application **

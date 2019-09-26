@@ -150,6 +150,42 @@ implementation
 uses
   variants, sysutils;
 
+function FieldTypeIsInteger(const aFieldType : TFieldType): boolean;
+begin
+  Result := aFieldType in [ftInteger, ftSmallint, ftLargeint];
+end;
+
+function FieldTypeIsTime(const aFieldType : TFieldType): boolean;
+begin
+  Result := aFieldType = ftTime;
+end;
+
+function FieldTypeIsDate(const aFieldType : TFieldType): boolean;
+begin
+  Result := aFieldType = ftDate;
+end;
+
+function FieldTypeIsDateTime(const aFieldType : TFieldType): boolean;
+begin
+  Result := (aFieldType in [ftDateTime, ftTimeStamp]);
+end;
+
+function FieldTypeIsFloat(const aFieldType : TFieldType) : boolean;
+begin
+  Result := aFieldType in [ftFloat, ftFMTBcd, ftCurrency];
+end;
+
+function FieldTypeIsPascalDouble(const aFieldType : TFieldType): boolean;
+begin
+  Result := FieldTypeIsFloat(aFieldType) or FieldTypeIsDate(aFieldType) or FieldTypeIsTime(aFieldType) or FieldTypeIsDateTime(aFieldType);
+end;
+
+function FieldTypeIsString(const aFieldType : TFieldType) : boolean;
+begin
+  Result := aFieldType in [ftString, ftWideString, ftMemo, ftWideMemo, ftGuid];
+end;
+
+
 function TmSummaryOperatorToString(const aOperator: TmSummaryOperator): String;
 begin
   Result := 'Unknown';
@@ -279,55 +315,59 @@ begin
   if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) then
     Result := FIntegerValue.AsString
   else
-  case FDefinition.FieldType of
-    ftInteger, ftLargeint:
+  begin
+    if FieldTypeIsInteger(FDefinition.FieldType) then
     begin
       if FIntegerValue.IsNull then
         Result := '-'
       else
         Result := FormatFloat('#,##0', FIntegerValue.Value);
-    end;
-    ftFloat,ftDateTime, ftDate, ftTime, ftTimeStamp:
+    end
+    else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
     begin
       if FDoubleValue.IsNull then
         Result := '-'
       else
       begin
-        if FDefinition.FieldType = ftFloat then
+        if FieldTypeIsFloat(FDefinition.FieldType) then
           Result := FormatFloat('#,##0.0000', RoundDoubleToStandardPrecision(FDoubleValue.Value))
-        else if FDefinition.FieldType = ftDate then
+        else if FieldTypeIsDate(FDefinition.FieldType) then
           Result := DateToStr(Round(FDoubleValue.Value))
-        else if FDefinition.FieldType = ftTime then
+        else if FieldTypeIsTime(FDefinition.FieldType) then
           Result := TimeToStr(FDoubleValue.Value)
         else
           Result := DateTimeToStr(FDoubleValue.Value);
       end;
-    end;
-    ftString, ftGuid: Result := FStringValue.AsString;
+    end
+    else if FieldTypeIsString(FDefinition.FieldType) then
+      Result := FStringValue.AsString;
   end;
 end;
 
 function TmSummaryValue.GetDataType: TmSummaryValueType;
 begin
-  case FDefinition.FieldType of
-    ftInteger, ftLargeint: Result:= svtInteger;
-    ftFloat: Result:= svtDouble;
-    ftDateTime, ftTime, ftTimeStamp: Result:= svtDateTime;
-    ftDate: Result:= svtDate;
-    else
-      Result:= svtString;
-  end;
+  if FieldTypeIsInteger(FDefinition.FieldType) then
+    Result:= svtInteger
+  else if FieldTypeIsFloat(FDefinition.FieldType) then
+    Result:= svtDouble
+  else if FieldTypeIsDateTime(FDefinition.FieldType) or FieldTypeIsTime(FDefinition.FieldType) then
+    Result:= svtDateTime
+  else if FieldTypeIsDate(FDefinition.FieldType) then
+    Result:= svtDate
+  else
+    Result:= svtString;
 end;
 
 function TmSummaryValue.GetValueAsVariant: variant;
 begin
-  case FDefinition.FieldType of
-    ftInteger, ftLargeint: Result := FIntegerValue.AsVariant;
-    ftFloat,ftDateTime, ftDate, ftTime, ftTimeStamp: Result := FDoubleValue.AsVariant;
-    ftString, ftGuid: Result := FStringValue.AsVariant;
-    else
-      Result := Null
-  end;
+  if FieldTypeIsInteger(FDefinition.FieldType) then
+    Result := FIntegerValue.AsVariant
+  else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
+    Result := FDoubleValue.AsVariant
+  else if FieldTypeIsString(FDefinition.FieldType) then
+    Result := FStringValue.AsVariant
+  else
+    Result := Null
 end;
 
 constructor TmSummaryValue.Create;
@@ -355,6 +395,8 @@ var
   tmpString : string;
   tmpDouble : double;
 begin
+  tmpString := '';
+
   case FDefinition.SummaryOperator of
     soCount:
       begin
@@ -371,7 +413,7 @@ begin
                 tmpInt:= aValue;
                 tmpString := IntToStr(tmpInt);
               end;
-            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp, ftFMTBcd, ftCurrency:
               begin
                 tmpDouble:= RoundDoubleToStandardPrecision(aValue);
                 tmpString := FloatToStr(tmpDouble);
@@ -401,7 +443,7 @@ begin
                 else
                   FIntegerValue.Value := FIntegerValue.Value + tmpInt;
               end;
-            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
+            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp, ftFMTBcd, ftCurrency:
               begin
                 tmpDouble:= RoundDoubleToStandardPrecision(aValue);
                 if FDoubleValue.IsNull then
@@ -416,34 +458,32 @@ begin
       begin
         if not VarIsNull(aValue) then
         begin
-          case FDefinition.FieldType of
-            ftInteger, ftLargeint:
-              begin
-                tmpInt:= aValue;
-                if FIntegerValue.IsNull then
-                  FIntegerValue.Value := tmpInt
-                else
-                  if FIntegerValue.Value < tmpInt then
-                    FIntegerValue.Value := tmpInt;
-              end;
-            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
-              begin
-                tmpDouble:= RoundDoubleToStandardPrecision(aValue);
-                if FDoubleValue.IsNull then
-                  FDoubleValue.Value := tmpDouble
-                else
-                  if FDoubleValue.Value < tmpDouble then
-                    FDoubleValue.Value := tmpDouble;
-              end;
-            ftString, ftGuid:
-              begin
-                tmpString := VarToStr(aValue);
-                if FStringValue.IsNull then
-                  FStringValue.Value := tmpString
-                else
-                  if FStringValue.Value < tmpString then
-                    FStringValue.Value := tmpString;
-              end;
+          if FieldTypeIsInteger(FDefinition.FieldType) then
+          begin
+            tmpInt:= aValue;
+            if FIntegerValue.IsNull then
+              FIntegerValue.Value := tmpInt
+            else
+              if FIntegerValue.Value < tmpInt then
+                FIntegerValue.Value := tmpInt;
+          end
+          else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
+          begin
+            tmpDouble:= RoundDoubleToStandardPrecision(aValue);
+            if FDoubleValue.IsNull then
+              FDoubleValue.Value := tmpDouble
+            else
+              if FDoubleValue.Value < tmpDouble then
+                FDoubleValue.Value := tmpDouble;
+          end
+          else if FieldTypeIsString(FDefinition.FieldType) then
+          begin
+            tmpString := VarToStr(aValue);
+            if FStringValue.IsNull then
+              FStringValue.Value := tmpString
+            else
+              if FStringValue.Value < tmpString then
+                FStringValue.Value := tmpString;
           end;
         end;
       end;
@@ -451,34 +491,32 @@ begin
       begin
         if not VarIsNull(aValue) then
         begin
-          case FDefinition.FieldType of
-            ftInteger, ftLargeint:
-              begin
-                tmpInt:= aValue;
-                if FIntegerValue.IsNull then
-                  FIntegerValue.Value := tmpInt
-                else
-                  if FIntegerValue.Value > tmpInt then
-                    FIntegerValue.Value := tmpInt;
-              end;
-            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp:
-              begin
-                tmpDouble:= RoundDoubleToStandardPrecision(aValue);
-                if FDoubleValue.IsNull then
-                  FDoubleValue.Value := tmpDouble
-                else
-                  if FDoubleValue.Value > tmpDouble then
-                    FDoubleValue.Value := tmpDouble;
-              end;
-            ftString, ftGuid:
-              begin
-                tmpString := VarToStr(aValue);
-                if FStringValue.IsNull then
-                  FStringValue.Value := tmpString
-                else
-                  if FStringValue.Value > tmpString then
-                    FStringValue.Value := tmpString;
-              end;
+          if FieldTypeIsInteger(FDefinition.FieldType) then
+          begin
+            tmpInt:= aValue;
+            if FIntegerValue.IsNull then
+              FIntegerValue.Value := tmpInt
+            else
+              if FIntegerValue.Value > tmpInt then
+                FIntegerValue.Value := tmpInt;
+          end
+          else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
+          begin
+            tmpDouble:= RoundDoubleToStandardPrecision(aValue);
+            if FDoubleValue.IsNull then
+              FDoubleValue.Value := tmpDouble
+            else
+              if FDoubleValue.Value > tmpDouble then
+                FDoubleValue.Value := tmpDouble;
+          end
+          else if FieldTypeIsString(FDefinition.FieldType) then
+          begin
+            tmpString := VarToStr(aValue);
+            if FStringValue.IsNull then
+              FStringValue.Value := tmpString
+            else
+              if FStringValue.Value > tmpString then
+                FStringValue.Value := tmpString;
           end;
         end;
       end;

@@ -1,0 +1,479 @@
+// This is part of the Mommon Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+
+unit mDataPump;
+
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
+interface
+
+{$I mDefines.inc}
+
+uses
+  DB, Classes, {$ifdef gui}Forms,{$endif}
+  mDatabaseConnection, mDatabaseConnectionClasses,
+  mProgress, mThreads, mPerformedOperationResults,
+  mDataPumpConfiguration;
+
+resourcestring
+  SMsgStartProcessingTable = 'Start processing table %s...';
+  SMsgProcessedRows = 'Processed %d rows against table %s...';
+  SMsgTableDone = 'Table %s done (%d rows processed)';
+
+type
+
+  { TReplicaEngine }
+
+  TReplicaEngine = class
+  strict private
+    FCanTerminate : boolean;
+
+    procedure InternalReplicaTable (aProgress: ImProgress; aData : TObject; aJobResult : TJobResult);
+    procedure DoTerminate(const aJobsResult : TJobResults);
+  public
+    function ProcessTables ({$ifdef gui}aParentForm : TForm;{$endif} const aTables : TDataReplicaTables; const aResults : IPerformedOperationResults = nil; const aMaxConcurrentThreads : integer = -1) : boolean;
+  end;
+
+  function DoReplicaTable (const aTable : TDataReplicaTableToTable; aProgress: ImProgress; aResults : IPerformedOperationResults) : boolean;
+
+
+implementation
+
+uses
+  SysUtils, md5, variants, contnrs,
+  mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog;
+
+type
+
+  { TParameterTypeShell }
+
+  TParameterTypeShell = class
+  public
+    ParamType : TmParameterDataType;
+
+    constructor Create(const aParameterType : TmParameterDataType);
+  end;
+
+  TJobData = class
+  public
+    results : IPerformedOperationResults;
+    table : TDataReplicaTableToTable;
+  end;
+
+var
+  logger : TmLog;
+
+function ComposeDestinationSelectQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
+var
+  i : integer;
+  comma, andStr : String;
+  curFieldToField: TDataReplicaFieldToField;
+begin
+  Result := 'select ';
+  comma := '';
+  for i := 0 to aTable.FieldsMapping.Count - 1 do
+  begin
+    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString);
+    comma := ','
+  end;
+  Result := Result + ' from ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
+  Result := Result + ' where ';
+  andStr := '';
+  for i := 0 to aTable.SourceKeyFields.Count - 1 do
+  begin
+    curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[i]);
+    if not Assigned(curFieldToField) then
+      raise Exception.Create('Key field ' + aTable.SourceKeyFields.Strings[i] + ' not found in source query');
+    Result := Result + andStr + aDestinationSB.SQLSnippetForCondition(curFieldToField.DestinationField.AsString, foEq, aTable.SourceKeyFields.Strings[i]);
+    andStr := 'and';
+  end;
+end;
+
+function ComposeDestinationInsertQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
+var
+  i: integer;
+  comma: String;
+begin
+  Result := 'insert into ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName) + ' (';
+  comma := '';
+  for i:= 0 to aTable.FieldsMapping.Count - 1 do
+  begin
+    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString);
+    comma := ','
+  end;
+  Result := Result + ') values (';
+  comma := '';
+  for i:= 0 to aTable.FieldsMapping.Count - 1 do
+  begin
+    Result := Result + comma + aDestinationSB.SQLSnippetForValue(aTable.FieldsMapping.Get(i).SourceField.AsString);
+    comma := ','
+  end;
+  Result := Result + ')';
+end;
+
+function ComposeDestinationUpdateQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
+var
+  i : integer;
+  comma, andStr: String;
+  curFieldToField: TDataReplicaFieldToField;
+begin
+  Result := 'update ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName) + ' set ';
+  comma := '';
+  for i:= 0 to aTable.FieldsMapping.Count - 1 do
+  begin
+    if aTable.SourceKeyFields.IndexOf(aTable.FieldsMapping.Get(i).SourceField.AsString) < 0 then
+    begin
+      Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString) + '=' + aDestinationSB.SQLSnippetForValue(aTable.FieldsMapping.Get(i).SourceField.AsString);
+      comma := ','
+    end;
+  end;
+  Result := Result + ' where ';
+  andStr := '';
+  for i := 0 to aTable.SourceKeyFields.Count - 1 do
+  begin
+    curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[i]);
+    Result := Result + andStr + aDestinationSB.SQLSnippetForCondition(curFieldToField.DestinationField.AsString, foEq, aTable.SourceKeyFields.Strings[i]);
+    andStr := 'and';
+  end;
+end;
+
+function DoReplicaTable(const aTable : TDataReplicaTableToTable; aProgress: ImProgress; aResults : IPerformedOperationResults): boolean;
+var
+  q: integer;
+  sourceConnection, destinationConnection: TmDatabaseConnection;
+  sourceQuery, destinationQuery: TmDatabaseQuery;
+  SQLBuilderDestination, SQLBuilderInsert, SQLBuilderUpdate: TmSQLBuilder;
+  performInsert, performUpdate: boolean;
+  command : TmDatabaseCommand;
+  sourcefld, destinationfld : TField;
+  destinationFieldsMap, sourceFieldsMap : TmStringDictionary;
+  tmpsql, tmp, msg: String;
+  tmpparameter : TmQueryParameter;
+  paramshell : TParameterTypeShell;
+  rows, performedInserts, performedUpdates : longint;
+begin
+  Result := false;
+
+  aProgress.Notify(Format(SMsgStartProcessingTable, [aTable.DestinationTableName]));
+
+  sourceConnection := TmDatabaseConnection.Create(aTable.SourceConnectionInfo);
+  destinationConnection := TmDatabaseConnection.Create(aTable.DestinationConnectionInfo);
+  try
+    sourceConnection.Connect;
+    destinationConnection.Connect;
+
+    destinationConnection.StartTransaction;
+    try
+      sourceQuery := TmDatabaseQuery.Create;
+      command := TmDatabaseCommand.Create;
+      destinationQuery := TmDatabaseQuery.Create;
+      SQLBuilderDestination:=  TmSQLBuilder.Create;
+      SQLBuilderInsert := TmSQLBuilder.Create;
+      SQLBuilderUpdate := TmSQLBuilder.Create;
+      destinationFieldsMap := TmStringDictionary.Create(true);
+      sourceFieldsMap := TmStringDictionary.Create(false);
+      try
+        sourceQuery.DatabaseConnection:= sourceConnection;
+        destinationQuery.DatabaseConnection:= destinationConnection;
+        command.DatabaseConnection:= destinationConnection;
+        SQLBuilderDestination.VendorType:= destinationConnection.ConnectionInfo.VendorType;
+        SQLBuilderInsert.VendorType:= SQLBuilderDestination.VendorType;
+        SQLBuilderUpdate.VendorType:= SQLBuilderDestination.VendorType;
+
+        aTable.FieldsMapping.RebuildIndexes;
+
+        sourceQuery.SetSQL(aTable.SourceSelectQuery);
+        SQLBuilderDestination.PrepareSQL(ComposeDestinationSelectQuery(aTable, SQLBuilderDestination));
+        SQLBuilderInsert.PrepareSQL(ComposeDestinationInsertQuery(aTable, SQLBuilderInsert));
+        SQLBuilderUpdate.PrepareSQL(ComposeDestinationUpdateQuery(aTable, SQLBuilderUpdate));
+
+        sourceFieldsMap.Clear;
+        sourceQuery.Open;
+        rows := 0;
+        performedInserts := 0;
+        performedUpdates := 0;
+        while not sourceQuery.Eof do
+        begin
+          if sourceFieldsMap.Count = 0 then
+          begin
+            for q := 0 to sourceQuery.AsDataset.Fields.Count - 1 do
+              sourceFieldsMap.Add(Uppercase(sourceQuery.AsDataset.Fields[q].FieldName), sourceQuery.AsDataset.Fields[q]);
+          end;
+
+          for q := 0 to aTable.SourceKeyFields.Count - 1 do
+          begin
+            sourcefld := sourceFieldsMap.Find(Uppercase(aTable.SourceKeyFields.Strings[q])) as TField;
+            if not Assigned(sourcefld) then
+            begin
+              msg := 'Field "' + aTable.SourceKeyFields.Strings[q] + '" not found in source query';
+              logger.Error(msg);
+              if Assigned(aResults) then
+                aResults.AddError(msg);
+              raise Exception.Create(msg);
+            end;
+            SQLBuilderDestination.ParamByName(aTable.SourceKeyFields.Strings[q]).Assign(sourcefld);
+          end;
+
+          tmpsql := SQLBuilderDestination.BuildSQL;
+          destinationQuery.SetSQL(tmpsql);
+          destinationQuery.Open;
+          performInsert := destinationQuery.Eof;
+          performUpdate := false;
+          if destinationFieldsMap.Count = 0 then
+          begin
+            for q := 0 to destinationQuery.AsDataset.Fields.Count - 1 do
+            begin
+              destinationFieldsMap.Add(Uppercase(destinationQuery.AsDataset.Fields[q].FieldName), TParameterTypeShell.Create(DataTypeToParameterDataType(destinationQuery.AsDataset.Fields[q].DataType)));
+            end;
+          end;
+          if not performInsert then
+          begin
+            for q := 0 to aTable.FieldsMapping.Count - 1 do
+            begin
+              sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString) as TField;
+              destinationfld := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
+              performUpdate := MD5Print(MD5String(sourcefld.AsString)) <> MD5Print(MD5String(destinationfld.AsString));
+              if performUpdate then
+              begin
+                {$IFDEF DEBUG}
+                logger.Debug('Value [' + destinationfld.AsString +'] of field ' + destinationfld.FieldName + ' of table ' + aTable.DestinationTableName + ' is different from value [' + sourcefld.AsString + '] of original field ' + sourcefld.FieldName );
+                {$ENDIF}
+                break;
+              end;
+            end;
+          end;
+          destinationQuery.Close;
+
+          if performInsert then
+          begin
+            if aTable.AllowInsert then
+            begin
+              for q := 0 to aTable.FieldsMapping.Count - 1 do
+              begin
+                sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
+                if not Assigned(sourcefld) then
+                begin
+                  msg := 'Field "' + aTable.FieldsMapping.Get (q).SourceField.AsString + '" not found as source field in configuration';
+                  logger.Error(msg);
+                  if Assigned(aResults) then
+                    aResults.AddError(msg);
+                  raise Exception.Create(msg);
+                end;
+                tmpparameter := SQLBuilderInsert.ParamByName(sourcefld.FieldName);
+                if not Assigned(tmpparameter) then
+                begin
+                  msg := 'Parameter "' + sourcefld.FieldName + '" not found in insert query';
+                  logger.Error(msg);
+                  if Assigned(aResults) then
+                    aResults.AddError(msg);
+                  raise Exception.Create(msg);
+                end;
+
+                paramshell := destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell;
+                if not Assigned(paramshell) then
+                begin
+                  msg := 'Field "' + aTable.FieldsMapping.Get(q).DestinationField.AsString + '" not found in destination table';
+                  logger.Error(msg);
+                  if Assigned(aResults) then
+                    aResults.AddError(msg);
+                  raise Exception.Create(msg);
+                end;
+                try
+                  tmpparameter.Assign(sourcefld.AsVariant, paramshell.ParamType);
+                except
+                  on e : Exception do
+                  begin
+                    msg := 'source field ' + sourcefld.FieldName + ' Error:' + e.Message;
+                    logger.Error(msg);
+                    if Assigned(aResults) then
+                      aResults.AddError(msg);
+                    raise;
+                  end;
+                end;
+              end;
+              tmpsql:= SQLBuilderInsert.BuildSQL;
+              try
+                command.SetSQL(tmpsql);
+                command.Execute;
+              except
+                on e : Exception do
+                begin
+                  msg := 'Error in query ' + tmpsql;
+                  logger.Error(msg);
+                  logger.Error(e.Message);
+                  if Assigned(aResults) then
+                  begin
+                    aResults.AddError(msg);
+                    aResults.AddError(e.Message);
+                  end;
+                  raise;
+                end;
+              end;
+              inc(performedInserts);
+            end;
+          end
+          else
+          if performUpdate then begin
+            if aTable.AllowUpdate then
+            begin
+              for q := 0 to aTable.FieldsMapping.Count - 1 do
+              begin
+                sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
+                SQLBuilderUpdate.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+              end;
+              tmpsql:= SQLBuilderUpdate.BuildSQL;
+              try
+                command.SetSQL(tmpsql);
+                command.Execute;
+              except
+                on e : Exception do
+                begin
+                  msg := 'Error in query ' + tmpsql;
+                  logger.Error(msg);
+                  logger.Error(e.Message);
+                  if Assigned(aResults) then
+                  begin
+                    aResults.AddError(msg);
+                    aResults.AddError(e.Message);
+                  end;
+                  raise;
+                end;
+              end;
+              inc(performedUpdates);
+            end;
+          end;
+
+          sourceQuery.Next;
+          inc(rows);
+          if rows mod 10 = 0 then
+            aProgress.Notify(Format(SMsgProcessedRows,[rows, aTable.DestinationTableName]));
+        end;
+        aProgress.Notify(Format(SMsgTableDone,[aTable.DestinationTableName, rows]));
+      finally
+        sourceFieldsMap.Free;
+        destinationFieldsMap.Free;
+        SQLBuilderDestination.Free;
+        SQLBuilderInsert.Free;
+        SQLBuilderUpdate.Free;
+        destinationQuery.Free;
+        sourceQuery.Free;
+        command.Free;
+      end;
+
+      destinationConnection.Commit;
+    except
+      on e : Exception do
+      begin
+        destinationConnection.Rollback;
+        writeln(GetLastSQLScript(tmp));
+        raise;
+      end;
+    end;
+
+    sourceConnection.Close;
+    destinationConnection.Close;
+  finally
+    destinationConnection.Free;
+    sourceConnection.Free;
+  end;
+
+  {$IFDEF DEBUG}
+  logger.Debug('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
+  logger.Debug('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
+  logger.Debug('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+  {$ENDIF}
+  if Assigned(aResults) then
+  begin
+    aResults.AddResult('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
+    aResults.AddResult('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
+    aResults.AddResult('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+  end;
+
+  Result := true;
+end;
+
+{ TReplicaEngine }
+
+procedure TReplicaEngine.InternalReplicaTable(aProgress: ImProgress; aData : TObject; aJobResult: TJobResult);
+begin
+  if DoReplicaTable((aData as TJobData).table, aProgress, (aData as TJobData).results) then
+    aJobResult.ReturnCode:= 1
+  else
+    aJobResult.ReturnCode:= -1;
+end;
+
+procedure TReplicaEngine.DoTerminate(const aJobsResult: TJobResults);
+begin
+  FCanTerminate:= true;
+end;
+
+function TReplicaEngine.ProcessTables({$ifdef gui}aParentForm : TForm;{$endif} const aTables: TDataReplicaTables; const aResults : IPerformedOperationResults; const aMaxConcurrentThreads: integer): boolean;
+var
+  batchexec : TmBatchExecutor;
+  newjob : TmJob;
+  i : integer;
+  tmpJobData : TJobData;
+  jobDataList : TObjectList;
+begin
+  Result := false;
+  if aTables.Count = 0 then
+    exit;
+
+  jobDataList:= TObjectList.Create(true);
+  batchexec := TmBatchExecutor.Create;
+  try
+    if aMaxConcurrentThreads > 0 then
+      batchexec.MaxConcurrentThreads:= aMaxConcurrentThreads
+    else
+      batchexec.MaxConcurrentThreads:= GetCPUCores;
+
+    if Assigned(aResults) and (batchexec.MaxConcurrentThreads > 1) and (aTables.Count > 1) then
+      aResults.SetThreadSafe;
+
+    for i := 0 to aTables.Count - 1 do
+    begin
+      newjob := batchexec.QueueJob;
+      newjob.Description:= aTables.Get(i).DestinationTableName;
+      newjob.DoJobProcedure := InternalReplicaTable;
+      tmpJobData := TJobData.Create;
+      jobDataList.Add(tmpJobData);
+      tmpJobData.table := aTables.Get(i);
+      tmpJobData.results := aResults;
+      newJob.Data := tmpJobData;
+    end;
+
+    FCanTerminate:= false;
+    batchexec.Execute({$ifdef gui}aParentForm,{$endif}DoTerminate);
+    while not FCanTerminate do
+    begin
+      sleep(100);
+      {$IFDEF NOGUI}
+      CheckSynchronize;
+      {$ENDIF}
+    end;
+  finally
+    batchexec.Free;
+    jobDataList.Free;
+  end;
+end;
+
+{ TParameterTypeShell }
+
+constructor TParameterTypeShell.Create(const aParameterType: TmParameterDataType);
+begin
+  ParamType:= aParameterType;
+end;
+
+initialization
+  logger := logManager.AddLog('mDataPump');
+
+end.
