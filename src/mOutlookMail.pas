@@ -56,7 +56,7 @@ uses
 {$ifdef windows}
   comobj;
 {$else}
-  SysUtils
+  SysUtils;
 {$endif}
 
 { TmOutlookMailFactory }
