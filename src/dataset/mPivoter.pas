@@ -25,7 +25,7 @@ type
 
   TmGroupByDef = class
   strict private
-    FFieldName : string;
+    FFieldName: string;
     FDataType : TFieldType;
     FOperationKind : TmGroupByOperationKind;
     FFormula : String;
@@ -182,7 +182,10 @@ type
     destructor Destroy; override;
 
     procedure CalculateHierarchy;
-    function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList;
+    function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList; overload;
+    function GetRecords (const aVerticalKeys, aHorizontalKeys : string): TCardinalList; overload;
+
+    function BuildKey(const aOldKey, aNewKeyPartValue : String) : String;
 
     property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
     property VerticalGroupByDefs : TmGroupByDefs read FVerticalGroupByDefs;
@@ -357,22 +360,35 @@ end;
 
 function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: TStringList): TCardinalList;
 var
-  tmp : String;
+  tmpHor, tmpVer : String;
   i : integer;
 begin
-  tmp := '';
+  tmpHor := '';
   if Assigned(aVerticalKeys) then
   begin
     for i := 0 to aVerticalKeys.Count - 1 do
-      tmp := tmp + aVerticalKeys.Strings[i] + KEY_SEPARATOR;
+      tmpHor := BuildKey(tmpHor, aVerticalKeys.Strings[i]);
+      //tmp := tmp + aVerticalKeys.Strings[i] + KEY_SEPARATOR;
   end;
+  tmpVer := '';
   if Assigned(aHorizontalKeys) then
   begin
     for i := 0 to aHorizontalKeys.Count - 1 do
-      tmp := tmp + aHorizontalKeys.Strings[i] + KEY_SEPARATOR;
+      tmpVer := BuildKey(tmpVer, aHorizontalKeys.Strings[i]);
+      //tmp := tmp + aHorizontalKeys.Strings[i] + KEY_SEPARATOR;
   end;
 
-  Result := FRecordCoordinates.Find(tmp) as TCardinalList;
+  Result := GetRecords(tmpVer, tmpHor); //FRecordCoordinates.Find(tmp) as TCardinalList;
+end;
+
+function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: string): TCardinalList;
+begin
+  Result := FRecordCoordinates.Find(aVerticalKeys + aHorizontalKeys) as TCardinalList;
+end;
+
+function TmPivoter.BuildKey(const aOldKey, aNewKeyPartValue: String): String;
+begin
+  Result := aOldKey + aNewKeyPartValue + KEY_SEPARATOR;
 end;
 
 { TRecordsCoordinates }
