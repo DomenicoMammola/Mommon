@@ -1515,7 +1515,7 @@ begin
       Self.Value:= aSourceField.AsBoolean
     else if aSourceField.DataType = ftString then
       Self.Value:= (aSourceField.AsString = 'T') or (aSourceField.AsString = '1') or (aSourceField.AsString = 'Y') or (aSourceField.AsString = 'S')
-    else if (aSourceField.DataType = ftInteger) or (aSourceField.DataType = ftSmallint) then
+    else if (aSourceField.DataType = ftInteger) or (aSourceField.DataType = ftSmallint) or (aSourceField.DataType= ftLargeint) then
       Self.Value:= (aSourceField.AsInteger = 1)
     else if aSourceField.DataType = ftFixedChar then
       Self.Value := (aSourceField.AsString = 'T') or (aSourceField.AsString = '1') or (aSourceField.AsString = 'Y') or (aSourceField.AsString = 'S')
