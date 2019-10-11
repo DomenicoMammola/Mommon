@@ -21,6 +21,9 @@ uses
   {$IFNDEF FPC}mInterfaces,{$ENDIF}
   mDataProviderFieldDefs, mDataProviderInterfaces, mNullables;
 
+const
+  LIST_DATA_PROVIDER_FIELD_LENGTH = 128;
+
 type
 
   { TListDatumKey }
@@ -196,13 +199,13 @@ begin
   begin
     Name := aPrefix + FLD_DESCRIPTION;
     DataType:= vftString;
-    Size := 128;
+    Size := LIST_DATA_PROVIDER_FIELD_LENGTH;
   end;
   with aFieldDefs.AddFieldDef do
   begin
     Name := aPrefix + FLD_VALUE;
     DataType:= vftString;
-    Size := 128;
+    Size := LIST_DATA_PROVIDER_FIELD_LENGTH;
   end;
 end;
 
