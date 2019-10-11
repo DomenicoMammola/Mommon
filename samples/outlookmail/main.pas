@@ -47,7 +47,7 @@ begin
     factory.AddCCRecipient('paperoga@paperopoli.it');
     factory.AddCCRecipient('clarabella@topolina.it');
     factory.AddBCCRecipient('archimede_pitagorico@paperopoli.it');
-    factory.AppendBodyLine('This is the body. && àèìòù').CreateMail;
+    factory.AppendBodyLine('This is the body. && àèìòù').CreateMail(true);
   finally
     factory.Free;
   end;
@@ -60,7 +60,7 @@ begin
   factory := TmOutlookMailFactory.Create;
   try
     factory.SetSubject('Subject 123456789 àèìòù').AddRecipient('pippo@topolinia.it').AddRecipient('paperino@topolinia.it');
-    factory.AppendHTMLBodyLine('<h1>Title</h1><br>').AppendHTMLBodyLine('First line').AppendHTMLBodyLine('<i>Signature àèìòù</i>').CreateMail;
+    factory.AppendHTMLBodyLine('<h1>Title</h1><br>').AppendHTMLBodyLine('First line').AppendHTMLBodyLine('<i>Signature àèìòù</i>').CreateMail(false);
   finally
     factory.Free;
   end;
@@ -79,7 +79,7 @@ begin
     factory.AddAttachment(s);
     s := IncludeTrailingPathDelimiter(ExtractFilePath(Application.ExeName)) + 'kermit.jpg';
     factory.AddAttachment(s);
-    factory.AppendBodyLine('This is the body. && àèìòù').CreateMail;
+    factory.AppendBodyLine('This is the body. && àèìòù').CreateMail(false);
   finally
     factory.Free;
   end;
