@@ -51,7 +51,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; virtual; abstract;
     function AsString: String; virtual; abstract;
-    function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; virtual;
+    function AsJson(const aFieldName : String; const aSkipIfNull : boolean): String; virtual;
 
     property IsNull: Boolean read GetIsNull write SetIsNull;
     property NotNull: Boolean read GetNotNull;
@@ -253,7 +253,7 @@ type
       function AsString (const aShowTime : boolean) : String; overload;
       function AsString : String; override; overload;
       function AsStringForFilename (const aShowTime, aUseSeparators: boolean): String;
-      function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; override;
+      function AsJson(const aFieldName : String; const aSkipIfNull: boolean): String; override;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -281,7 +281,7 @@ type
     class function VariantToString(const aValue: Variant): String;
 
     function AsString : String; override;
-    function AsJson(const aFieldName : String; const aSkipIfNull, aAddComma : boolean): String; override;
+    function AsJson(const aFieldName : String; const aSkipIfNull: boolean): String; override;
 
     property Value : TDateTime read GetValue write SetValue;
   end;
@@ -462,6 +462,19 @@ type
   end;
 
 
+  { TNullableJsonHelper }
+
+  TNullableJsonHelper = class
+  strict private
+    FList : TStringList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure AddValue(const aFieldName: String; const aValue: TAbstractNullable; const aSkipIfNull: boolean);
+    procedure AddJson(const aJsonString : String);
+    function GetJson : String;
+  end;
 
 
 implementation
@@ -469,6 +482,47 @@ implementation
 uses
   sysutils, dateutils {$IFDEF FPC}, LazUtf8{$ENDIF}
   , mISOTime;
+
+{ TNullableJsonHelper }
+
+constructor TNullableJsonHelper.Create;
+begin
+  FList := TStringList.Create;
+end;
+
+destructor TNullableJsonHelper.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+procedure TNullableJsonHelper.AddValue(const aFieldName: String; const aValue: TAbstractNullable; const aSkipIfNull: boolean);
+var
+  tmp : String;
+begin
+  tmp := aValue.AsJson(aFieldName, aSkipIfNull);
+  if tmp <> '' then
+    FList.Add(tmp);
+end;
+
+procedure TNullableJsonHelper.AddJson(const aJsonString: String);
+begin
+  FList.Add(aJsonString);
+end;
+
+function TNullableJsonHelper.GetJson: String;
+var
+  i : integer;
+  sep : String;
+begin
+  sep := '';
+  Result := '';
+  for i := 0 to FList.Count - 1 do
+  begin
+    Result := Result + sep + FList.Strings[i];
+    sep := ',';
+  end;
+end;
 
 { TNullableValue }
 
@@ -938,16 +992,12 @@ begin
   Result := TNullableTime.VariantToString(Self.AsVariant);
 end;
 
-function TNullableTime.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+function TNullableTime.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
   else
-  begin
     Result := '"' + aFieldName + '":"' + ISOTimeToStr(Self.Value) + '"';
-    if aAddComma then
-      Result := Result + ',';
-  end;
 end;
 
 { TNullablesList }
@@ -2368,16 +2418,12 @@ begin
   end;
 end;
 
-function TNullableDateTime.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+function TNullableDateTime.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
   else
-  begin
     Result := '"' + aFieldName + '":"' + ISODateTimeToStr(Self.Value) + '"';
-    if aAddComma then
-      Result := Result + ',';
-  end;
 end;
 
 { TAbstractNullable }
@@ -2432,16 +2478,12 @@ begin
   SetTagChanged(false);
 end;
 
-function TAbstractNullable.AsJson(const aFieldName: String; const aSkipIfNull, aAddComma: boolean): String;
+function TAbstractNullable.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
   else
-  begin
     Result := '"' + aFieldName + '":"' + Self.AsString + '"';
-    if aAddComma then
-      Result := Result + ',';
-  end;
 end;
 
 end.
