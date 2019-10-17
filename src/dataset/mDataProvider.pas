@@ -29,8 +29,12 @@ type
     FList : TObjectList;
 
     FMustRebuildIndex : boolean;
+    FMainIndex : TmStringDictionary;
+    FIndexes : TmStringDictionary;
+    FIndexedFieldNames : TStringList;
+    procedure ClearIndexes;
   protected
-    FMap : TmStringDictionary;
+    procedure AddIndex (const aFieldName : String);
     procedure InternalAdd(aDatum : TObject);
     procedure InternalRemove(aDatum : TObject);
     procedure InternalDelete(const aIndex: integer);
@@ -44,6 +48,7 @@ type
     function GetDatum(const aIndex : integer) : IVDDatum;
     function FindDatumByKey (const aKey : IVDDatumKey) : IVDDatum;
     function FindDatumByStringKey (const aStringKey : string): IVDDatum;
+    function FindDatumByIndexedField (const aIndexedFieldName, aValue : String): IVDDatum;
     procedure RebuildIndex;
 
     procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String); virtual; abstract;
@@ -54,9 +59,33 @@ type
 implementation
 
 uses
-  sysutils;
+  sysutils, variants;
 
 { TmDataProvider }
+
+procedure TmDataProvider.ClearIndexes;
+var
+  i : integer;
+  tmpIndex : TmStringDictionary;
+begin
+  for i := 0 to FIndexedFieldNames.Count - 1 do
+  begin
+    tmpIndex := FIndexes.Find(FIndexedFieldNames.Strings[i]) as TmStringDictionary;
+    if Assigned(tmpIndex) then
+      tmpIndex.Clear;
+  end;
+  FMainIndex.Clear;
+  FMustRebuildIndex:=true;
+end;
+
+procedure TmDataProvider.AddIndex(const aFieldName: String);
+begin
+  if FIndexedFieldNames.IndexOf(aFieldName) < 0 then
+  begin
+    FIndexedFieldNames.Add(aFieldName);
+    FMustRebuildIndex:= true;
+  end;
+end;
 
 procedure TmDataProvider.InternalAdd(aDatum: TObject);
 begin
@@ -80,7 +109,7 @@ function TmDataProvider.InternalFindByString(aStringKey: string): TObject;
 begin
   if FMustRebuildIndex then
     RebuildIndex;
-  Result := FMap.Find(aStringKey);
+  Result := FMainIndex.Find(aStringKey);
   FMustRebuildIndex:=false;
 end;
 
@@ -96,14 +125,34 @@ end;
 
 procedure TmDataProvider.RebuildIndex;
 var
-  i : integer;
+  i, k : integer;
+  tmpIndex : TmStringDictionary;
+  tmpValue : Variant;
+  tmpStringValue : String;
 begin
-  FMap.Clear;
+  ClearIndexes;
+
+  for i := 0 to FIndexedFieldNames.Count - 1 do
+  begin
+    if not Assigned(FIndexes.Find(FIndexedFieldNames.Strings[i])) then
+      FIndexes.Add(FIndexedFieldNames.Strings[i], TmStringDictionary.Create(false));
+  end;
+
   for i := 0 to Self.Count -1 do
   begin
-    if FMap.Contains(Self.GetDatum(i).GetDatumKey.AsString) then
+    if FMainIndex.Contains(Self.GetDatum(i).GetDatumKey.AsString) then
       raise Exception.Create('Duplicate key: ' + Self.GetDatum(i).GetDatumKey.AsString);
-    FMap.Add(Self.GetDatum(i).GetDatumKey.AsString, Self.InternalGetDatum(i));
+    FMainIndex.Add(Self.GetDatum(i).GetDatumKey.AsString, Self.InternalGetDatum(i));
+
+    for k := 0 to FIndexedFieldNames.Count - 1 do
+    begin
+      tmpIndex := FIndexes.Find(FIndexedFieldNames.Strings[k]) as TmStringDictionary;
+      tmpValue := Self.GetDatum(i).GetPropertyByFieldName(FIndexedFieldNames.Strings[k]);
+      tmpStringValue := VarToStr(tmpValue);
+      if tmpIndex.Contains(tmpStringValue) then
+        raise Exception.Create('Duplicate value for index: ' + tmpStringValue);
+      tmpIndex.Add(tmpStringValue, Self.InternalGetDatum(i));
+    end;
   end;
   FMustRebuildIndex:= false;
 end;
@@ -116,23 +165,25 @@ end;
 constructor TmDataProvider.Create(const aOwnsObject : boolean = true);
 begin
   FList := TObjectList.Create(aOwnsObject);
-  FMap := TmStringDictionary.Create;
+  FMainIndex := TmStringDictionary.Create;
   FMustRebuildIndex:= true;
+  FIndexes := TmStringDictionary.Create(true);
+  FIndexedFieldNames := TStringList.Create;
 end;
 
 destructor TmDataProvider.Destroy;
 begin
   FList.Free;
-  FMap.Free;
+  FMainIndex.Free;
+  FIndexes.Free;
+  FIndexedFieldNames.Free;
   inherited Destroy;
 end;
 
 procedure TmDataProvider.Clear;
 begin
   FList.Clear;
-  FMap.Clear;
-  FMustRebuildIndex:=true;
-
+  ClearIndexes;
 end;
 
 function TmDataProvider.Count: integer;
@@ -153,6 +204,19 @@ end;
 function TmDataProvider.FindDatumByStringKey (const aStringKey : string): IVDDatum;
 begin
   Result := Self.InternalFindByString(aStringKey) as IVDDatum;
+end;
+
+function TmDataProvider.FindDatumByIndexedField(const aIndexedFieldName, aValue: String): IVDDatum;
+var
+  tmpIndex : TmStringDictionary;
+begin
+  Result := nil;
+  if FMustRebuildIndex then
+    RebuildIndex;
+  tmpIndex := FIndexes.Find(aIndexedFieldName) as TmStringDictionary;
+  if Assigned(tmpIndex) then
+    Result := tmpIndex.Find(aValue) as IVDDatum;
+  FMustRebuildIndex:=false;
 end;
 
 end.
