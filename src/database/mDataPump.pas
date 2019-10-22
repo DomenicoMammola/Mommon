@@ -374,6 +374,8 @@ begin
       on e : Exception do
       begin
         destinationConnection.Rollback;
+        logger.Error(e.Message);
+        logger.Error('Last SQL script:' + GetLastSQLScript(tmp));
         writeln(GetLastSQLScript(tmp));
         raise;
       end;
