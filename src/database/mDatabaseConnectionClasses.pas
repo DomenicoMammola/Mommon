@@ -180,7 +180,7 @@ begin
       Result := ptUnknown;
     ftInteger, ftSmallint, ftLargeint:
       Result := ptInteger;
-    ftFloat, ftFMTBcd, ftCurrency:
+    ftFloat, ftBcd, ftFMTBcd, ftCurrency:
       Result := ptFloat;
     ftDate:
       Result := ptDate;
