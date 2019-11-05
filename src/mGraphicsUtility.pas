@@ -103,7 +103,7 @@ var
 begin
   SetBkMode(aCanvas.Handle, TRANSPARENT);
 
-  if aAdjustFontSize then
+  if aAdjustFontSize and (aText <> '') then
   begin
     lastSize := aCanvas.Font.Size;
 
