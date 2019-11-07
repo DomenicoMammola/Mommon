@@ -135,6 +135,7 @@ procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFil
 procedure AddUTF8BOMToStream (aStream : TStream);
 
 function IsRunningAsRoot: boolean;
+function CurrentProcessId: cardinal; // look at Indy function CurrentProcessId: TIdPID;
 
 implementation
 
@@ -2022,6 +2023,20 @@ begin
 {$IFDEF LINUX}
   // http://forum.lazarus.freepascal.org/index.php?topic=22454.0
   Result := (fpgeteuid = 0);
+{$ENDIF}
+end;
+
+function CurrentProcessId: cardinal;
+begin
+{$IFDEF WINDOWS}
+  Result := GetCurrentProcessID;
+{$ELSE}
+    {$IFDEF LINUX}
+    Result := fpgetpid;
+    {$ELSE}
+    {$message error CurrentProcessId is not implemented on this platform!}
+    Result := 0;
+    {$ENDIF}
 {$ENDIF}
 end;
 
