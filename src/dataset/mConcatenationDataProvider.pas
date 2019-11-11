@@ -123,7 +123,10 @@ end;
 
 function TConcatenationDataProvider.FindDatumByKey(const aKey: IVDDatumKey): IVDDatum;
 begin
+  {$push}
+  {$warnings off}
   Result := Self.FindDatumByStringKey(TConcatenationDatumKey(aKey).AsString);
+  {$pop}
 end;
 
 function TConcatenationDataProvider.FindDatumByStringKey(const aStringKey: string): IVDDatum;
