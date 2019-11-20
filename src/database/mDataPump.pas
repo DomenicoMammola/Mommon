@@ -28,6 +28,7 @@ resourcestring
   SMsgStartProcessingTable = 'Start processing table %s...';
   SMsgProcessedRows = 'Processed %d rows against table %s...';
   SMsgTableDone = 'Table %s done (%d rows processed)';
+  SMsgTableDeleteRows = 'Deleted all rows of table %s';
 
 type
 
@@ -51,6 +52,9 @@ implementation
 uses
   SysUtils, md5, variants, contnrs,
   mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog;
+
+const
+  KEY_SEPARATOR = '#@#';
 
 type
 
@@ -96,6 +100,22 @@ begin
     Result := Result + andStr + aDestinationSB.SQLSnippetForCondition(curFieldToField.DestinationField.AsString, foEq, aTable.SourceKeyFields.Strings[i]);
     andStr := 'and';
   end;
+end;
+
+
+function ComposeDestinationSelectAllQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
+var
+  i : integer;
+  comma : String;
+begin
+  Result := 'select ';
+  comma := '';
+  for i := 0 to aTable.FieldsMapping.Count - 1 do
+  begin
+    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString);
+    comma := ','
+  end;
+  Result := Result + ' from ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
 end;
 
 function ComposeDestinationInsertQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
@@ -146,20 +166,45 @@ begin
   end;
 end;
 
+function ComposeDestinationDeleteQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
+var
+  i : integer;
+  andStr: String;
+  curFieldToField: TDataReplicaFieldToField;
+begin
+  Result := 'delete from ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
+  Result := Result + ' where ';
+  andStr := '';
+  for i := 0 to aTable.SourceKeyFields.Count - 1 do
+  begin
+    curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[i]);
+    Result := Result + andStr + aDestinationSB.SQLSnippetForCondition(curFieldToField.DestinationField.AsString, foEq, aTable.SourceKeyFields.Strings[i]);
+    andStr := 'and';
+  end;
+end;
+
+function ComposeDestinationClearAllQuery (aTable: TDataReplicaTableToTable; const aClearAllSB : TmSQLBuilder): String;
+begin
+  Result := 'delete from ' + aClearAllSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
+end;
+
 function DoReplicaTable(const aTable : TDataReplicaTableToTable; aProgress: ImProgress; aResults : IPerformedOperationResults): boolean;
 var
   q: integer;
   sourceConnection, destinationConnection: TmDatabaseConnection;
   sourceQuery, destinationQuery: TmDatabaseQuery;
-  SQLBuilderDestination, SQLBuilderInsert, SQLBuilderUpdate: TmSQLBuilder;
+  SQLBuilderDestination, SQLBuilderInsert, SQLBuilderUpdate, SQLBuilderDelete, SQLBuilderClearAll, SQLBuilderSelectAll: TmSQLBuilder;
   performInsert, performUpdate: boolean;
   command : TmDatabaseCommand;
   sourcefld, destinationfld : TField;
-  destinationFieldsMap, sourceFieldsMap : TmStringDictionary;
+  destinationFieldsMap, sourceFieldsMap, sourceKeysMap: TmStringDictionary;
   tmpsql, tmp, msg: String;
   tmpparameter : TmQueryParameter;
   paramshell : TParameterTypeShell;
-  rows, performedInserts, performedUpdates : longint;
+  rows, performedInserts, performedUpdates, performedDeletes : longint;
+  curKeyString : String;
+  curFieldToField: TDataReplicaFieldToField;
+  deleteOperationsToBePerformed : TStringList;
 begin
   Result := false;
 
@@ -179,8 +224,12 @@ begin
       SQLBuilderDestination:=  TmSQLBuilder.Create;
       SQLBuilderInsert := TmSQLBuilder.Create;
       SQLBuilderUpdate := TmSQLBuilder.Create;
+      SQLBuilderDelete := TmSQLBuilder.Create;
+      SQLBuilderClearAll := TmSQLBuilder.Create;
+      SQLBuilderSelectAll := TmSQLBuilder.Create;
       destinationFieldsMap := TmStringDictionary.Create(true);
       sourceFieldsMap := TmStringDictionary.Create(false);
+      sourceKeysMap := TmStringDictionary.Create(false);
       try
         sourceQuery.DatabaseConnection:= sourceConnection;
         destinationQuery.DatabaseConnection:= destinationConnection;
@@ -188,6 +237,9 @@ begin
         SQLBuilderDestination.VendorType:= destinationConnection.ConnectionInfo.VendorType;
         SQLBuilderInsert.VendorType:= SQLBuilderDestination.VendorType;
         SQLBuilderUpdate.VendorType:= SQLBuilderDestination.VendorType;
+        SQLBuilderDelete.VendorType:= SQLBuilderDestination.VendorType;
+        SQLBuilderClearAll.VendorType:= SQLBuilderDestination.VendorType;
+        SQLBuilderSelectAll.VendorType:= SQLBuilderDestination.VendorType;
 
         aTable.FieldsMapping.RebuildIndexes;
 
@@ -195,12 +247,42 @@ begin
         SQLBuilderDestination.PrepareSQL(ComposeDestinationSelectQuery(aTable, SQLBuilderDestination));
         SQLBuilderInsert.PrepareSQL(ComposeDestinationInsertQuery(aTable, SQLBuilderInsert));
         SQLBuilderUpdate.PrepareSQL(ComposeDestinationUpdateQuery(aTable, SQLBuilderUpdate));
+        SQLBuilderDelete.PrepareSQL(ComposeDestinationDeleteQuery(aTable, SQLBuilderDelete));
+        SQLBuilderSelectAll.PrepareSQL(ComposeDestinationSelectAllQuery(aTable, SQLBuilderSelectAll));
+
+        if aTable.PerformClearBefore then
+        begin
+          SQLBuilderClearAll.PrepareSQL(ComposeDestinationClearAllQuery(aTable, SQLBuilderClearAll));
+
+          tmpsql:= SQLBuilderClearAll.BuildSQL;
+          try
+            command.SetSQL(tmpsql);
+            command.Execute;
+            aProgress.Notify(Format(SMsgTableDeleteRows,[aTable.DestinationTableName]));
+            if Assigned(aResults) then
+              aResults.AddResult(Format(SMsgTableDeleteRows,[aTable.DestinationTableName]));
+          except
+            on e : Exception do
+            begin
+              msg := 'Error in query ' + tmpsql;
+              logger.Error(msg);
+              logger.Error(e.Message);
+              if Assigned(aResults) then
+              begin
+                aResults.AddError(msg);
+                aResults.AddError(e.Message);
+              end;
+              raise;
+            end;
+          end;
+        end;
 
         sourceFieldsMap.Clear;
         sourceQuery.Open;
         rows := 0;
         performedInserts := 0;
         performedUpdates := 0;
+        performedDeletes := 0;
         while not sourceQuery.Eof do
         begin
           if sourceFieldsMap.Count = 0 then
@@ -209,6 +291,7 @@ begin
               sourceFieldsMap.Add(Uppercase(sourceQuery.AsDataset.Fields[q].FieldName), sourceQuery.AsDataset.Fields[q]);
           end;
 
+          curKeyString:= '';
           for q := 0 to aTable.SourceKeyFields.Count - 1 do
           begin
             sourcefld := sourceFieldsMap.Find(Uppercase(aTable.SourceKeyFields.Strings[q])) as TField;
@@ -221,7 +304,11 @@ begin
               raise Exception.Create(msg);
             end;
             SQLBuilderDestination.ParamByName(aTable.SourceKeyFields.Strings[q]).Assign(sourcefld);
+            if aTable.AllowDelete then
+              curKeyString:= curKeyString + KEY_SEPARATOR + sourcefld.AsString;
           end;
+          if aTable.AllowDelete then
+            sourceKeysMap.Add(curKeyString, sourceKeysMap);
 
           tmpsql := SQLBuilderDestination.BuildSQL;
           destinationQuery.SetSQL(tmpsql);
@@ -358,12 +445,73 @@ begin
             aProgress.Notify(Format(SMsgProcessedRows,[rows, aTable.DestinationTableName]));
         end;
         aProgress.Notify(Format(SMsgTableDone,[aTable.DestinationTableName, rows]));
+
+        if aTable.AllowDelete then
+        begin
+          deleteOperationsToBePerformed := TStringList.Create;
+          try
+            tmpsql := SQLBuilderSelectAll.BuildSQL;
+            destinationQuery.SetSQL(tmpsql);
+            destinationQuery.Open;
+            while not destinationQuery.Eof do
+            begin
+              curKeyString:= '';
+              for q := 0 to aTable.SourceKeyFields.Count - 1 do
+              begin
+                curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[q]);
+                if not Assigned(curFieldToField) then
+                  raise Exception.Create('Key field ' + aTable.SourceKeyFields.Strings[q] + ' not found in source query');
+                curKeyString := curKeyString + KEY_SEPARATOR + destinationQuery.AsDataset.FieldByName(curFieldToField.DestinationField.AsUppercaseString).AsString;
+              end;
+
+              if not Assigned(sourceKeysMap.Find(curKeyString)) then
+              begin
+                for q := 0 to aTable.FieldsMapping.Count - 1 do
+                begin
+                  sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
+                  SQLBuilderDelete.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+                end;
+                deleteOperationsToBePerformed.Add(SQLBuilderDelete.BuildSQL);
+              end;
+
+              destinationQuery.Next;
+            end;
+            destinationQuery.Close;
+
+            for q := 0 to deleteOperationsToBePerformed.Count -1 do
+            begin
+              try
+                command.SetSQL(deleteOperationsToBePerformed.Strings[q]);
+                command.Execute;
+              except
+                on e : Exception do
+                begin
+                  msg := 'Error in query ' + tmpsql;
+                  logger.Error(msg);
+                  logger.Error(e.Message);
+                  if Assigned(aResults) then
+                  begin
+                    aResults.AddError(msg);
+                    aResults.AddError(e.Message);
+                  end;
+                  raise;
+                end;
+              end;
+              inc(performedDeletes);
+            end;
+
+          finally
+            deleteOperationsToBePerformed.Free;
+          end;
+        end;
       finally
         sourceFieldsMap.Free;
         destinationFieldsMap.Free;
+        sourceKeysMap.Free;
         SQLBuilderDestination.Free;
         SQLBuilderInsert.Free;
         SQLBuilderUpdate.Free;
+        SQLBuilderClearAll.Free;
         destinationQuery.Free;
         sourceQuery.Free;
         command.Free;
@@ -398,6 +546,7 @@ begin
     aResults.AddResult('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
     aResults.AddResult('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
     aResults.AddResult('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+    aResults.AddResult('Performed ' + IntToStr(performedDeletes) + ' delete commands to destination table ' + aTable.DestinationTableName);
   end;
 
   Result := true;
