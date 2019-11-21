@@ -32,9 +32,11 @@ type
     FOwnsConnectionInfo : boolean;
     FLocked : boolean;
     FCached : boolean;
+    FAncestor : TmDatabaseConnection;
 
     FImplementation : TmDatabaseConnectionImpl;
     procedure CreateImplementation;
+    function FindAncestorConnection (const aConnectionInfo: TmDatabaseConnectionInfo): TmDatabaseConnection;
   public
     constructor Create; overload;
     constructor Create(aConnectionInfo : TmDatabaseConnectionInfo; const aOwnsConnectionInfo: boolean = false); overload;
@@ -58,6 +60,7 @@ type
   TmDatabaseConnectionsTandem = class
   strict private
     FOwnedConnection : TmDatabaseConnection;
+    FAncestorConnection : TmDatabaseConnection;
     FSharedConnection : TmDatabaseConnection;
     FConnectionInfo : TmDatabaseConnectionInfo;
     procedure SetSharedConnection (aConnection : TmDatabaseConnection);
@@ -276,9 +279,12 @@ end;
 { TmDatabaseConnectionsTandem }
 
 constructor TmDatabaseConnectionsTandem.Create(const aConnectionInfo: TmDatabaseConnectionInfo; aSharedTransaction : TmDataManagerTransaction);
+var
+  ancestorConnection : TmDatabaseConnection;
 begin
   FOwnedConnection := nil;
   FSharedConnection := nil;
+  FAncestorConnection := nil;
 
   FConnectionInfo := aConnectionInfo;
   if Assigned(aSharedTransaction) then
@@ -286,8 +292,16 @@ begin
     if  not (aSharedTransaction is TmDatabaseConnection) then
       raise TmDataConnectionException.Create('Shared transaction is not a TmDatabaseConnection. Don''t know how to handle it.');
 
-    if (aSharedTransaction as TmDatabaseConnection).ConnectionInfo.DatabaseName = FConnectionInfo.DatabaseName then
-      Self.SetSharedConnection(aSharedTransaction as TmDatabaseConnection);
+    if (aSharedTransaction as TmDatabaseConnection).ConnectionInfo.IsEqual(FConnectionInfo) then
+      Self.SetSharedConnection(aSharedTransaction as TmDatabaseConnection)
+    else
+    begin
+      ancestorConnection := (aSharedTransaction as TmDatabaseConnection).FindAncestorConnection(FConnectionInfo);
+      if Assigned(ancestorConnection) then
+        Self.SetSharedConnection(ancestorConnection)
+      else
+        Self.FAncestorConnection := aSharedTransaction as TmDatabaseConnection;
+    end;
   end;
 end;
 
@@ -312,6 +326,7 @@ begin
         FOwnedConnection := TmDatabaseConnection.Create;
     {$ELSE}
       FOwnedConnection := TmDatabaseConnection.Create;
+      FOwnedConnection.FAncestor := Self.FAncestorConnection;
       if Assigned(FConnectionInfo) then
         FOwnedConnection.ConnectionInfo := FConnectionInfo;
     {$ENDIF}
@@ -663,12 +678,31 @@ begin
   end;
 end;
 
+function TmDatabaseConnection.FindAncestorConnection(const aConnectionInfo: TmDatabaseConnectionInfo): TmDatabaseConnection;
+var
+  currentAncestor : TmDatabaseConnection;
+begin
+  Result := nil;
+  currentAncestor := Self.FAncestor;
+  while Assigned(currentAncestor) do
+  begin
+    if currentAncestor.ConnectionInfo.IsEqual(aConnectionInfo) then
+    begin
+      Result := currentAncestor;
+      exit;
+    end
+    else
+      currentAncestor := currentAncestor.FAncestor;
+  end;
+end;
+
 constructor TmDatabaseConnection.Create;
 begin
   FImplementation := nil;
   FOwnsConnectionInfo:= false;
   FCached:= false;
   FLocked:= false;
+  FAncestor := nil;
 end;
 
 constructor TmDatabaseConnection.Create(aConnectionInfo: TmDatabaseConnectionInfo; const aOwnsConnectionInfo: boolean);

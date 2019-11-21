@@ -16,7 +16,7 @@ unit mProgressClasses;
 interface
 
 uses
-  Classes, contnrs, math, sysutils,
+  Classes, sysutils,
   mProgress, mUtility, mThreadsBaseClasses;
 
 type

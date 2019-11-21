@@ -65,6 +65,8 @@ type
     FFieldsMapping : TDataReplicaFields;
     FAllowInsert : boolean;
     FAllowUpdate : boolean;
+    FAllowDelete : boolean;
+    FPerformClearBefore : boolean;
 
     FSourceConnectionInfo: TmDatabaseConnectionInfo;
     FDestinationConnectionInfo : TmDatabaseConnectionInfo;
@@ -82,6 +84,9 @@ type
     property DestinationConnectionInfo : TmDatabaseConnectionInfo read FDestinationConnectionInfo;
     property AllowInsert : boolean read FAllowInsert write FAllowInsert;
     property AllowUpdate : boolean read FAllowUpdate write FAllowUpdate;
+    property AllowDelete : boolean read FAllowDelete write FAllowDelete;
+    property PerformClearBefore : boolean read FPerformClearBefore write FPerformClearBefore;
+
   end;
 
   { TDataReplicaTables }
@@ -144,6 +149,8 @@ begin
   FDestinationConnectionInfo:= TmDatabaseConnectionInfo.Create;
   FAllowInsert := true;
   FAllowUpdate := true;
+  FAllowDelete := false;
+  FPerformClearBefore:= false;
 end;
 
 destructor TDataReplicaTableToTable.Destroy;
