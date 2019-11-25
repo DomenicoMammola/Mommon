@@ -44,9 +44,11 @@ type
     procedure StartWrite;
     procedure EndWrite;
 
-    procedure AppendCell(const aValue: String); overload;
-    procedure AppendCell(const aValue: TAbstractNullable); overload;
+    procedure AppendCell(const aValue: String);
     procedure AppendQuotedCell(const aValue : String);
+    procedure AppendCellRFC4180(const aValue : String); overload; // https://tools.ietf.org/html/rfc4180
+    procedure AppendCellRFC4180(const aValue: TAbstractNullable); overload;  // https://tools.ietf.org/html/rfc4180
+
     procedure AppendRow;
 
     property Delimiter: Char read FDelimiter write FDelimiter;
@@ -139,20 +141,43 @@ begin
     FCurrentRow := FCurrentRow + FDelimiter + aValue;
 end;
 
-procedure TmCSVBuilder.AppendCell(const aValue: TAbstractNullable);
-begin
-  if (aValue is TNullableString) and aValue.NotNull then
-    Self.AppendQuotedCell(StringReplace(aValue.AsString, FDelimiter, '', [rfReplaceAll]))
-  else
-    Self.AppendCell(aValue.AsString);
-end;
-
 procedure TmCSVBuilder.AppendQuotedCell(const aValue: String);
 begin
   if FQuoteChar <> '' then
-    Self.AppendCell(Self.QuoteChar + StringReplace(aValue, FQuoteChar, '', [rfReplaceAll]) + Self.QuoteChar)
+    Self.AppendCell(Self.QuoteChar + aValue + Self.QuoteChar)
   else
     Self.AppendCell(aValue);
+end;
+
+// https://tools.ietf.org/html/rfc4180
+procedure TmCSVBuilder.AppendCellRFC4180(const aValue: String);
+var
+  tmp : String;
+  useQuotes : boolean;
+begin
+  useQuotes := false;
+  tmp := aValue;
+  if FQuoteChar <> '' then
+  begin
+    if Pos(FQuoteChar, aValue) > 0 then
+    begin
+      useQuotes := true;
+      tmp := StringReplace(aValue, FQuoteChar, FQuoteChar + FQuoteChar, [rfReplaceAll]);
+    end;
+    useQuotes := useQuotes or (Pos(FDelimiter, tmp) > 0);
+  end;
+  if useQuotes then
+    Self.AppendQuotedCell(tmp)
+  else
+    Self.AppendCell(tmp);
+end;
+
+procedure TmCSVBuilder.AppendCellRFC4180(const aValue: TAbstractNullable);
+begin
+  if aValue.NotNull then
+    Self.AppendCellRFC4180(aValue.AsString)
+  else
+    Self.AppendCell('');
 end;
 
 procedure TmCSVBuilder.AppendRow;
