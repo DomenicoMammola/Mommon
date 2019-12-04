@@ -179,7 +179,7 @@ begin
       exit;
     for i := 1 to lg do
     begin
-      if not (aValue[i] in ['0'..'9']) then
+      if not (aValue[i] in ['0'..'9','-', '+']) then
         exit;
     end;
     Result := true;
