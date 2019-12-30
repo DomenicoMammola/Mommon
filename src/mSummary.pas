@@ -60,7 +60,7 @@ type
     procedure SetSummaryValues (aScreenValues: TmSummaryScreenValues);
   end;
 
-  TmSummaryOperator = (soCount, soCountDistinct, soSum, soMax, soMin);
+  TmSummaryOperator = (soCount, soCountDistinct, soSum, soMax, soMin, soAverage, soAverageNotNull);
 
   { TmSummaryDefinition }
 
@@ -105,8 +105,10 @@ type
   TmSummaryValue = class
   private
     FDoubleValue : TNullableDouble;
+    FDoubleValue2 : TNullableDouble;
     FStringValue: TNullableString;
     FIntegerValue: TNullableInteger;
+    FIntegerValue2 : TNullableInteger;
     FUniqueValues: TmStringDictionary;
 
     FDefinition : TmSummaryDefinition;
@@ -195,6 +197,8 @@ begin
     soSum : Result := 'Sum';
     soMax : Result := 'Max';
     soMin : Result := 'Min';
+    soAverage : Result := 'Average';
+    soAverageNotNull : Result := 'Average not null';
   end;
 end;
 
@@ -305,15 +309,45 @@ end;
 
 procedure TmSummaryValue.Init;
 begin
-  if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) then
-    FIntegerValue.Value:= 0;
+  if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) or
+     (FDefinition.SummaryOperator = soAverage) or (FDefinition.SummaryOperator = soAverageNotNull) then
+    FIntegerValue2.Value:= 0;
 end;
 
 function TmSummaryValue.GetValueAsString: string;
 begin
   Result := '-';
   if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) then
-    Result := FIntegerValue.AsString
+    Result := FIntegerValue2.AsString
+  else
+  if (FDefinition.SummaryOperator = soAverage) or (FDefinition.SummaryOperator = soAverageNotNull) then
+  begin
+    if FieldTypeIsInteger(FDefinition.FieldType) then
+    begin
+      if FIntegerValue.IsNull or (FIntegerValue2.AsInteger = 0) then
+        Result := '-'
+      else
+        Result := FormatFloat('#,##0', FIntegerValue.AsInteger / FIntegerValue2.AsInteger);
+    end
+    else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
+    begin
+      if FDoubleValue.IsNull or (FIntegerValue2.AsInteger = 0)  then
+        Result := '-'
+      else
+      begin
+        if FieldTypeIsFloat(FDefinition.FieldType) then
+          Result := FormatFloat('#,##0.0000', RoundDoubleToStandardPrecision(FDoubleValue.Value / FIntegerValue2.AsInteger))
+        else if FieldTypeIsDate(FDefinition.FieldType) then
+          Result := DateToStr(Round(FDoubleValue.Value / FIntegerValue2.AsInteger))
+        else if FieldTypeIsTime(FDefinition.FieldType) then
+          Result := TimeToStr(FDoubleValue.Value / FIntegerValue2.AsInteger)
+        else
+          Result := DateTimeToStr(FDoubleValue.Value  / FIntegerValue2.AsInteger);
+      end;
+    end
+    else
+      Result := '';
+  end
   else
   begin
     if FieldTypeIsInteger(FDefinition.FieldType) then
@@ -374,8 +408,10 @@ constructor TmSummaryValue.Create;
 begin
   FDefinition:= TmSummaryDefinition.Create;
   FDoubleValue:= TNullableDouble.Create();
+  FDoubleValue2 := TNullableDouble.Create();
   FStringValue:= TNullableString.Create();
   FIntegerValue:= TNullableInteger.Create();
+  FIntegerValue2 := TNullableInteger.Create();
   FUniqueValues:= TmStringDictionary.Create();
 end;
 
@@ -383,13 +419,42 @@ destructor TmSummaryValue.Destroy;
 begin
   FDefinition.Free;
   FDoubleValue.Free;
+  FDoubleValue2.Free;
   FStringValue.Free;
   FIntegerValue.Free;
+  FIntegerValue2.Free;
   FUniqueValues.Free;
   inherited Destroy;
 end;
 
 procedure TmSummaryValue.ComputeValueInSummaries(const aValue: Variant);
+  procedure ComputeSum;
+  var
+    tmpInt : integer;
+    tmpDouble : double;
+  begin
+    if not VarIsNull(aValue) then
+    begin
+      case FDefinition.FieldType of
+        ftInteger, ftLargeint:
+          begin
+            tmpInt:= aValue;
+            if FIntegerValue.IsNull then
+              FIntegerValue.Value := tmpInt
+            else
+              FIntegerValue.Value := FIntegerValue.Value + tmpInt;
+          end;
+        ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp, ftFMTBcd, ftCurrency:
+          begin
+            tmpDouble:= RoundDoubleToStandardPrecision(aValue);
+            if FDoubleValue.IsNull then
+              FDoubleValue.Value := tmpDouble
+            else
+              FDoubleValue.Value := FDoubleValue.Value + tmpDouble;
+          end;
+      end;
+    end;
+  end;
 var
   tmpInt : integer;
   tmpString : string;
@@ -401,7 +466,13 @@ begin
     soCount:
       begin
         if not VarIsNull (aValue) then
-          FIntegerValue.Value := FIntegerValue.Value + 1;
+          FIntegerValue2.Add(1);
+      end;
+    soAverage, soAverageNotNull:
+      begin
+        if (FDefinition.SummaryOperator = soAverage) or (not VarIsNull (aValue)) then
+          FIntegerValue2.Add(1);
+        ComputeSum;
       end;
     soCountDistinct:
       begin
@@ -425,34 +496,14 @@ begin
           end;
           if not FUniqueValues.Contains(tmpString) then
           begin
-            FIntegerValue.Value := FIntegerValue.Value + 1;
+            FIntegerValue2.Add(1);
             FUniqueValues.Add(tmpString, FUniqueValues);
           end;
         end;
       end;
     soSum:
       begin
-        if not VarIsNull(aValue) then
-        begin
-          case FDefinition.FieldType of
-            ftInteger, ftLargeint:
-              begin
-                tmpInt:= aValue;
-                if FIntegerValue.IsNull then
-                  FIntegerValue.Value := tmpInt
-                else
-                  FIntegerValue.Value := FIntegerValue.Value + tmpInt;
-              end;
-            ftFloat, ftDateTime, ftDate, ftTime, ftTimeStamp, ftFMTBcd, ftCurrency:
-              begin
-                tmpDouble:= RoundDoubleToStandardPrecision(aValue);
-                if FDoubleValue.IsNull then
-                  FDoubleValue.Value := tmpDouble
-                else
-                  FDoubleValue.Value := FDoubleValue.Value + tmpDouble;
-              end;
-          end;
-        end;
+        ComputeSum;
       end;
     soMax:
       begin
