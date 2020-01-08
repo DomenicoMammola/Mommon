@@ -323,6 +323,7 @@ type
     function AsString : String; override;
     function AsFloat : Double;
     function AsFormattedString (const aFormat: String): String;
+    function AsJson(const aFieldName : String; const aSkipIfNull : boolean): String; override;
 
     property Value : Double read GetValue write SetValue;
     property DisplayFormat : String read FDisplayFormat write SetDisplayFormat;
@@ -2173,6 +2174,14 @@ begin
     Result := ''
   else
     Result := FormatFloat(aFormat, Self.Value);
+end;
+
+function TNullableDouble.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+    Result := '"' + aFieldName + '":"' + StringReplace(Self.AsString, ',', '.', [rfReplaceAll]) + '"';
 end;
 
 
