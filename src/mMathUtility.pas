@@ -27,7 +27,7 @@ function GetFractionalPartDigits(const aValue: double): integer;
 function TryToConvertToDouble(aValue: string; out aOutValue: Double): boolean;
 function TryToConvertToInteger(aValue: string; out aOutValue: Integer): boolean;
 function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
-function IsNumeric(const aValue: string; const aAllowFloat: Boolean): Boolean;
+function IsNumeric(const aValue: string; const aAllowFloat, aAllowSigns: Boolean): Boolean;
 function ExtractFirstInteger(aValue: string; out aOutValue: Integer): boolean;
 
 implementation
@@ -164,26 +164,67 @@ begin
   end;
 end;
 
-function IsNumeric(const aValue: string; const aAllowFloat: Boolean): Boolean;
+function IsNumeric(const aValue: string; const aAllowFloat, aAllowSigns: Boolean): Boolean;
 var
   i, lg : integer;
   tmpDouble : double;
+  numCommas, numDots : integer;
 begin
-  if aAllowFloat then
-    Result := TryToConvertToDouble(aValue, tmpDouble)
-  else
+  Result := false;
+  lg := Length(aValue);
+  if lg = 0 then
+    exit;
+
+  if aAllowSigns then
   begin
-    Result := false;
-    lg := Length(aValue);
-    if lg = 0 then
+    if ((aValue[1] in ['-', '+']) and (lg = 1)) then
       exit;
-    for i := 1 to lg do
+    if (not (aValue[1] in ['0'..'9','-', '+'])) then
+      exit;
+  end
+  else
+    if (not (aValue[1] in ['0'..'9'])) then
+       exit;
+
+  if not aAllowFloat then
+  begin
+    for i := 2 to lg do
     begin
-      if not (aValue[i] in ['0'..'9','-', '+']) then
+      if not (aValue[i] in ['0'..'9'])  then
         exit;
     end;
-    Result := true;
+  end
+  else
+  begin
+    if not (aValue[lg] in ['0'..'9'])  then
+      exit;
+    numCommas := 0;
+    numDots := 0;
+    for i := lg downto 2 do
+    begin
+      if aValue[i] = '.' then
+      begin
+        inc (numDots);
+        if (numDots > 1) or (numCommas > 0) then
+          exit;
+      end
+      else if aValue[i] = ',' then
+      begin
+        inc (numCommas);
+        if (numCommas > 1) or (numDots > 0) then
+          exit;
+      end
+      else
+      begin
+        if not (aValue[i] in ['0'..'9'])  then
+          exit;
+      end;
+    end;
+    if not TryToConvertToDouble(aValue, tmpDouble) then
+      exit;
   end;
+
+  Result := true;
 end;
 
 function ExtractFirstInteger(aValue: string; out aOutValue: Integer): boolean;
@@ -195,7 +236,7 @@ begin
   candidate := '';
   for i := 1 to Length(aValue) do
   begin
-    if IsNumeric(aValue[i], false) then
+    if IsNumeric(aValue[i], false, false) then
       candidate := candidate + aValue[i]
     else if candidate <> '' then
       break;
