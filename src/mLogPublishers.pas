@@ -194,7 +194,7 @@ begin
   if Length(tmp) >= 8 then
   begin
     tmp := Copy(tmp, 1, 8);
-    if IsNumeric(tmp, false) then
+    if IsNumeric(tmp, false, false) then
       Result := round(DecodeTimeStampForFileName(tmp));
   end;
 end;

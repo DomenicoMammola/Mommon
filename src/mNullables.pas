@@ -1493,7 +1493,7 @@ var
   tmp : String;
 begin
   tmp := Trim(aValue);
-  if IsNumeric(tmp, false) then
+  if IsNumeric(tmp, false, true) then
     Result := StrToInt(tmp)
   else
     Result := Null;

@@ -199,7 +199,7 @@ begin
   YearStr:= Copy(aMRNCode, 1, 2);
   CountryCode:= Copy(aMRNCode, 3, 2);
 
-  if not IsNumeric(YearStr, false) then
+  if not IsNumeric(YearStr, false, false) then
   begin
     aErrorMessage:= SErrorMRNWrongYear;
     exit;
@@ -213,7 +213,7 @@ begin
   end;
 
   CheckDigitStr:= Copy(aMRNCode, 18, 1);
-  if not IsNumeric(CheckDigitStr, false) then
+  if not IsNumeric(CheckDigitStr, false, false) then
   begin
     aErrorMessage:= SErrorMRNCheckDigitNotANumber;
     exit;

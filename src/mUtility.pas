@@ -384,7 +384,7 @@ begin
 
   if CanTry then
   begin
-    if IsNumeric(dString, false) and IsNumeric(mString, false) and IsNumeric(yString, false) then
+    if IsNumeric(dString, false, false) and IsNumeric(mString, false, false) and IsNumeric(yString, false, false) then
     begin
       for i := 1 to 2 do
       begin
@@ -436,7 +436,7 @@ function TryToUnderstandTimeString(const aInputString: String; out aValue: TDate
       seconds := 0;
       if list.Count >= 1 then
       begin
-        if IsNumeric(list.Strings[0], false) then
+        if IsNumeric(list.Strings[0], false, false) then
         begin
           hour := StrToInt(list.Strings[0]);
           if (hour < 0) or (hour > 23) then
@@ -445,7 +445,7 @@ function TryToUnderstandTimeString(const aInputString: String; out aValue: TDate
       end;
       if list.Count >= 2 then
       begin
-        if IsNumeric(list.Strings[1], false) then
+        if IsNumeric(list.Strings[1], false, false) then
         begin
           minutes := StrToInt(list.Strings[1]);
           if (minutes < 0) or (minutes > 59) then
@@ -454,7 +454,7 @@ function TryToUnderstandTimeString(const aInputString: String; out aValue: TDate
       end;
       if list.Count >= 3 then
       begin
-        if IsNumeric(list.Strings[2], false) then
+        if IsNumeric(list.Strings[2], false, false) then
         begin
           seconds := StrToInt(list.Strings[2]);
           if (seconds < 0) or (seconds > 59) then
@@ -501,7 +501,7 @@ begin
         hourStr := Copy(tmp, 1, 2);
         minutesStr := Copy (tmp, 3, 1);
         secondsStr := '0';
-        if IsNumeric(hourStr, false) then
+        if IsNumeric(hourStr, false, false) then
         begin
           hour := StrToInt(hourStr);
           if (hour >= 23) then
@@ -528,7 +528,7 @@ begin
 
       if secondsStr <> '' then
       begin
-        if IsNumeric(hourStr, false) and IsNumeric(minutesStr, false) and IsNumeric(secondsStr, false) then
+        if IsNumeric(hourStr, false, false) and IsNumeric(minutesStr, false, false) and IsNumeric(secondsStr, false, false) then
         begin
           hour:= StrToInt(hourStr);
           minutes:= StrToInt(minutesStr);
@@ -1005,7 +1005,7 @@ begin
     Result := aDefaultValue
   else if VarIsOrdinal(aValue) then
     Result := aValue
-  else if IsNumeric(VarToStr(aValue), false) then
+  else if IsNumeric(VarToStr(aValue), false, true) then
     Result := StrToInt(VarToStr(aValue))
   else
     Result := aDefaultValue;
