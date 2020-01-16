@@ -289,6 +289,7 @@ begin
   FStartEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, ''){$ENDIF};
   FStartEvent.ResetEvent;
   FEndEvent := aEndEvent;
+  FEndEvent.ResetEvent;
   FLogManager := aLogManager;
   FMessages := TmLogMessageList.Create;
   FPublishers := TObjectList.Create(false);
@@ -494,8 +495,8 @@ end;
 
 destructor TmLogMessageList.Destroy;
 begin
-  FList.Free;
-  FCriticalSection.Free;
+  FreeAndNil(FList);
+  FreeAndNil(FCriticalSection);
   inherited;
 end;
 
@@ -521,12 +522,17 @@ end;
 
 function TmLogMessageList.Empty: boolean;
 begin
-  FCriticalSection.Acquire;
-  try
-    Result := (FList.Count = 0);
-  finally
-    FCriticalSection.Leave;
-  end;
+ if Assigned(FCriticalSection) and Assigned(FList) then
+ begin
+    FCriticalSection.Acquire;
+    try
+      Result := (FList.Count = 0);
+    finally
+      FCriticalSection.Leave;
+    end;
+ end
+ else
+   Result := true;
 end;
 
 procedure TmLogMessageList.PushMessage(aLevel: TmLogMessageLevel; aContext, aMessage: string);
