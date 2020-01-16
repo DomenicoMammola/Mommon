@@ -466,10 +466,11 @@ begin
 
               if not Assigned(sourceKeysMap.Find(curKeyString)) then
               begin
-                for q := 0 to aTable.FieldsMapping.Count - 1 do
+                for q := 0 to aTable.SourceKeyFields.Count - 1 do
                 begin
-                  sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
-                  SQLBuilderDelete.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+                  curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[q]);
+                  sourcefld := sourceFieldsMap.Find(curFieldToField.SourceField.AsUppercaseString) as TField;
+                  SQLBuilderDelete.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(curFieldToField.DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
                 end;
                 deleteOperationsToBePerformed.Add(SQLBuilderDelete.BuildSQL);
               end;
