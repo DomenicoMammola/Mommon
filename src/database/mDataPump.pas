@@ -511,7 +511,9 @@ begin
         SQLBuilderDestination.Free;
         SQLBuilderInsert.Free;
         SQLBuilderUpdate.Free;
+        SQLBuilderDelete.Free;
         SQLBuilderClearAll.Free;
+        SQLBuilderSelectAll.Free;
         destinationQuery.Free;
         sourceQuery.Free;
         command.Free;
