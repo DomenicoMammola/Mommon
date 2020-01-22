@@ -50,6 +50,8 @@ type
 
     function GetDatumKey : IVDDatumKey;
     function AsObject: TObject;
+    procedure Assign(const aSource : TBooleanDatum);
+    function Clone : IVDDatum;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
     class function GetKeyField : String;
@@ -220,6 +222,20 @@ end;
 function TBooleanDatum.AsObject: TObject;
 begin
   Result := Self;
+end;
+
+procedure TBooleanDatum.Assign(const aSource: TBooleanDatum);
+begin
+  Key.Assign(aSource.Key);
+end;
+
+function TBooleanDatum.Clone: IVDDatum;
+var
+  tmp : TBooleanDatum;
+begin
+  tmp := TBooleanDatum.Create(Self.Key.Value);
+  tmp.Assign(Self);
+  Result := tmp;
 end;
 
 class procedure TBooleanDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; const aPrefix: String);

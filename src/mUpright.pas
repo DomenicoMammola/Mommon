@@ -61,6 +61,7 @@ type
     function CompareTo (aOther : TmUprightEvent) : integer;
     function GetValue (const aIndex : byte) : TNullableDouble;
     function GetAttribute (const aIndex: byte): TNullableString;
+    procedure Assign(const aSource : TmUprightEvent);
 
     property EventDate: TDateTime read FEventDate write FEventDate;
     property DatumKey: string read FDatumKey write FDatumKey;
@@ -105,6 +106,7 @@ type
     function GetDatumKey : IVDDatumKey;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
     function AsObject: TObject;
+    function Clone : IVDDatum;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; aPrefix : String; const aValuesCount : integer = 1; const aAttributesCount : integer = 4);
     class function GetKeyField : String;
@@ -271,6 +273,20 @@ begin
   Result := FAttributes[aIndex];
 end;
 
+procedure TmUprightEvent.Assign(const aSource: TmUprightEvent);
+begin
+  EventDate := aSource.EventDate;
+  DatumKey := aSource.DatumKey;
+  EventType := aSource.EventType;
+  if aSource.OwnsReference then
+    raise Exception.Create('TmUprightEvent.Assign: unable to clone an owned reference')
+  else
+  begin
+    Reference := aSource.Reference;
+    OwnsReference := aSource.OwnsReference;
+  end;
+end;
+
 function TmUprightDatum.GetDatumKey: IVDDatumKey;
 begin
   Result := FKey;
@@ -344,6 +360,12 @@ end;
 function TmUprightDatum.AsObject: TObject;
 begin
   Result := Self;
+end;
+
+function TmUprightDatum.Clone: IVDDatum;
+begin
+  raise Exception.Create('TmUprightDatum.Clone - not implementated');
+  Result := nil;
 end;
 
 class procedure TmUprightDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; aPrefix: String; const aValuesCount : integer = 1; const aAttributesCount : integer = 4);
