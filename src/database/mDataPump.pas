@@ -277,8 +277,29 @@ begin
           end;
         end;
 
+        {$IFDEF DEBUG}
+        logger.Debug('Source query: ' + aTable.SourceSelectQuery );
+        {$ENDIF}
+
         sourceFieldsMap.Clear;
-        sourceQuery.Open;
+        try
+          sourceQuery.Open;
+        except
+          on e : Exception do
+          begin
+            msg := 'Error in query ' + aTable.SourceSelectQuery;
+            logger.Error(msg);
+            logger.Error(e.Message);
+            if Assigned(aResults) then
+            begin
+              aResults.AddError(msg);
+              aResults.AddError(e.Message);
+            end;
+            raise;
+          end;
+        end;
+
+
         rows := 0;
         performedInserts := 0;
         performedUpdates := 0;
@@ -288,7 +309,12 @@ begin
           if sourceFieldsMap.Count = 0 then
           begin
             for q := 0 to sourceQuery.AsDataset.Fields.Count - 1 do
+            begin
               sourceFieldsMap.Add(Uppercase(sourceQuery.AsDataset.Fields[q].FieldName), sourceQuery.AsDataset.Fields[q]);
+              {$IFDEF DEBUG}
+              logger.Debug('Add source field ' + Uppercase(sourceQuery.AsDataset.Fields[q].FieldName) + ' to map...' );
+              {$ENDIF}
+            end;
           end;
 
           curKeyString:= '';
@@ -327,6 +353,9 @@ begin
             for q := 0 to aTable.FieldsMapping.Count - 1 do
             begin
               sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString) as TField;
+              if not Assigned(sourcefld) then
+                raise Exception.Create('Source field missing! ' + aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString + ' Source fields map count: ' + IntToStr(sourceFieldsMap.Count));
+
               destinationfld := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
               performUpdate := MD5Print(MD5String(sourcefld.AsString)) <> MD5Print(MD5String(destinationfld.AsString));
               if performUpdate then
@@ -543,6 +572,7 @@ begin
   logger.Debug('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
   logger.Debug('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
   logger.Debug('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+  logger.Debug('Performed ' + IntToStr(performedDeletes) + ' delete commands to destination table ' + aTable.DestinationTableName);
   {$ENDIF}
   if Assigned(aResults) then
   begin
