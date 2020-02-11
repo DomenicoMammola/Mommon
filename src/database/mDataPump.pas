@@ -568,12 +568,11 @@ begin
     sourceConnection.Free;
   end;
 
-  {$IFDEF DEBUG}
-  logger.Debug('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
-  logger.Debug('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
-  logger.Debug('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
-  logger.Debug('Performed ' + IntToStr(performedDeletes) + ' delete commands to destination table ' + aTable.DestinationTableName);
-  {$ENDIF}
+  logger.Info('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
+  logger.Info('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
+  logger.Info('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+  logger.Info('Performed ' + IntToStr(performedDeletes) + ' delete commands to destination table ' + aTable.DestinationTableName);
+
   if Assigned(aResults) then
   begin
     aResults.AddResult('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
