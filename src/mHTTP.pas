@@ -19,6 +19,8 @@ interface
 function PostJSONData (const aURI, aJSONMessage : String; out aResponseBody, aResponseText : String; out aErrorMessage : string) : boolean;
 function PostJSONDataWithBasicAuthentication (const aURI, aJSONMessage : String; const aUsername, aPassword:  String; out aResponseBody, aResponseText : String; out aErrorMessage : string) : boolean;
 
+function GetHTMLPage (const aURI : STring; out aResponseBody: String; out aErrorMessage: String): boolean;
+
 implementation
 
 uses
@@ -75,5 +77,33 @@ begin
     HTTP.Free;
   end;
 end;
+
+function GetHTMLPage(const aURI: STring; out aResponseBody: String; out aErrorMessage: String) : boolean;
+var
+  HTTP: TIdHTTP;
+begin
+  Result := true;
+
+  HTTP := TIdHTTP.Create;
+  try
+    try
+      aResponseBody := HTTP.Get(aURI, IndyTextEncoding(encUTF8));
+    except
+      on E: EIdHTTPProtocolException do
+      begin
+        aErrorMessage:= E.Message + sLineBreak + E.ErrorMessage;
+        Result := false;
+      end;
+      on E: Exception do
+      begin
+        aErrorMessage:= E.Message;
+        Result := false;
+      end;
+    end;
+  finally
+    HTTP.Free;
+  end;
+end;
+
 
 end.
