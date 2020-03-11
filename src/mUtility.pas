@@ -856,13 +856,15 @@ end;
 function SillyCryptDecrypt(const aText, aPassword: string): string;
 var
   i, len: integer;
+  pwd : String;
 begin
   len := Length(aText);
-  if len > Length(aPassword) then
-    len := Length(aPassword);
+  pwd := aPassword;
+  while Length(pwd) < len do
+    pwd := pwd + aPassword;
   SetLength(result, len);
   for i := 1 to len do
-    result[i] := Chr(Ord(aText[i]) xor Ord(aPassword[i]));
+    result[i] := Chr(Ord(aText[i]) xor Ord(pwd[i]));
 end;
 
 procedure ConvertVariantToStringList(const aValue: variant; aList: TStringList);
