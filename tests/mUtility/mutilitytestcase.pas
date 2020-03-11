@@ -14,6 +14,7 @@ type
 
   TTestCaseUtility= class(TTestCase)
   published
+    procedure TestSillyCryptDecrypt;
     procedure TestAddRemoveZeros;
     procedure TestGetCPUCores;
     procedure TestISO6346Containers;
@@ -24,6 +25,21 @@ type
 
 implementation
 
+procedure TTestCaseUtility.TestSillyCryptDecrypt;
+var
+  pwd : String;
+begin
+  pwd := 'zucc$';
+  CheckEquals(SillyCryptDecrypt(SillyCryptDecrypt('pimpiripettanuse', pwd), pwd), 'pimpiripettanuse');
+  pwd := 'zucc_123_4edhjshdfhòsàà???!K!LKLD';
+  CheckEquals(SillyCryptDecrypt(SillyCryptDecrypt('pimpiripettanuse', pwd), pwd), 'pimpiripettanuse');
+  CheckEquals(SillyCryptDecrypt(SillyCryptDecrypt('!"_@@Dsklsdjk22a*^?L', pwd), pwd), '!"_@@Dsklsdjk22a*^?L');
+  pwd := '树树树树';
+  CheckEquals(SillyCryptDecrypt(SillyCryptDecrypt('pimpiripettanuse', pwd), pwd), 'pimpiripettanuse');
+  CheckEquals(SillyCryptDecrypt(SillyCryptDecrypt('花的房子', pwd), pwd), '花的房子');
+  pwd := 'zucc$';
+  CheckEquals(SillyCryptDecrypt(SillyCryptDecrypt('花的房子', pwd), pwd), '花的房子');
+end;
 
 procedure TTestCaseUtility.TestAddRemoveZeros;
 begin
