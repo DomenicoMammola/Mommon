@@ -38,6 +38,8 @@ function CreateUniqueIdentifier : String; // actually a GUID without parentheses
 function IsUniqueIdentifier (const aUI : String): boolean;
 function CreateHumanReadableUniqueIdentier (const aLanguageCode : String): String; // a random unique identifier which is easy to be remembered, inspired by https://github.com/PerWiklander/IdentifierSentence
 
+procedure WordwrapStringByRows(const aSourceString : String; const aNumOfRows : integer; aRows : TStringList);
+
 function AddZerosFront (const aValue : integer; const aLength : integer) : String; overload;
 function AddZerosFront (const aValue : string; const aLength : integer) : String; overload;
 function RemoveZerosFromFront (aValue : String) : String;
@@ -140,7 +142,7 @@ function CurrentProcessId: cardinal; // look at Indy function CurrentProcessId: 
 implementation
 
 uses
-  DateUtils, base64,
+  DateUtils, base64, strutils,
   {$IFDEF WINDOWS}shlobj, registry, winutils,{$ELSE}LazUTF8,{$ENDIF}
   {$IFDEF LINUX}initc, ctypes, BaseUnix,{$ENDIF}
   mMathUtility;
@@ -151,6 +153,49 @@ var
 {$IFDEF LINUX}
 function sysconf(i:cint):clong;cdecl;external name 'sysconf';
 {$ENDIF}
+
+procedure WordwrapStringByRows(const aSourceString: String; const aNumOfRows: integer; aRows: TStringList);
+var
+  remaining : String;
+  start, leftSpace, rightSpace, curRow, i : integer;
+begin
+  aRows.Clear;
+  if aNumOfRows = 1 then
+    aRows.Add(aSourceString)
+  else
+  begin
+    remaining:= aSourceString;
+    curRow := 1;
+
+    while curRow < aNumOfRows do
+    begin
+      start := Length(remaining) div (aNumOfRows - curRow + 1);
+      leftSpace := -1;
+      for i := start downto 1 do
+      begin
+        if aSourceString[i] = ' ' then
+        begin
+          leftSpace := i;
+          break;
+        end;
+      end;
+      if leftSpace > 0 then
+      begin
+        aRows.Add(LeftStr(remaining, leftSpace - 1));
+        remaining := Copy(remaining, leftSpace + 1, 999999);
+      end
+      else
+      begin
+        aRows.Add(Copy(remaining, 1, start));
+        remaining := Copy(remaining, start + 1, 999999);
+      end;
+
+      inc(curRow);
+      if curRow = aNumOfRows then
+        aRows.Add(remaining);
+    end;
+  end;
+end;
 
 function AddZerosFront (const aValue : integer; const aLength : integer) : String;
 begin
