@@ -157,10 +157,11 @@ type
 
     procedure RunEndCallBack;
     procedure SetMaxConcurrentThreads(AValue: integer);
+  protected
+    procedure Execute; override;
   public
     constructor Create; reintroduce;
     destructor Destroy; override;
-    procedure Execute; override;
     function GetDebugInfo: string; override;
 
     property CanStartEvent : TSimpleEvent read FCanStartEvent;
