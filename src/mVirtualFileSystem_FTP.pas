@@ -28,13 +28,6 @@ type
 
   TFTPFileType = (ftFile, ftDir);
 
-  { TFTPThread }
-
-  TFTPThread = class (TThread)
-  public
-    procedure Execute; override;
-  end;
-
   { TFTPFileSystemManager }
 
   TFTPFileSystemManager = class(TmAbstractFileSystemManager)
@@ -65,20 +58,13 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-    procedure Refresh(const aIsGUIApplication : boolean); override;
+    procedure Refresh; override;
 
     property FTPFolders : TStringList read FFTPFolders;
   end;
 
 
 implementation
-
-{ TFTPThread }
-
-procedure TFTPThread.Execute;
-begin
-
-end;
 
 { TFTPFoldersListFileSystem }
 
@@ -94,7 +80,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TFTPFoldersListFileSystem.Refresh(const aIsGUIApplication : boolean);
+procedure TFTPFoldersListFileSystem.Refresh;
 var
   FTPClient : TIdFTP;
   i, k : integer;
@@ -102,68 +88,51 @@ var
   tmpFile : TmFile;
   tmpFileType : TFTPFileType;
   tmpFileName : string;
-  {$IFDEF GUI}
-  tmpCursor : TCursor;
-  {$ENDIF}
 begin
-  if aIsGUIApplication then
-  begin
-    {$IFDEF GUI}
-    tmpCursor := Screen.Cursor;
-    Screen.Cursor:= crHourGlass;
-    {$ENDIF}
-  end;
+  FRoots.Clear;
+  FTPClient := TIdFTP.Create(nil);
   try
-    FRoots.Clear;
-    FTPClient := TIdFTP.Create(nil);
+    FTPClient.Host:= FHost;
+    FTPClient.Username:= FUsername;
+    FTPClient.Password:= FPassword;
     try
-      FTPClient.Host:= FHost;
-      FTPClient.Username:= FUsername;
-      FTPClient.Password:= FPassword;
-      try
-        FTPClient.Connect;
-      except
-        on e: Exception do
-        begin
-          raise Exception.Create('Unable to connect to the ftp server. Error:' + sLineBreak + e.Message);
-        end;
-      end;
-      if FTPClient.Connected then
+      FTPClient.Connect;
+    except
+      on e: Exception do
       begin
-        for i := 0 to FFTPFolders.Count - 1 do
+        raise Exception.Create('Unable to connect to the ftp server. Error:' + sLineBreak + e.Message);
+      end;
+    end;
+    if FTPClient.Connected then
+    begin
+      for i := 0 to FFTPFolders.Count - 1 do
+      begin
+        FTPClient.ChangeDir('/');
+        FTPClient.ChangeDir(FFTPFolders.Strings[i]);
+
+        tmpFolder := FRoots.Add;
+        tmpFolder.Name:= ExtractLastFolderFromPath(FFTPFolders.Strings[i]);
+        tmpFolder.Path:= FFTPFolders.Strings[i];
+
+        FTPClient.List(FFileMask);
+        for k := 0 to FTPClient.ListResult.Count - 1 do
         begin
-          FTPClient.ChangeDir('/');
-          FTPClient.ChangeDir(FFTPFolders.Strings[i]);
-
-          tmpFolder := FRoots.Add;
-          tmpFolder.Name:= ExtractLastFolderFromPath(FFTPFolders.Strings[i]);
-          tmpFolder.Path:= FFTPFolders.Strings[i];
-
-          FTPClient.List(FFileMask);
-          for k := 0 to FTPClient.ListResult.Count - 1 do
+          if ExtractTypeAndName(FTPClient.ListResult[k], tmpFileType, tmpFileName) then
           begin
-            if ExtractTypeAndName(FTPClient.ListResult[k], tmpFileType, tmpFileName) then
+            if tmpFileType = ftFile then
             begin
-              if tmpFileType = ftFile then
-              begin
-                tmpFile := tmpFolder.Files.Add;
-                tmpFile.FileData.Name:= tmpFileName;
-                tmpFile.FileData.FileName:= tmpFileName;
-                tmpFile.FileData.Path:= FFTPFolders.Strings[i];
-              end;
+              tmpFile := tmpFolder.Files.Add;
+              tmpFile.FileData.Name:= tmpFileName;
+              tmpFile.FileData.FileName:= tmpFileName;
+              tmpFile.FileData.Path:= FFTPFolders.Strings[i];
             end;
           end;
         end;
       end;
-      FTPClient.Disconnect;
-    finally
-      FTPClient.Free;
     end;
+    FTPClient.Disconnect;
   finally
-    {$IFDEF GUI}
-    if aIsGUIApplication then
-      Screen.Cursor:= tmpCursor;
-    {$ENDIF}
+    FTPClient.Free;
   end;
 end;
 
