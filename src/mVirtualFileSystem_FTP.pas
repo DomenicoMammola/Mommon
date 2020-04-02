@@ -20,7 +20,7 @@ interface
 uses
   Classes, SysUtils, {$IFDEF GUI}Controls, Forms, {$ENDIF}
 
-  IdTCPClient, IdFTP, IdFTPCommon,
+  IdTCPClient, IdFTP, IdFTPCommon, IdReplyRFC, IdReplyFTP,
 
   mVirtualFileSystem, mUtility;
 
@@ -37,12 +37,22 @@ type
     FPassword : string;
     FFileMask : string;
     function ExtractTypeAndName (const aSourceString : string; out aFileType : TFTPFileType; out aFileName : string) : boolean;
+    procedure InternalCreateSubFolders(aFTPClient : TIdFTP; const aPath: string);
+    function GetFTPParentPath(const aPath : String): String;
+    function GetFTPLastFolderInPath(const aPath : String): String;
   public
-    constructor Create; override;
+    const PATH_DELIMITER = '/';
+  public
+    constructor Create; virtual;
     destructor Destroy; override;
-    procedure ReadStream (aFile : TmFileData; aStream : TStream); override;
-    procedure WriteStream (aFile : TmFileData; aStream : TStream); override;
-    function ValidateFileName (aFileName : string) : string; override;
+    procedure ReadStream (const aFileName, aFileFolder : String; aStream : TStream); override;
+    procedure WriteStream (const aFileName, aFileFolder : String; aStream : TStream); override;
+
+    function ValidateFileName (const aFileName : string) : string; override;
+    procedure CreatePath(const aPath: string); override;
+    function IncludeTrailingPathFSDelimiter (const aPath : String): String; override;
+    procedure GetAllFiles (aRoots: TmFolders); virtual;
+    procedure DeleteFile (const aFileName, aFileFolder : String); override;
 
     property Host : string read FHost write FHost;
     property Username : string read FUsername write FUsername;
@@ -58,11 +68,12 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-    procedure Refresh; override;
+    procedure GetAllFiles (aRoots: TmFolders); override;
 
     property FTPFolders : TStringList read FFTPFolders;
   end;
 
+  function IncludeTrailingPathFTPDelimiter (const aPath : String): String;
 
 implementation
 
@@ -80,7 +91,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TFTPFoldersListFileSystem.Refresh;
+procedure TFTPFoldersListFileSystem.GetAllFiles (aRoots: TmFolders);
 var
   FTPClient : TIdFTP;
   i, k : integer;
@@ -89,7 +100,7 @@ var
   tmpFileType : TFTPFileType;
   tmpFileName : string;
 begin
-  FRoots.Clear;
+  aRoots.Clear;
   FTPClient := TIdFTP.Create(nil);
   try
     FTPClient.Host:= FHost;
@@ -107,10 +118,10 @@ begin
     begin
       for i := 0 to FFTPFolders.Count - 1 do
       begin
-        FTPClient.ChangeDir('/');
+        FTPClient.ChangeDir(PATH_DELIMITER);
         FTPClient.ChangeDir(FFTPFolders.Strings[i]);
 
-        tmpFolder := FRoots.Add;
+        tmpFolder := aRoots.Add;
         tmpFolder.Name:= ExtractLastFolderFromPath(FFTPFolders.Strings[i]);
         tmpFolder.Path:= FFTPFolders.Strings[i];
 
@@ -135,6 +146,7 @@ begin
     FTPClient.Free;
   end;
 end;
+
 
 { TFTPFileSystemManager }
 
@@ -171,6 +183,85 @@ begin
   end;
 end;
 
+
+// https://www.howtobuildsoftware.com/index.php/how-do/bqWO/delphi-indy10-delphi-xe7-idftp-direxists-and-makedir
+procedure TFTPFileSystemManager.InternalCreateSubFolders(aFTPClient : TIdFTP; const aPath: string);
+var
+  dirExists : boolean;
+  tmpFolder : String;
+begin
+  try
+    aFTPClient.List(nil, aPath, false);
+    dirExists := True;
+    if aFTPClient.LastCmdResult.NumericCode = 450 then
+    begin
+      if Pos('no such', LowerCase(aFTPClient.LastCmdResult.Text.Text)) > 0 then //  has a message like 'No such file or directory' or similar)
+        dirExists := false;
+    end;
+  except
+    on e: EIdReplyRFCError do
+    begin
+      if (e.ErrorCode <> 550) or
+        (Pos('not found', LowerCase(e.Message)) = 0) then
+        //(e.Message does not have a message like 'Directory not found' or similar) then begin
+        raise
+      else
+        dirExists := false;
+    end;
+  end;
+
+  if not dirExists then
+  begin
+    tmpFolder := GetFTPParentPath(aPath);
+    if tmpFolder <> '' then
+    begin
+      aFTPClient.ChangeDir(PATH_DELIMITER);
+      aFTPClient.ChangeDir(tmpFolder);
+    end;
+    tmpFolder := GetFTPLastFolderInPath(aPath);
+    if tmpFolder <> '' then
+      aFTPClient.MakeDir(tmpFolder);
+  end;
+end;
+
+function TFTPFileSystemManager.GetFTPParentPath(const aPath: String): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := (Length(aPath) - 1) downto 1 do
+  begin
+    if aPath[i] = PATH_DELIMITER then
+    begin
+      Result := Copy(aPath, 1, i - 1);
+      exit;
+    end;
+  end;
+end;
+
+function TFTPFileSystemManager.GetFTPLastFolderInPath(const aPath: String): String;
+var
+  i, l : integer;
+begin
+  Result := '';
+  for i := (Length(aPath) - 1) downto 1 do
+  begin
+    if aPath[i] = PATH_DELIMITER then
+    begin
+      Result := Copy(aPath, i + 1, 9999);
+      l := Length(Result);
+      if Result[l] = PATH_DELIMITER then
+      begin
+        if l > 1 then
+          Result := Copy(Result, 1, l-1)
+        else
+          Result := '';
+      end;
+      exit;
+    end;
+  end;
+end;
+
 constructor TFTPFileSystemManager.Create;
 begin
   inherited Create;
@@ -186,7 +277,7 @@ begin
 end;
 
 
-procedure TFTPFileSystemManager.ReadStream(aFile: TmFileData; aStream: TStream);
+procedure TFTPFileSystemManager.ReadStream(const aFileName, aFileFolder : String; aStream : TStream);
 var
   FTPClient : TIdFTP;
 begin
@@ -200,8 +291,9 @@ begin
     begin
       FTPClient.TransferType := ftBinary;
       FTPClient.Passive:= true;
-      FTPClient.ChangeDir(aFile.Path);
-      FTPClient.Get(aFile.FileName, aStream);
+      FTPClient.ChangeDir(PATH_DELIMITER);
+      FTPClient.ChangeDir(aFileFolder);
+      FTPClient.Get(aFileName, aStream);
     end;
     FTPClient.Disconnect;
   finally
@@ -209,7 +301,7 @@ begin
   end;
 end;
 
-procedure TFTPFileSystemManager.WriteStream(aFile: TmFileData; aStream: TStream);
+procedure TFTPFileSystemManager.WriteStream(const aFileName, aFileFolder : String; aStream: TStream);
 var
   FTPClient : TIdFTP;
 begin
@@ -223,10 +315,11 @@ begin
     begin
       FTPClient.TransferType := ftBinary;
       FTPClient.Passive:= true;
-      FTPClient.ChangeDir(aFile.Path);
-      if FTPClient.Size(aFile.FileName) > 0 then
-        FTPClient.Delete(aFile.FileName);
-      FTPClient.Put(aStream, aFile.FileName);
+      FTPClient.ChangeDir(PATH_DELIMITER);
+      FTPClient.ChangeDir(aFileFolder);
+      if FTPClient.Size(aFileName) > 0 then
+        FTPClient.Delete(aFileName);
+      FTPClient.Put(aStream, aFileName);
     end;
     FTPClient.Disconnect;
   finally
@@ -234,11 +327,99 @@ begin
   end;
 end;
 
-function TFTPFileSystemManager.ValidateFileName(aFileName: string): string;
+function TFTPFileSystemManager.ValidateFileName(const aFileName: string): string;
 begin
   Result := trim(aFileName);
   if Result <> '' then
     Result := ChangeFileExt(Result, ExtractFileExt(FFileMask));
+end;
+
+procedure TFTPFileSystemManager.CreatePath(const aPath: string);
+var
+  FTPClient : TIdFTP;
+  list : TStringList;
+  i : integer;
+  curFolder : String;
+begin
+  FTPClient := TIdFTP.Create(nil);
+  try
+    FTPClient.Host:= FHost;
+    FTPClient.Username:= FUsername;
+    FTPClient.Password:= FPassword;
+    FTPClient.Connect;
+    if FTPClient.Connected then
+    begin
+      FTPClient.TransferType := ftBinary;
+      FTPClient.Passive:= true;
+
+      list := TStringList.Create;
+      try
+        list.StrictDelimiter:= true;
+        list.Delimiter:= PATH_DELIMITER;
+        list.DelimitedText:= aPath;
+        curFolder := '';
+        for i := 0 to list.Count -1 do
+        begin
+          if list.Strings[i] <> '' then
+          begin
+            if curFolder <> '' then
+              curFolder := IncludeTrailingPathFTPDelimiter(curFolder);
+            curFolder := IncludeTrailingPathFTPDelimiter(curFolder + list.Strings[i]);
+            InternalCreateSubFolders(FTPClient, curFolder);
+          end;
+        end;
+      finally
+        list.Free;
+      end;
+    end;
+    FTPClient.Disconnect;
+  finally
+    FTPClient.Free;
+  end;
+end;
+
+function TFTPFileSystemManager.IncludeTrailingPathFSDelimiter(const aPath: String): String;
+begin
+  Result := IncludeTrailingPathFTPDelimiter(aPath);
+end;
+
+procedure TFTPFileSystemManager.GetAllFiles(aRoots: TmFolders);
+begin
+  //
+end;
+
+procedure TFTPFileSystemManager.DeleteFile(const aFileName, aFileFolder: String);
+var
+  FTPClient : TIdFTP;
+begin
+  FTPClient := TIdFTP.Create(nil);
+  try
+    FTPClient.Host:= FHost;
+    FTPClient.Username:= FUsername;
+    FTPClient.Password:= FPassword;
+    FTPClient.Connect;
+    if FTPClient.Connected then
+    begin
+      FTPClient.TransferType := ftBinary;
+      FTPClient.Passive:= true;
+      FTPClient.ChangeDir(PATH_DELIMITER);
+      FTPClient.ChangeDir(aFileFolder);
+      FTPClient.Delete(aFileName);
+    end;
+    FTPClient.Disconnect;
+  finally
+    FTPClient.Free;
+  end;
+end;
+
+function IncludeTrailingPathFTPDelimiter(const aPath: String): String;
+begin
+  Result := aPath;
+  if aPath <> '' then
+  begin
+    if aPath[Length(aPath)] <> TFTPFileSystemManager.PATH_DELIMITER then
+      Result := aPath + TFTPFileSystemManager.PATH_DELIMITER;
+  end;
 end;
 
 end.
