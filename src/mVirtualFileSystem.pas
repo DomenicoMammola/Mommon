@@ -119,6 +119,7 @@ type
     procedure ReadStream (const aFile: TmFileData; aStream : TStream); overload;
     procedure WriteStream (const aFile: TmFileData; aStream : TStream); overload;
     procedure DeleteFile (const aFileName, aFileFolder : String); virtual; abstract;
+    function FileExists(const aFileName, aFileFolder : String): boolean; virtual; abstract;
 
     function ValidateFileName (const aFileName : string) : string; virtual; abstract;
     procedure CreatePath(const aPath: string); virtual; abstract;

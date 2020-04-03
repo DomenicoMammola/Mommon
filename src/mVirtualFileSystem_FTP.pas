@@ -53,6 +53,7 @@ type
     function IncludeTrailingPathFSDelimiter (const aPath : String): String; override;
     procedure GetAllFiles (aRoots: TmFolders); virtual;
     procedure DeleteFile (const aFileName, aFileFolder : String); override;
+    function FileExists(const aFileName, aFileFolder : String): boolean; override;
 
     property Host : string read FHost write FHost;
     property Username : string read FUsername write FUsername;
@@ -409,6 +410,33 @@ begin
     FTPClient.Disconnect;
   finally
     FTPClient.Free;
+  end;
+end;
+
+function TFTPFileSystemManager.FileExists(const aFileName, aFileFolder: String): boolean;
+var
+  FTPClient : TIdFTP;
+  l : TStringList;
+begin
+  Result := false;
+  l := TStringList.Create;
+  FTPClient := TIdFTP.Create(nil);
+  try
+    FTPClient.Host:= FHost;
+    FTPClient.Username:= FUsername;
+    FTPClient.Password:= FPassword;
+    FTPClient.Connect;
+    if FTPClient.Connected then
+    begin
+      FTPClient.TransferType := ftBinary;
+      FTPClient.Passive:= true;
+      FTPClient.List(l, IncludeTrailingPathFTPDelimiter(aFileFolder) + aFileName, false);
+      Result := l.Count > 0;
+    end;
+    FTPClient.Disconnect;
+  finally
+    FTPClient.Free;
+    l.Free;
   end;
 end;
 
