@@ -12,6 +12,10 @@
 // Mutool is part of the MuPdf package (https://mupdf.com).
 // It is released under the A-GPL (Affero GPL) license. Please look at: https://mupdf.com/license.html
 // ***********************************
+// Poppler
+// https://blog.alivate.com.au/poppler-windows/
+// https://www.mankier.com/package/poppler-utils
+//
 unit mMutool;
 
 {$IFDEF FPC}
@@ -139,13 +143,16 @@ begin
     try
       tmpList.Delimiter:= #10;
       tmpList.DelimitedText:= outputString;
+      tmpList.SaveToFile('c:\temp\mimmo.txt');
       for i := 0 to tmpList.Count - 1 do
       begin
         // looking for "Pages:"
         tmpString := LowerCase(tmpList.Strings[i]);
-        if Pos ('pages:', tmpString) >= 0 then
+        if Pos ('pages:', tmpString) > 0 then
         begin
           tmpString := Trim(StringReplace(tmpString, 'pages:', '' , [rfReplaceAll]));
+          if tmpString = '' then
+            tmpString := Trim(LowerCase(tmpList.Strings[i+1]));
           if TryToConvertToInteger(tmpString, aNumOfPages) then
             exit;
         end;
