@@ -53,7 +53,7 @@ implementation
 
 uses
   process, strutils,
-  mMathUtility;
+  mMathUtility, mUtility;
 
 { TMutoolToolbox }
 
@@ -190,31 +190,37 @@ end;
 class function TMutoolToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate: string): boolean;
 var
   outputString, cmd : string;
-  thumbFile : String;
+  thumbFileTemplate, thumbFilename : String;
+  pages, i : integer;
 begin
   Result := false;
   CheckMutoolExePath;
   if not FileExists(aPdfFileName) then
     raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
 
-  thumbFile := IncludeTrailingPathDelimiter(aPagesFolder) + aFileNameTemplate;
+  thumbFileTemplate := IncludeTrailingPathDelimiter(aPagesFolder) + aFileNameTemplate;
 
-  {$IFDEF UNIX}
-  if RunCommand(MutoolExePath, ['draw', '-o', thumbFile, aPdfFileName], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
-  {$ELSE}
-  cmd := 'draw -o "' + thumbFile + '" "' + aPdfFileName + '"';
-  if RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole]) then
-  {$ENDIF}
-    Result := true
-  else
+  Self.GetInfoFromPdf(aPdfFileName, pages);
+
+  for i := 1 to pages do
   begin
+    thumbFilename:= StringReplace(thumbFileTemplate, '%d', AddZerosFront(i, 3), [rfReplaceAll, rfIgnoreCase]);
     {$IFDEF UNIX}
-    {$IFDEF DEBUG}
-    writeln(outputString);
+    if not RunCommand(MutoolExePath, ['draw', '-o', thumbFilename, aPdfFileName, IntToStr(i)], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+    {$ELSE}
+    cmd := 'draw -o "' + thumbFilename + '" "' + aPdfFileName + '" ' + IntToStr(i);
+    if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole]) then
     {$ENDIF}
-    {$ENDIF}
-    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+    begin
+      {$IFDEF UNIX}
+      {$IFDEF DEBUG}
+      writeln(outputString);
+      {$ENDIF}
+      {$ENDIF}
+      raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+    end;
   end;
+  Result := true;
 end;
 
 {$IFDEF UNIX}
