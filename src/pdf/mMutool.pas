@@ -30,6 +30,7 @@ uses
 resourcestring
   SMutool_error_file_missing = 'Pdf file is missing: ';
   SMutool_error_unable_to_run = 'Unable to run Mutool.';
+  SMutool_error_wrong_image_format = 'Only png file can be converted.';
 
 type
 
@@ -48,6 +49,7 @@ type
     class function ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     // aFileNameTemplate = page%d.pdf
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
+    class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
   end;
 
 var
@@ -143,7 +145,7 @@ begin
     try
       tmpList.Delimiter:= #10;
       tmpList.DelimitedText:= outputString;
-      tmpList.SaveToFile('c:\temp\mimmo.txt');
+      //tmpList.SaveToFile('c:\temp\mimmo.txt');
       for i := 0 to tmpList.Count - 1 do
       begin
         // looking for "Pages:"
@@ -228,6 +230,23 @@ begin
     end;
   end;
   Result := true;
+end;
+
+class function TMutoolToolbox.MergePdfFiles(const aFiles: TStringList; const aDestinationFileName: string): boolean;
+var
+  outputString, cmd : string;
+  tmpList : TStringList;
+  i : integer;
+begin
+  CheckMutoolExePath;
+
+  cmd := 'merge -o "' + aDestinationFileName + '"';
+  for i := 0 to aFiles.Count - 1 do
+  begin
+    cmd := cmd + ' "' + aFiles.Strings[i] + '"';
+  end;
+  if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole]) then
+    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
 end;
 
 {$IFDEF UNIX}
