@@ -47,7 +47,6 @@ type
     class procedure ExtractImagesFromPdf(const aPdfFileName: string; aImagesFiles : TStringList);
     class procedure GetInfoFromPdf(const aPdfFileName: string; out aNumOfPages : integer);
     class function ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
-    // aFileNameTemplate = page%d.pdf
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
     class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
   end;
@@ -145,7 +144,6 @@ begin
     try
       tmpList.Delimiter:= #10;
       tmpList.DelimitedText:= outputString;
-      //tmpList.SaveToFile('c:\temp\mimmo.txt');
       for i := 0 to tmpList.Count - 1 do
       begin
         // looking for "Pages:"
@@ -235,18 +233,17 @@ end;
 class function TMutoolToolbox.MergePdfFiles(const aFiles: TStringList; const aDestinationFileName: string): boolean;
 var
   outputString, cmd : string;
-  tmpList : TStringList;
   i : integer;
 begin
+  Result := false;
   CheckMutoolExePath;
 
   cmd := 'merge -o "' + aDestinationFileName + '"';
   for i := 0 to aFiles.Count - 1 do
-  begin
     cmd := cmd + ' "' + aFiles.Strings[i] + '"';
-  end;
   if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole]) then
     raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+  Result := true;
 end;
 
 {$IFDEF UNIX}
