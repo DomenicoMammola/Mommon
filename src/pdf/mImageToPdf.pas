@@ -16,7 +16,7 @@ unit mImageToPdf;
 
 interface
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String): boolean;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean): boolean;
 
 implementation
 
@@ -27,12 +27,12 @@ uses
   fppdf,
   fpparsettf;
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String): boolean;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean): boolean;
 var
   doc : TPDFDocument;
   page : TPDFPage;
   sec : TPDFSection;
-  img, pageWidth, pageHeight : integer;
+  img, w, h, pageWidth, pageHeight, imgWidth, imgHeight : integer;
 begin
   Result := false;
   doc := TPDFDocument.Create(Nil);
@@ -52,8 +52,30 @@ begin
 
     pageWidth := round(page.Paper.Printable.R - page.Paper.Printable.L);
     pageHeight := round(page.Paper.Printable.B - page.Paper.Printable.T);
+    imgWidth := doc.Images[0].Width;
+    imgHeight :=  doc.Images[0].Height;
 
-    page.DrawImage(1, 1, pageWidth, pageWidth, img);
+    if aEnlargeToPage then
+    begin
+      page.DrawImage(1, 1, pageWidth, pageHeight, img);
+    end
+    else
+    begin
+      w := imgWidth;
+      h := imgHeight;
+      if imgWidth > pageWidth then
+      begin
+        h := round(h * (pageWidth / imgWidth));
+        w := pageWidth;
+        if h > pageHeight then
+        begin
+          w := round(w * (pageHeight / h));
+          h := pageHeight;
+        end;
+
+      end;
+      page.DrawImage(1, 1, w, h, img);
+    end;
 
     doc.SaveToFile(aDestinationPdfFile);
   finally
