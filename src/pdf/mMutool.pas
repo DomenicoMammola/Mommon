@@ -47,6 +47,7 @@ type
     class procedure ExtractImagesFromPdf(const aPdfFileName: string; aImagesFiles : TStringList);
     class procedure GetInfoFromPdf(const aPdfFileName: string; out aNumOfPages : integer);
     class function ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
+    class function ExtractFrontPageFromPdf(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 72) : boolean;
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
     class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
   end;
@@ -192,6 +193,33 @@ begin
     raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
   end;
   //mutool draw -o pippo.png -w 250 -h 350 file.pdf 1
+end;
+
+class function TMutoolToolbox.ExtractFrontPageFromPdf(const aPdfFileName, aDestinationFileName: string; const aResolution: integer): boolean;
+var
+  outputString, cmd : string;
+begin
+  Result := false;
+  CheckMutoolExePath;
+  if not FileExists(aPdfFileName) then
+    raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
+
+  {$IFDEF UNIX}
+  if RunCommand(MutoolExePath, ['draw', '-o', aDestinationFileName, '-r', IntToStr(aResolution), aPdfFileName, '1'], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
+  cmd := 'draw -o "' + aDestinationFileName + '" -r ' + IntToStr(aResolution) + ' "' + aPdfFileName + '" 1';
+  if RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole]) then
+  {$ENDIF}
+    Result := true
+  else
+  begin
+    {$IFDEF UNIX}
+    {$IFDEF DEBUG}
+    writeln(outputString);
+    {$ENDIF}
+    {$ENDIF}
+    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+  end;
 end;
 
 class function TMutoolToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate: string): boolean;
