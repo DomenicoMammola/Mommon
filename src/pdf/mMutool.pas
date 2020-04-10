@@ -12,9 +12,6 @@
 // Mutool is part of the MuPdf package (https://mupdf.com).
 // It is released under the A-GPL (Affero GPL) license. Please look at: https://mupdf.com/license.html
 // ***********************************
-// Poppler
-// https://blog.alivate.com.au/poppler-windows/
-// https://www.mankier.com/package/poppler-utils
 //
 unit mMutool;
 
@@ -29,27 +26,27 @@ uses
 
 resourcestring
   SMutool_error_file_missing = 'Pdf file is missing: ';
-  SMutool_error_unable_to_run = 'Unable to run Mutool.';
+  SMutool_error_unable_to_run = 'Unable to run Mutool: ';
   SMutool_error_wrong_image_format = 'Only png file can be converted.';
+  SMutool_error_exe_missing = 'Path value of Mutool command is wrong or missing: ';
 
 type
-
-  TMutoolToolboxException = class (Exception);
-
 
   { TMutoolToolbox }
 
   TMutoolToolbox = class
   strict private
-    class procedure CheckMutoolExePath;
+    class function CheckMutoolExePath : boolean;
+    class function CheckFile(const aFileName: String): boolean;
   public
-    class function ExtractTextFromPdf(const aPdfFileName: string): string;
-    class procedure ExtractImagesFromPdf(const aPdfFileName: string; aImagesFiles : TStringList);
-    class procedure GetInfoFromPdf(const aPdfFileName: string; out aNumOfPages : integer);
+    class function ExtractTextFromPdf(const aPdfFileName: string; out aText : String): boolean;
+    class function ExtractImagesFromPdf(const aPdfFileName: string; aImagesFiles : TStringList) : boolean;
+    class function GetInfoFromPdf(const aPdfFileName: string; out aNumOfPages : integer) : boolean;
     class function ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     class function ExtractFrontPageFromPdf(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 72) : boolean;
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
     class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
+    class function GetLastError : String;
   end;
 
 var
@@ -61,38 +58,66 @@ uses
   process, strutils,
   mMathUtility, mUtility;
 
+var
+  FLastError : String;
+
 { TMutoolToolbox }
 
-class procedure TMutoolToolbox.CheckMutoolExePath;
+class function TMutoolToolbox.CheckMutoolExePath : boolean;
 begin
-  {$IFDEF WINDOWS}
+  Result := false;
   if not FileExists(MutoolExePath) then
-    raise TMutoolToolboxException.Create('Mutool.exe path value is missing.');
-  {$ENDIF}
+  begin
+    FLastError := SMutool_error_exe_missing + ' ' + MutoolExePath;
+    exit;
+  end;
+  Result := true;
 end;
 
-class function TMutoolToolbox.ExtractTextFromPdf(const aPdfFileName: string): string;
+class function TMutoolToolbox.CheckFile(const aFileName: String): boolean;
+begin
+  Result := false;
+  if not FileExists(aFileName) then
+  begin
+    FLastError := SMutool_error_file_missing + aFileName;
+    exit;
+  end;
+  Result := true;
+end;
+
+class function TMutoolToolbox.ExtractTextFromPdf(const aPdfFileName: string; out aText : String): boolean;
 var
   outputString : string;
 begin
-  CheckMutoolExePath;
-  if not FileExists(aPdfFileName) then
-    raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
+  Result := false;
+  if not CheckMutoolExePath then
+    exit;
+  if not CheckFile(aPdfFileName) then
+    exit;
+
   if RunCommand(MutoolExePath, ['draw -F txt "' + aPdfFileName + '"'], outputString, [poNoConsole]) then
-    Result := outputString
+    aText := outputString
   else
-    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run);
+  begin
+    FLastError := SMutool_error_unable_to_run + outputString;
+    exit;
+  end;
+  Result := true;
 end;
 
-class procedure TMutoolToolbox.ExtractImagesFromPdf(const aPdfFileName: string; aImagesFiles: TStringList);
+class function TMutoolToolbox.ExtractImagesFromPdf(const aPdfFileName: string; aImagesFiles: TStringList) : boolean;
 var
   outputString, curPath, tmpString : string;
   tmpList : TStringList;
   i : integer;
 begin
-  CheckMutoolExePath;
-  if not FileExists(aPdfFileName) then
-    raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
+  Result := false;
+  if not CheckMutoolExePath then
+    exit;
+
+  if not CheckFile(aPdfFileName) then
+    exit;
+
   if RunCommand(MutoolExePath, ['extract "' + aPdfFileName + '"'], outputString, [poNoConsole]) then
   begin
     tmpList := TStringList.Create;
@@ -124,20 +149,27 @@ begin
     end;
   end
   else
-    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run);
+  begin
+    FLastError := SMutool_error_unable_to_run + outputString;
+    exit;
+  end;
+  Result := true;
 end;
 
-class procedure TMutoolToolbox.GetInfoFromPdf(const aPdfFileName: string; out aNumOfPages: integer);
+class function TMutoolToolbox.GetInfoFromPdf(const aPdfFileName: string; out aNumOfPages: integer) : boolean;
 var
   outputString, tmpString : string;
   tmpList : TStringList;
   i : integer;
 begin
+  Result := false;
   aNumOfPages:= 0;
 
-  CheckMutoolExePath;
-  if not FileExists(aPdfFileName) then
-    raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
+  if not CheckMutoolExePath then
+    exit;
+
+  if not CheckFile(aPdfFileName) then
+    exit;
 
   if RunCommand(MutoolExePath, ['info "' + aPdfFileName + '"'], outputString, [poNoConsole]) then
   begin
@@ -164,7 +196,11 @@ begin
     aNumOfPages:= 0;
   end
   else
-    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run);
+  begin
+    FLastError := SMutool_error_unable_to_run + outputString;
+    exit;
+  end;
+  Result := true;
 end;
 
 class function TMutoolToolbox.ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word): boolean;
@@ -172,9 +208,10 @@ var
   outputString, cmd : string;
 begin
   Result := false;
-  CheckMutoolExePath;
-  if not FileExists(aPdfFileName) then
-    raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
+  if not CheckMutoolExePath then
+    exit;
+  if not CheckFile(aPdfFileName) then
+    exit;
 
   {$IFDEF UNIX}
   if RunCommand(MutoolExePath, ['draw', '-o', aThumbnailFileName, '-w', IntToStr(aWidth), '-h', IntToStr(aHeight), aPdfFileName, '1'], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
@@ -190,9 +227,10 @@ begin
     writeln(outputString);
     {$ENDIF}
     {$ENDIF}
-    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+    FLastError := SMutool_error_unable_to_run + outputString;
+    exit;
   end;
-  //mutool draw -o pippo.png -w 250 -h 350 file.pdf 1
+  Result := true;
 end;
 
 class function TMutoolToolbox.ExtractFrontPageFromPdf(const aPdfFileName, aDestinationFileName: string; const aResolution: integer): boolean;
@@ -200,9 +238,10 @@ var
   outputString, cmd : string;
 begin
   Result := false;
-  CheckMutoolExePath;
-  if not FileExists(aPdfFileName) then
-    raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
+  if not CheckMutoolExePath then
+    exit;
+  if not CheckFile(aPdfFileName) then
+    exit;
 
   {$IFDEF UNIX}
   if RunCommand(MutoolExePath, ['draw', '-o', aDestinationFileName, '-r', IntToStr(aResolution), aPdfFileName, '1'], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
@@ -218,8 +257,10 @@ begin
     writeln(outputString);
     {$ENDIF}
     {$ENDIF}
-    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+    FLastError := SMutool_error_unable_to_run + outputString;
+    exit;
   end;
+  Result := true;
 end;
 
 class function TMutoolToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate: string): boolean;
@@ -229,9 +270,11 @@ var
   pages, i : integer;
 begin
   Result := false;
-  CheckMutoolExePath;
-  if not FileExists(aPdfFileName) then
-    raise TMutoolToolboxException.Create(SMutool_error_file_missing + aPdfFileName);
+  if not CheckMutoolExePath then
+    exit;
+
+  if not CheckFile(aPdfFileName) then
+    exit;
 
   thumbFileTemplate := IncludeTrailingPathDelimiter(aPagesFolder) + aFileNameTemplate;
 
@@ -252,7 +295,8 @@ begin
       writeln(outputString);
       {$ENDIF}
       {$ENDIF}
-      raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+      FLastError := SMutool_error_unable_to_run + outputString;
+      exit;
     end;
   end;
   Result := true;
@@ -264,18 +308,28 @@ var
   i : integer;
 begin
   Result := false;
-  CheckMutoolExePath;
+  if not CheckMutoolExePath then
+    exit;
 
   cmd := 'merge -o "' + aDestinationFileName + '"';
   for i := 0 to aFiles.Count - 1 do
     cmd := cmd + ' "' + aFiles.Strings[i] + '"';
   if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole]) then
-    raise TMutoolToolboxException.Create(SMutool_error_unable_to_run + ' ' + outputString);
+  begin
+    FLastError := SMutool_error_unable_to_run + outputString;
+    exit;
+  end;
   Result := true;
 end;
 
-{$IFDEF UNIX}
+class function TMutoolToolbox.GetLastError: String;
+begin
+  Result := FLastError;
+end;
+
 initialization
+  FLastError := '';
+{$IFDEF UNIX}
   MutoolExePath := '/usr/bin/mutool';
 {$ENDIF}
 
