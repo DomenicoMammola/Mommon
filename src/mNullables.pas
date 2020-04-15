@@ -2374,10 +2374,17 @@ begin
   if newValue = '' then
     Result := Null
   else
-    if TryToUnderstandDateString(newValue, tmpDate) then
+  begin
+    if TryToUnderstandDateTimeString(newValue, tmpDate) then
       Result := tmpDate
     else
-      raise Exception.Create('This string cannot be converted to date: ' + aValue);
+    begin
+      if TryToUnderstandDateString(newValue, tmpDate) then
+        Result := tmpDate
+      else
+        raise Exception.Create('This string cannot be converted to date: ' + aValue);
+    end;
+  end;
 end;
 
 class function TNullableDateTime.VariantToString(const aValue: Variant; const aShowTime: boolean): String;
