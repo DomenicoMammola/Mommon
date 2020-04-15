@@ -54,6 +54,7 @@ function TryToUnderstandDateString(const aInputString : String; out aValue : TDa
 // try to convert the input text from the user as a time value, if it fails it returns false
 // user can edit time as hhmm or hhmmss or with separators like ':', '.', ....
 function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
+function TryToUnderstandDateTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
 {$IFDEF GRAPHICS_AVAILABLE}
 function TryToUndestandColorString(const aInputString : String; out Value : TColor) : boolean;
 {$ENDIF}
@@ -623,6 +624,28 @@ begin
 end;
 
 {$IFDEF GRAPHICS_AVAILABLE}
+
+function TryToUnderstandDateTimeString(const aInputString: String; out aValue: TDateTime): boolean;
+var
+  i : integer;
+  tmpDate : TDate;
+  tmpTime : TTime;
+  tmp : String;
+begin
+  Result := false;
+  tmp := Uppercase(Trim(aInputString));
+  i := Pos(' ', tmp);
+  if i > 1 then
+  begin
+    if TryToUnderstandDateString(Copy(tmp, 1, i-1), tmpDate) then
+      if TryToUnderstandTimeString(Copy(tmp, i + 1, 999), tmpTime) then
+      begin
+        aValue := tmpDate + tmpTime;
+        Result := true;
+      end;
+  end;
+end;
+
 function TryToUndestandColorString(const aInputString: String; out Value: TColor): boolean;
 begin
   Result := false;
@@ -2016,6 +2039,8 @@ begin
     else if aSubString[i] = '*' then
       Result := Result + '_'
     else if aSubString[i] = '.' then
+      Result := Result + '_'
+    else if aSubString[i] = '''' then
       Result := Result + '_'
     else if Ord(aSubString[i]) <= 31 then
       Result := Result + '_'
