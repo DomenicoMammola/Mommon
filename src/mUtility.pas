@@ -127,6 +127,7 @@ function EncodeSVGString(const aSrc : String): String;
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
 function SanitizeSubstringForFileName(const aSubString : String): String;
+function AddNumberToFileName (const aSrc: String; const aNumber : integer): String;
 
 function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : boolean = true): string;
 function DecodeTimeStampForFileName(const aTimestamp: String) : TDateTime;
@@ -2080,6 +2081,17 @@ end;
 function SanitizeSubstringForFileName(const aSubString: String): String;
 begin
   Result := InternalSanitizeSubstringForFileName(aSubString, false);
+end;
+
+function AddNumberToFileName(const aSrc: String; const aNumber: integer): String;
+var
+  dir, filename, ext: String;
+begin
+  dir := ExtractFileDir(aSrc);
+  filename := ExtractFileName(aSrc);
+  ext := ExtractFileExt(aSrc);
+  filename := ChangeFileExt(filename, '');
+  Result := IncludeTrailingPathDelimiter(dir) + filename + '(' + IntToStr(aNumber) + ')' + ext;
 end;
 
 procedure AddUTF8BOMToStream(aStream: TStream);
