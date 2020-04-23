@@ -85,7 +85,7 @@ begin
   if not RunCommand(CpdfExePath, ['-split', aPdfFileName, '-o', thumbFilename], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
   cmd := '-split "' + aPdfFileName + '" -o "' + thumbFilename + '"';
-  if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole]) then
+  if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
     {$IFDEF UNIX}
