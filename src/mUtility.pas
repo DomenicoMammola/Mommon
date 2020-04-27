@@ -141,10 +141,12 @@ procedure AddUTF8BOMToStream (aStream : TStream);
 function IsRunningAsRoot: boolean;
 function CurrentProcessId: cardinal; // look at Indy function CurrentProcessId: TIdPID;
 
+procedure RunConsoleApplicationAndGetOutput(const aCommand : string; const aParameters : array of string; out aOutputText : String);
+
 implementation
 
 uses
-  DateUtils, base64, strutils,
+  DateUtils, base64, strutils, process,
   {$IFDEF WINDOWS}shlobj, registry, winutils,{$ELSE}LazUTF8,{$ENDIF}
   {$IFDEF LINUX}initc, ctypes, BaseUnix,{$ENDIF}
   mMathUtility;
@@ -624,8 +626,6 @@ begin
 
 end;
 
-{$IFDEF GRAPHICS_AVAILABLE}
-
 function TryToUnderstandDateTimeString(const aInputString: String; out aValue: TDateTime): boolean;
 var
   i : integer;
@@ -646,6 +646,8 @@ begin
       end;
   end;
 end;
+
+{$IFDEF GRAPHICS_AVAILABLE}
 
 function TryToUndestandColorString(const aInputString: String; out Value: TColor): boolean;
 begin
@@ -2122,6 +2124,29 @@ begin
     Result := 0;
     {$ENDIF}
 {$ENDIF}
+end;
+
+procedure RunConsoleApplicationAndGetOutput(const aCommand: string; const aParameters : array of string; out aOutputText: String);
+var
+  tmpProcess: TProcess;
+  tmpStringList: TStringList;
+begin
+  tmpProcess := TProcess.Create(nil);
+  try
+    tmpProcess.Executable := aCommand;
+    tmpProcess.Parameters.AddStrings(aParameters);
+    tmpProcess.Options := tmpProcess.Options + [poWaitOnExit, poUsePipes];
+    tmpProcess.Execute;
+    tmpStringList := TStringList.Create;
+    try
+      tmpStringList.LoadFromStream(tmpProcess.Output);
+      aOutputText := tmpStringList.Text;
+    finally
+      tmpStringList.Free;
+    end;
+  finally
+    tmpProcess.Free;
+  end;
 end;
 
 function GetTimeStampForFileName(const aInstant: TDateTime; const aAddTime : boolean = true): string;
