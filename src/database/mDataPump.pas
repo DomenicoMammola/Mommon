@@ -358,6 +358,9 @@ begin
 
               destinationfld := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
               performUpdate := MD5Print(MD5String(sourcefld.AsString)) <> MD5Print(MD5String(destinationfld.AsString));
+              {$IFDEF DEBUG}
+              logger.Debug('COMPARING Value [' + destinationfld.AsString +'] of field ' + destinationfld.FieldName + ' of table ' + aTable.DestinationTableName + ' AND [' + sourcefld.AsString + '] of original field ' + sourcefld.FieldName );
+              {$ENDIF}
               if performUpdate then
               begin
                 {$IFDEF DEBUG}
