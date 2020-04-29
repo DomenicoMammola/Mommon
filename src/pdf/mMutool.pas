@@ -87,7 +87,8 @@ end;
 
 class function TMutoolToolbox.ExtractTextFromPdf(const aPdfFileName: string; out aText : String): boolean;
 var
-  outputString : string;
+  outputString, tempFile: string;
+  list : TStringList;
 begin
   Result := false;
   if not CheckMutoolExePath then
@@ -95,8 +96,21 @@ begin
   if not CheckFile(aPdfFileName) then
     exit;
 
-  if RunCommand(MutoolExePath, ['draw -F txt "' + aPdfFileName + '"'], outputString, [poNoConsole, poWaitOnExit]) then
-    aText := outputString
+  tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
+  //if RunCommand(MutoolExePath, ['draw -F txt "' + aPdfFileName + '"'], outputString, [poNoConsole, poWaitOnExit]) then
+  if RunCommand(MutoolExePath, ['draw -F txt -o "' + tempFile + '" "' + aPdfFileName + '"'], outputString, [poNoConsole, poWaitOnExit]) then
+  begin
+//    aText := outputString;
+    list := TStringList.Create;
+    try
+      list.LoadFromFile(tempFile);
+      aText := list.Text;
+    finally
+      list.Free;
+    end;
+    if FileExists(tempFile) then
+      DeleteFile(tempFile);
+  end
   else
   begin
     FLastError := SMutool_error_unable_to_run + outputString;

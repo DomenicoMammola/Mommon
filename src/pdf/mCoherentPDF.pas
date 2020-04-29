@@ -66,7 +66,6 @@ class function TCpdfToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aF
 var
   outputString, cmd : string;
   thumbFileTemplate, thumbFilename : String;
-  pages, i : integer;
 begin
   Result := false;
   if not CheckCpdfExePath then
