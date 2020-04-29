@@ -55,7 +55,7 @@ var
 implementation
 
 uses
-  process, strutils,
+  process, strutils, LazUTF8,
   mMathUtility, mUtility;
 
 var
@@ -98,7 +98,7 @@ begin
 
   tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
   //if RunCommand(MutoolExePath, ['draw -F txt "' + aPdfFileName + '"'], outputString, [poNoConsole, poWaitOnExit]) then
-  if RunCommand(MutoolExePath, ['draw -F txt -o "' + tempFile + '" "' + aPdfFileName + '"'], outputString, [poNoConsole, poWaitOnExit]) then
+  if RunCommand(MutoolExePath, ['draw -F txt -o "' + tempFile + '" ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole, poWaitOnExit]) then
   begin
 //    aText := outputString;
     list := TStringList.Create;
@@ -132,7 +132,7 @@ begin
   if not CheckFile(aPdfFileName) then
     exit;
 
-  if RunCommand(MutoolExePath, ['extract "' + aPdfFileName + '"'], outputString, [poNoConsole,poWaitOnExit]) then
+  if RunCommand(MutoolExePath, ['extract ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole,poWaitOnExit]) then
   begin
     tmpList := TStringList.Create;
     try
@@ -185,7 +185,7 @@ begin
   if not CheckFile(aPdfFileName) then
     exit;
 
-  if RunCommand(MutoolExePath, ['info "' + aPdfFileName + '"'], outputString, [poNoConsole,poWaitOnExit]) then
+  if RunCommand(MutoolExePath, ['info ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole,poWaitOnExit]) then
   begin
     tmpList := TStringList.Create;
     try
@@ -230,7 +230,7 @@ begin
   {$IFDEF UNIX}
   if RunCommand(MutoolExePath, ['draw', '-o', aThumbnailFileName, '-w', IntToStr(aWidth), '-h', IntToStr(aHeight), aPdfFileName, '1'], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := 'draw -o "' + aThumbnailFileName + '" -w ' + IntToStr(aWidth) + ' -h ' + IntToStr(aHeight) + ' "' + aPdfFileName + '" 1';
+  cmd := 'draw -o "' + aThumbnailFileName + '" -w ' + IntToStr(aWidth) + ' -h ' + IntToStr(aHeight) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' 1';
   if RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
   {$ENDIF}
     Result := true
@@ -260,7 +260,7 @@ begin
   {$IFDEF UNIX}
   if RunCommand(MutoolExePath, ['draw', '-o', aDestinationFileName, '-r', IntToStr(aResolution), aPdfFileName, '1'], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := 'draw -o "' + aDestinationFileName + '" -r ' + IntToStr(aResolution) + ' "' + aPdfFileName + '" 1';
+  cmd := 'draw -o "' + aDestinationFileName + '" -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' 1';
   if RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
   {$ENDIF}
     Result := true
@@ -300,7 +300,7 @@ begin
     {$IFDEF UNIX}
     if not RunCommand(MutoolExePath, ['draw', '-o', thumbFilename, aPdfFileName, IntToStr(i)], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
     {$ELSE}
-    cmd := 'draw -o "' + thumbFilename + '" "' + aPdfFileName + '" ' + IntToStr(i);
+    cmd := 'draw -o "' + thumbFilename + '" ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + IntToStr(i);
     if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
     {$ENDIF}
     begin
@@ -327,7 +327,7 @@ begin
 
   cmd := 'merge -o "' + aDestinationFileName + '"';
   for i := 0 to aFiles.Count - 1 do
-    cmd := cmd + ' "' + aFiles.Strings[i] + '"';
+    cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aFiles.Strings[i]),'"');
   if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
   begin
     FLastError := SMutool_error_unable_to_run + outputString;

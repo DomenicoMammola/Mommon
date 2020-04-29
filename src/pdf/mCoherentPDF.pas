@@ -44,7 +44,7 @@ var
 implementation
 
 uses
-  Process;
+  Process, LazUTF8;
 
 var
   FLastError : String;
@@ -83,7 +83,7 @@ begin
   {$IFDEF UNIX}
   if not RunCommand(CpdfExePath, ['-split', aPdfFileName, '-o', thumbFilename], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := '-split "' + aPdfFileName + '" -o "' + thumbFilename + '"';
+  cmd := '-split ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + thumbFilename + '"';
   if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
