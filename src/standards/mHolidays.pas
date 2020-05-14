@@ -64,7 +64,7 @@ var
   tmpDayOfWeek : word;
 begin
   tmpDayOfWeek := DayOfTheWeek(aDate);
-  Result := not( (tmpDayOfWeek = DaySunday) or (aSaturdayIsWorkingDay and (tmpDayOfWeek = DaySaturday)) or IsItalianPublicHoliday(aDate));
+  Result := not( (tmpDayOfWeek = DaySunday) or ((not aSaturdayIsWorkingDay) and (tmpDayOfWeek = DaySaturday)) or IsItalianPublicHoliday(aDate));
 end;
 
 function NextWorkingDayInItaly (const aOrigin : TDateTime; const aDirection : TTimeDirection; const aSaturdayIsWorkingDay : boolean = false) : TDateTime;
