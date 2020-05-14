@@ -51,7 +51,7 @@ type
     function ValidateFileName (const aFileName : string) : string; override;
     procedure CreatePath(const aPath: string); override;
     function IncludeTrailingPathFSDelimiter (const aPath : String): String; override;
-    procedure GetAllFiles (aRoots: TmFolders); virtual;
+    procedure GetAllFiles (aRoots: TmFolders); override;
     procedure DeleteFile (const aFileName, aFileFolder : String); override;
     function FileExists(const aFileName, aFileFolder : String): boolean; override;
 
