@@ -24,6 +24,7 @@ resourcestring
   SCpdf_error_file_missing = 'Pdf file is missing: ';
   SCpdf_error_unable_to_run = 'Unable to run Cpdf: ';
   SCpdf_error_exe_missing = 'Path value of Cpdf command is wrong or missing: ';
+  SCpdf_error_rotation_angle_invalid = 'Rotation angle is invalid: ';
 
 
 type
@@ -34,6 +35,7 @@ type
     class function CheckCpdfExePath : boolean;
   public
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
+    class function RotateClockwisePdf(const aPdfFileName: string; const aAngle : integer): boolean;
     class function GetLastError : String;
   end;
 
@@ -84,6 +86,50 @@ begin
   if not RunCommand(CpdfExePath, ['-split', aPdfFileName, '-o', thumbFilename], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
   cmd := '-split ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + thumbFilename + '"';
+  if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  {$ENDIF}
+  begin
+    {$IFDEF UNIX}
+    {$IFDEF DEBUG}
+    writeln(outputString);
+    {$ENDIF}
+    {$ENDIF}
+    FLastError := SCpdf_error_unable_to_run + outputString;
+    exit;
+  end;
+  Result := true;
+end;
+
+class function TCpdfToolbox.RotateClockwisePdf(const aPdfFileName: string; const aAngle : integer): boolean;
+var
+  outputString, cmd : string;
+begin
+  Result := false;
+  if not CheckCpdfExePath then
+    exit;
+
+  if not FileExists(aPdfFileName) then
+  begin
+    FLastError := SCpdf_error_file_missing + aPdfFileName;
+    exit;
+  end;
+
+  if aAngle = 0 then
+  begin
+    Result := true;
+    exit;
+  end;
+
+  if (aAngle <> 90) and (aAngle <> 180) and (aAngle <> 270) then
+  begin
+    FLastError := SCpdf_error_rotation_angle_invalid + IntToStr(aAngle);
+    exit;
+  end;
+
+  {$IFDEF UNIX}
+  if not RunCommand(CpdfExePath, ['-rotateby '  + IntToStr(aAngle), aPdfFileName, '-o', aPdfFileName], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
+  cmd := '-rotateby ' + IntToStr(aAngle)  + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + aPdfFileName + '"';
   if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
