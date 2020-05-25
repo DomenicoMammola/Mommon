@@ -16,7 +16,11 @@ unit mImageToPdf;
 
 interface
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean): boolean;
+type
+  TConvertedPdfOrientation = (cpoPortrait, cpoLandscape, cpoAdapt);
+
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean; overload;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean): boolean; overload;
 
 implementation
 
@@ -27,7 +31,7 @@ uses
   fppdf,
   fpparsettf;
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean): boolean;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean;
 var
   doc : TPDFDocument;
   page : TPDFPage;
@@ -44,10 +48,29 @@ begin
 
     img := doc.Images.AddFromFile(aSourceImageFile);
 
+    imgWidth := doc.Images[0].Width;
+    imgHeight :=  doc.Images[0].Height;
+
     page := doc.Pages.AddPage;
     page.PaperType:= ptA4;
     page.UnitOfMeasure:= uomPixels;
-    page.Orientation:= ppoPortrait;
+    if aOrientation = cpoPortrait then
+      page.Orientation:= ppoPortrait
+    else if aOrientation = cpoLandscape then
+      page.Orientation:= ppoLandscape
+    else
+    begin
+      if imgWidth > imgHeight then
+        page.Orientation:= ppoLandscape
+      else
+        page.Orientation:= ppoPortrait;
+    end;
+
+    if page.Orientation = ppoPortrait then
+      aActualOrientation:= cpoPortrait
+    else
+      aActualOrientation:= cpoLandscape;
+
     sec.AddPage(page);
 
     pageWidth := round(page.Paper.Printable.R - page.Paper.Printable.L);
@@ -84,4 +107,11 @@ begin
   Result := true;
 end;
 
+
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean): boolean; overload;
+var
+  tmpOrientation : TConvertedPdfOrientation;
+begin
+  Result := ConvertImageToPdf(aSourceImageFile, aDestinationPdfFile, aEnlargeToPage, cpoPortrait, tmpOrientation);
+end;
 end.
