@@ -467,7 +467,7 @@ begin
   end;
 end;
 
-function TryToUnderstandTimeString(const aInputString: String; out aValue: TDateTime): boolean;
+function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
 
   function DecodeWithDelimiter (const aDelimiter : Char; const aText : String) : boolean;
   var
@@ -631,7 +631,7 @@ function TryToUnderstandDateTimeString(const aInputString: String; out aValue: T
 var
   i : integer;
   tmpDate : TDate;
-  tmpTime : TTime;
+  tmpTime : TDateTime;
   tmp : String;
 begin
   Result := false;
