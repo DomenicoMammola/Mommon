@@ -44,6 +44,7 @@ type
     FHTML: TStringList;
     FPlainText : TStringList;
     FSSLConnection : boolean;
+    FTLSConnection : boolean;
   strict private
     procedure AddSSLHandler(aSMTP : TIdSMTP);
     procedure InitSASL(aSMTP : TIdSMTP; const aUserName, aPassword : String);
@@ -62,6 +63,7 @@ type
     function SetBCCRecipients(const aRecipients: String): TSendMail;
     function SetSubject(const aSubject: String): TSendMail;
     function SetSSLConnection : TSendMail;
+    function SetTLSConnection : TSendMail;
 
     function AddHTMLImageFile(const aFileName, aReferenceName: String): TSendMail;
     function AddHTMLImage(const aData : TStream; const aMIMEType: String; const aReferenceName : String): TSendMail;
@@ -199,6 +201,8 @@ begin
   FAttachments:= TObjectList.Create(true);
   FHTML:= TStringList.Create;
   FPlainText:= TStringList.Create;
+  FSSLConnection:= false;
+  FTLSConnection:= false;
 end;
 
 destructor TSendMail.Destroy;
@@ -273,6 +277,12 @@ end;
 function TSendMail.SetSSLConnection: TSendMail;
 begin
   FSSLConnection:= true;
+  Result := Self;
+end;
+
+function TSendMail.SetTLSConnection: TSendMail;
+begin
+  FTLSConnection:= true;
   Result := Self;
 end;
 
@@ -408,6 +418,8 @@ begin
   // https://www.indyproject.org/2005/08/17/html-messages/
   // https://stackoverflow.com/questions/18541577/using-indy-10-with-exchange-smtp-server
 
+  // IdOpenSSLSetCanLoadSymLinks(False);
+
   htmlMessageBuilder := TIdMessageBuilderHtml.Create;
   tmpMessage := TIdMessage.Create(nil);
   try
@@ -461,7 +473,16 @@ begin
         if tmpSMTP.Port = SMTP_PORT_EXPLICIT_TLS then
           tmpSMTP.UseTLS := utUseExplicitTLS
         else
-          tmpSMTP.UseTLS := utUseImplicitTLS;
+          if FTLSConnection then
+            tmpSMTP.UseTLS := utUseExplicitTLS
+          else
+            tmpSMTP.UseTLS := utUseImplicitTLS;
+      end
+      else if FTLSConnection then
+      begin
+        AddSSLHandler(tmpSMTP);
+
+        tmpSMTP.UseTLS := utUseExplicitTLS;
       end;
 
       tmpSMTP.ConnectTimeout:= 5000;
