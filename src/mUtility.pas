@@ -38,6 +38,8 @@ function CreateUniqueIdentifier : String; // actually a GUID without parentheses
 function IsUniqueIdentifier (const aUI : String): boolean;
 function CreateHumanReadableUniqueIdentier (const aLanguageCode : String): String; // a random unique identifier which is easy to be remembered, inspired by https://github.com/PerWiklander/IdentifierSentence
 
+procedure WordwrapStringByRows(const aSourceString : String; const aNumOfRows : integer; aRows : TStringList);
+
 function AddZerosFront (const aValue : integer; const aLength : integer) : String; overload;
 function AddZerosFront (const aValue : string; const aLength : integer) : String; overload;
 function RemoveZerosFromFront (aValue : String) : String;
@@ -52,6 +54,7 @@ function TryToUnderstandDateString(const aInputString : String; out aValue : TDa
 // try to convert the input text from the user as a time value, if it fails it returns false
 // user can edit time as hhmm or hhmmss or with separators like ':', '.', ....
 function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
+function TryToUnderstandDateTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
 {$IFDEF GRAPHICS_AVAILABLE}
 function TryToUndestandColorString(const aInputString : String; out Value : TColor) : boolean;
 {$ENDIF}
@@ -124,6 +127,8 @@ function EncodeSVGString(const aSrc : String): String;
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
 function SanitizeSubstringForFileName(const aSubString : String): String;
+function AddNumberToFileName (const aSrc: String; const aNumber: integer): String;
+function AddSuffixToFileName (const aSrc: String; const aSuffix: String) : String;
 
 function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : boolean = true): string;
 function DecodeTimeStampForFileName(const aTimestamp: String) : TDateTime;
@@ -137,10 +142,12 @@ procedure AddUTF8BOMToStream (aStream : TStream);
 function IsRunningAsRoot: boolean;
 function CurrentProcessId: cardinal; // look at Indy function CurrentProcessId: TIdPID;
 
+procedure RunConsoleApplicationAndGetOutput(const aCommand : string; const aParameters : array of string; out aOutputText : String);
+
 implementation
 
 uses
-  DateUtils, base64,
+  DateUtils, base64, strutils, process,
   {$IFDEF WINDOWS}shlobj, registry, winutils,{$ELSE}LazUTF8,{$ENDIF}
   {$IFDEF LINUX}initc, ctypes, BaseUnix,{$ENDIF}
   mMathUtility;
@@ -151,6 +158,49 @@ var
 {$IFDEF LINUX}
 function sysconf(i:cint):clong;cdecl;external name 'sysconf';
 {$ENDIF}
+
+procedure WordwrapStringByRows(const aSourceString: String; const aNumOfRows: integer; aRows: TStringList);
+var
+  remaining : String;
+  start, leftSpace, rightSpace, curRow, i : integer;
+begin
+  aRows.Clear;
+  if aNumOfRows = 1 then
+    aRows.Add(aSourceString)
+  else
+  begin
+    remaining:= aSourceString;
+    curRow := 1;
+
+    while curRow < aNumOfRows do
+    begin
+      start := Length(remaining) div (aNumOfRows - curRow + 1);
+      leftSpace := -1;
+      for i := start downto 1 do
+      begin
+        if aSourceString[i] = ' ' then
+        begin
+          leftSpace := i;
+          break;
+        end;
+      end;
+      if leftSpace > 0 then
+      begin
+        aRows.Add(LeftStr(remaining, leftSpace - 1));
+        remaining := Copy(remaining, leftSpace + 1, 999999);
+      end
+      else
+      begin
+        aRows.Add(Copy(remaining, 1, start));
+        remaining := Copy(remaining, start + 1, 999999);
+      end;
+
+      inc(curRow);
+      if curRow = aNumOfRows then
+        aRows.Add(remaining);
+    end;
+  end;
+end;
 
 function AddZerosFront (const aValue : integer; const aLength : integer) : String;
 begin
@@ -384,7 +434,7 @@ begin
 
   if CanTry then
   begin
-    if IsNumeric(dString, false) and IsNumeric(mString, false) and IsNumeric(yString, false) then
+    if IsNumeric(dString, false, false) and IsNumeric(mString, false, false) and IsNumeric(yString, false, false) then
     begin
       for i := 1 to 2 do
       begin
@@ -417,7 +467,7 @@ begin
   end;
 end;
 
-function TryToUnderstandTimeString(const aInputString: String; out aValue: TDateTime): boolean;
+function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
 
   function DecodeWithDelimiter (const aDelimiter : Char; const aText : String) : boolean;
   var
@@ -436,7 +486,7 @@ function TryToUnderstandTimeString(const aInputString: String; out aValue: TDate
       seconds := 0;
       if list.Count >= 1 then
       begin
-        if IsNumeric(list.Strings[0], false) then
+        if IsNumeric(list.Strings[0], false, false) then
         begin
           hour := StrToInt(list.Strings[0]);
           if (hour < 0) or (hour > 23) then
@@ -445,7 +495,7 @@ function TryToUnderstandTimeString(const aInputString: String; out aValue: TDate
       end;
       if list.Count >= 2 then
       begin
-        if IsNumeric(list.Strings[1], false) then
+        if IsNumeric(list.Strings[1], false, false) then
         begin
           minutes := StrToInt(list.Strings[1]);
           if (minutes < 0) or (minutes > 59) then
@@ -454,7 +504,7 @@ function TryToUnderstandTimeString(const aInputString: String; out aValue: TDate
       end;
       if list.Count >= 3 then
       begin
-        if IsNumeric(list.Strings[2], false) then
+        if IsNumeric(list.Strings[2], false, false) then
         begin
           seconds := StrToInt(list.Strings[2]);
           if (seconds < 0) or (seconds > 59) then
@@ -501,7 +551,7 @@ begin
         hourStr := Copy(tmp, 1, 2);
         minutesStr := Copy (tmp, 3, 1);
         secondsStr := '0';
-        if IsNumeric(hourStr, false) then
+        if IsNumeric(hourStr, false, false) then
         begin
           hour := StrToInt(hourStr);
           if (hour >= 23) then
@@ -528,7 +578,7 @@ begin
 
       if secondsStr <> '' then
       begin
-        if IsNumeric(hourStr, false) and IsNumeric(minutesStr, false) and IsNumeric(secondsStr, false) then
+        if IsNumeric(hourStr, false, false) and IsNumeric(minutesStr, false, false) and IsNumeric(secondsStr, false, false) then
         begin
           hour:= StrToInt(hourStr);
           minutes:= StrToInt(minutesStr);
@@ -577,7 +627,29 @@ begin
 
 end;
 
+function TryToUnderstandDateTimeString(const aInputString: String; out aValue: TDateTime): boolean;
+var
+  i : integer;
+  tmpDate : TDate;
+  tmpTime : TDateTime;
+  tmp : String;
+begin
+  Result := false;
+  tmp := Uppercase(Trim(aInputString));
+  i := Pos(' ', tmp);
+  if i > 1 then
+  begin
+    if TryToUnderstandDateString(Copy(tmp, 1, i-1), tmpDate) then
+      if TryToUnderstandTimeString(Copy(tmp, i + 1, 999), tmpTime) then
+      begin
+        aValue := tmpDate + tmpTime;
+        Result := true;
+      end;
+  end;
+end;
+
 {$IFDEF GRAPHICS_AVAILABLE}
+
 function TryToUndestandColorString(const aInputString: String; out Value: TColor): boolean;
 begin
   Result := false;
@@ -856,13 +928,15 @@ end;
 function SillyCryptDecrypt(const aText, aPassword: string): string;
 var
   i, len: integer;
+  pwd : String;
 begin
   len := Length(aText);
-  if len > Length(aPassword) then
-    len := Length(aPassword);
+  pwd := aPassword;
+  while Length(pwd) < len do
+    pwd := pwd + aPassword;
   SetLength(result, len);
   for i := 1 to len do
-    result[i] := Chr(Ord(aText[i]) xor Ord(aPassword[i]));
+    result[i] := Chr(Ord(aText[i]) xor Ord(pwd[i]));
 end;
 
 procedure ConvertVariantToStringList(const aValue: variant; aList: TStringList);
@@ -1005,7 +1079,7 @@ begin
     Result := aDefaultValue
   else if VarIsOrdinal(aValue) then
     Result := aValue
-  else if IsNumeric(VarToStr(aValue), false) then
+  else if IsNumeric(VarToStr(aValue), false, true) then
     Result := StrToInt(VarToStr(aValue))
   else
     Result := aDefaultValue;
@@ -1970,6 +2044,8 @@ begin
       Result := Result + '_'
     else if aSubString[i] = '.' then
       Result := Result + '_'
+    else if aSubString[i] = '''' then
+      Result := Result + '_'
     else if Ord(aSubString[i]) <= 31 then
       Result := Result + '_'
     else
@@ -2010,6 +2086,22 @@ begin
   Result := InternalSanitizeSubstringForFileName(aSubString, false);
 end;
 
+function AddNumberToFileName(const aSrc: String; const aNumber: integer): String;
+begin
+  Result := AddSuffixToFileName(aSrc, '(' + IntToStr(aNumber) + ')');
+end;
+
+function AddSuffixToFileName(const aSrc: String; const aSuffix: String): String;
+var
+  dir, filename, ext: String;
+begin
+  dir := ExtractFileDir(aSrc);
+  filename := ExtractFileName(aSrc);
+  ext := ExtractFileExt(aSrc);
+  filename := ChangeFileExt(filename, '');
+  Result := IncludeTrailingPathDelimiter(dir) + filename + aSuffix + ext;
+end;
+
 procedure AddUTF8BOMToStream(aStream: TStream);
 begin
   aStream.Write(UTF8BOM[0],3);
@@ -2038,6 +2130,29 @@ begin
     Result := 0;
     {$ENDIF}
 {$ENDIF}
+end;
+
+procedure RunConsoleApplicationAndGetOutput(const aCommand: string; const aParameters : array of string; out aOutputText: String);
+var
+  tmpProcess: TProcess;
+  tmpStringList: TStringList;
+begin
+  tmpProcess := TProcess.Create(nil);
+  try
+    tmpProcess.Executable := aCommand;
+    tmpProcess.Parameters.AddStrings(aParameters);
+    tmpProcess.Options := tmpProcess.Options + [poWaitOnExit, poUsePipes];
+    tmpProcess.Execute;
+    tmpStringList := TStringList.Create;
+    try
+      tmpStringList.LoadFromStream(tmpProcess.Output);
+      aOutputText := tmpStringList.Text;
+    finally
+      tmpStringList.Free;
+    end;
+  finally
+    tmpProcess.Free;
+  end;
 end;
 
 function GetTimeStampForFileName(const aInstant: TDateTime; const aAddTime : boolean = true): string;

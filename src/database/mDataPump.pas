@@ -277,8 +277,29 @@ begin
           end;
         end;
 
+        {$IFDEF DEBUG}
+        logger.Debug('Source query: ' + aTable.SourceSelectQuery );
+        {$ENDIF}
+
         sourceFieldsMap.Clear;
-        sourceQuery.Open;
+        try
+          sourceQuery.Open;
+        except
+          on e : Exception do
+          begin
+            msg := 'Error in query ' + aTable.SourceSelectQuery;
+            logger.Error(msg);
+            logger.Error(e.Message);
+            if Assigned(aResults) then
+            begin
+              aResults.AddError(msg);
+              aResults.AddError(e.Message);
+            end;
+            raise;
+          end;
+        end;
+
+
         rows := 0;
         performedInserts := 0;
         performedUpdates := 0;
@@ -288,7 +309,12 @@ begin
           if sourceFieldsMap.Count = 0 then
           begin
             for q := 0 to sourceQuery.AsDataset.Fields.Count - 1 do
+            begin
               sourceFieldsMap.Add(Uppercase(sourceQuery.AsDataset.Fields[q].FieldName), sourceQuery.AsDataset.Fields[q]);
+              {$IFDEF DEBUG}
+              logger.Debug('Add source field ' + Uppercase(sourceQuery.AsDataset.Fields[q].FieldName) + ' to map...' );
+              {$ENDIF}
+            end;
           end;
 
           curKeyString:= '';
@@ -327,8 +353,14 @@ begin
             for q := 0 to aTable.FieldsMapping.Count - 1 do
             begin
               sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString) as TField;
+              if not Assigned(sourcefld) then
+                raise Exception.Create('Source field missing! ' + aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString + ' Source fields map count: ' + IntToStr(sourceFieldsMap.Count));
+
               destinationfld := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
               performUpdate := MD5Print(MD5String(sourcefld.AsString)) <> MD5Print(MD5String(destinationfld.AsString));
+              {$IFDEF DEBUG}
+              logger.Debug('COMPARING Value [' + destinationfld.AsString +'] of field ' + destinationfld.FieldName + ' of table ' + aTable.DestinationTableName + ' AND [' + sourcefld.AsString + '] of original field ' + sourcefld.FieldName );
+              {$ENDIF}
               if performUpdate then
               begin
                 {$IFDEF DEBUG}
@@ -466,10 +498,11 @@ begin
 
               if not Assigned(sourceKeysMap.Find(curKeyString)) then
               begin
-                for q := 0 to aTable.FieldsMapping.Count - 1 do
+                for q := 0 to aTable.SourceKeyFields.Count - 1 do
                 begin
-                  sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
-                  SQLBuilderDelete.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+                  curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[q]);
+                  sourcefld := sourceFieldsMap.Find(curFieldToField.SourceField.AsUppercaseString) as TField;
+                  SQLBuilderDelete.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(curFieldToField.DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
                 end;
                 deleteOperationsToBePerformed.Add(SQLBuilderDelete.BuildSQL);
               end;
@@ -511,7 +544,9 @@ begin
         SQLBuilderDestination.Free;
         SQLBuilderInsert.Free;
         SQLBuilderUpdate.Free;
+        SQLBuilderDelete.Free;
         SQLBuilderClearAll.Free;
+        SQLBuilderSelectAll.Free;
         destinationQuery.Free;
         sourceQuery.Free;
         command.Free;
@@ -536,11 +571,11 @@ begin
     sourceConnection.Free;
   end;
 
-  {$IFDEF DEBUG}
-  logger.Debug('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
-  logger.Debug('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
-  logger.Debug('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
-  {$ENDIF}
+  logger.Info('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
+  logger.Info('Performed ' + IntToStr(performedInserts) + ' insert commands to destination table ' + aTable.DestinationTableName);
+  logger.Info('Performed ' + IntToStr(performedUpdates) + ' update commands to destination table ' + aTable.DestinationTableName);
+  logger.Info('Performed ' + IntToStr(performedDeletes) + ' delete commands to destination table ' + aTable.DestinationTableName);
+
   if Assigned(aResults) then
   begin
     aResults.AddResult('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);

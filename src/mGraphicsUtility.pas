@@ -58,6 +58,8 @@ type
   function CtrlPressed: boolean;
   function ShiftPressed: boolean;
 
+  function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+
 implementation
 
 uses
@@ -398,6 +400,44 @@ function ShiftPressed: boolean;
 begin
 Result := ({$IFNDEF FPC}GetAsyncKeyState{$ELSE}GetKeyState{$ENDIF}(VK_SHIFT) and $8000 <> 0)
 end;
+
+function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+var
+  sourcePicture : TPicture;
+  thumbnail : TPortableNetworkGraphic;
+  rateWidth, rateHeight : Extended;
+  r : TRect;
+begin
+  Result := true;
+  try
+    sourcePicture := TPicture.Create;
+    thumbnail := TPortableNetworkGraphic.Create;
+    try
+      sourcePicture.LoadFromFile(aSourceFile);
+      rateWidth := aMaxWidth / sourcePicture.Width;
+      rateHeight := aMaxHeight / sourcePicture.Height;
+      if rateWidth > rateHeight then
+        rateWidth := rateHeight;
+      thumbnail.SetSize(round(sourcePicture.Width * rateWidth), round(sourcePicture.Height * rateHeight));
+      thumbnail.Canvas.Brush.Color:= clWhite;
+      r := Rect(0, 0, thumbnail.Width, thumbnail.Height);
+      thumbnail.Canvas.FillRect(r);
+      thumbnail.Canvas.AntialiasingMode := amON;
+      thumbnail.Canvas.StretchDraw(r, sourcePicture.Graphic);
+      thumbnail.SaveToFile(aThumbnailFile);
+    finally
+      sourcePicture.Free;
+      thumbnail.Free;
+    end;
+  except
+    on e: Exception do
+    begin
+      aError := e.Message;
+      Result := false;
+    end;
+  end;
+end;
+
 
 {$IFNDEF GUI}
 ** This unit should not be compiled in a console application **

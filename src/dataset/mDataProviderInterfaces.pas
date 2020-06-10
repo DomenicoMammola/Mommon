@@ -34,6 +34,7 @@ type
     function GetDatumKey : IVDDatumKey;
     function GetPropertyByFieldName(const aFieldName : String) : Variant;
     function AsObject : TObject;
+    function Clone : IVDDatum;
   end;
 
   IVDDataProvider = interface

@@ -125,11 +125,36 @@ procedure TTestCase1.TestConversions;
 var
   i : integer;
 begin
-  CheckTrue(IsNumeric('19072320140648820000001', false));
+  CheckTrue(IsNumeric('19072320140648820000001', false, true));
   CheckTrue(TryToConvertToInteger('87998540', i));
   CheckFalse(TryToConvertToInteger('879.98540', i));
   CheckTrue(TryToConvertToInteger('87.998.540', i));
   CheckFalse(TryToConvertToInteger('879.9854O', i));
+  CheckTrue(IsNumeric('+585', false, true));
+  CheckFalse(IsNumeric('+585', false, false));
+  CheckTrue(IsNumeric('-12.66589', true, true));
+  CheckFalse(IsNumeric('-12.66589', true, false));
+  CheckFalse(IsNumeric('-12.66589', false, false));
+  CheckFalse(IsNumeric('12+4', false, true));
+  CheckFalse(IsNumeric('12+4', false, false));
+  CheckFalse(IsNumeric('12.22-45,54', true, false));
+  CheckFalse(IsNumeric('-', false, true));
+  CheckFalse(IsNumeric('+', false, true));
+  CheckFalse(IsNumeric('-1344.223,1223', true, true));
+  CheckTrue(IsNumeric('+2544,25', true, true));
+  CheckTrue(IsNumeric('+2544.25', true, true));
+  CheckFalse(IsNumeric('+2.544,25', true, true));
+  CheckFalse(IsNumeric('+2,544.25', true, true));
+  CheckTrue(IsNumeric('2544,25', true, false));
+  CheckTrue(IsNumeric('2544.25', true, false));
+  CheckFalse(IsNumeric('-2.544,25', true, false));
+  CheckTrue(IsNumeric('12032544,251143', true, false));
+  CheckTrue(IsNumeric('12032544.251143', true, false));
+  CheckFalse(IsNumeric('12.032544.251143', true, false));
+  CheckFalse(IsNumeric('11.', true, false));
+  CheckFalse(IsNumeric('11,', true, false));
+  CheckFalse(IsNumeric('.11', true, false));
+  CheckFalse(IsNumeric(',11', true, false));
 end;
 
 

@@ -56,6 +56,8 @@ type
 
     function GetDatumKey : IVDDatumKey;
     function AsObject: TObject;
+    procedure Assign(const aSource : TConcatenationDatum);
+    function Clone : IVDDatum;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
     class function GetKeyField : String;
@@ -216,6 +218,22 @@ end;
 function TConcatenationDatum.AsObject: TObject;
 begin
   Result := Self;
+end;
+
+procedure TConcatenationDatum.Assign(const aSource: TConcatenationDatum);
+begin
+  Key.Assign(aSource.Key);
+  Value.Assign(aSource.Value);
+  OriginalDatum := aSource.OriginalDatum;
+end;
+
+function TConcatenationDatum.Clone: IVDDatum;
+var
+  tmp : TConcatenationDatum;
+begin
+  tmp := TConcatenationDatum.Create;
+  tmp.Assign(Self);
+  Result := tmp;
 end;
 
 class procedure TConcatenationDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; const aPrefix: String);

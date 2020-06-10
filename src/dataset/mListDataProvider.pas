@@ -56,6 +56,8 @@ type
 
     function GetDatumKey : IVDDatumKey;
     function AsObject: TObject;
+    procedure Assign(const aSource : TListDatum);
+    function Clone : IVDDatum;
 
     class procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String);
     class function GetKeyField : String;
@@ -191,6 +193,21 @@ end;
 function TListDatum.AsObject: TObject;
 begin
   Result := Self;
+end;
+
+procedure TListDatum.Assign(const aSource: TListDatum);
+begin
+  Key.Assign(aSource.Key);
+  Description := aSource.Description;
+end;
+
+function TListDatum.Clone: IVDDatum;
+var
+  tmp : TListDatum;
+begin
+  tmp := TListDatum.Create;
+  tmp.Assign(Self);
+  Result := tmp;
 end;
 
 class procedure TListDatum.FillVirtualFieldDefs(aFieldDefs: TmVirtualFieldDefs; const aPrefix: String);

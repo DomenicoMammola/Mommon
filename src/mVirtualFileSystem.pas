@@ -59,13 +59,6 @@ type
   end;
 
 
-(*  TmConfigurationFile = class
-  protected
-    FUseAsDefault : Boolean;
-  public
-    property UseAsDefault : Boolean read FUseAsDefault write FUseAsDefault;
-  end;*)
-
   { TmFiles }
 
   TmFiles = class (TCollection)
@@ -119,20 +112,33 @@ type
   { TmAbstractFileSystemManager }
 
   TmAbstractFileSystemManager = class abstract
-  protected
-    FRoots : TmFolders;
   public
-    constructor Create; virtual;
-    destructor Destroy; override;
-    procedure Refresh (const aIsGUIApplication : boolean); virtual; abstract;
-    procedure ReadStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
-    procedure WriteStream (aFile : TmFileData; aStream : TStream); virtual; abstract;
-    function ValidateFileName (aFileName : string) : string; virtual; abstract;
+    procedure GetAllFiles (aRoots: TmFolders); virtual; abstract;
+    procedure ReadStream (const aFileName, aFileFolder : String; aStream : TStream); overload; virtual; abstract;
+    procedure WriteStream (const aFileName, aFileFolder : String; aStream : TStream); overload; virtual; abstract;
+    procedure ReadStream (const aFile: TmFileData; aStream : TStream); overload;
+    procedure WriteStream (const aFile: TmFileData; aStream : TStream); overload;
+    procedure DeleteFile (const aFileName, aFileFolder : String); virtual; abstract;
+    function FileExists(const aFileName, aFileFolder : String): boolean; virtual; abstract;
 
-    property Roots : TmFolders read FRoots;
+    function ValidateFileName (const aFileName : string) : string; virtual; abstract;
+    procedure CreatePath(const aPath: string); virtual; abstract;
+    function IncludeTrailingPathFSDelimiter (const aPath : String): String; virtual; abstract;
   end;
 
 implementation
+
+{ TmAbstractFileSystemManager }
+
+procedure TmAbstractFileSystemManager.ReadStream(const aFile: TmFileData; aStream: TStream);
+begin
+  ReadStream(aFile.FileName, aFile.Path, aStream);
+end;
+
+procedure TmAbstractFileSystemManager.WriteStream(const aFile: TmFileData; aStream: TStream);
+begin
+  WriteStream(aFile.FileName, aFile.Path, aStream);
+end;
 
 { TmFileData }
 
@@ -212,20 +218,6 @@ end;
 function TmFiles.Add: TmFile;
 begin
   Result := TmFile(inherited Add);
-end;
-
-{ TmAbstractFileSystemManager }
-
-
-constructor TmAbstractFileSystemManager.Create;
-begin
-  FRoots := TmFolders.Create(nil);
-end;
-
-destructor TmAbstractFileSystemManager.Destroy;
-begin
-  FRoots.Free;
-  inherited Destroy;
 end;
 
 { TmFile }

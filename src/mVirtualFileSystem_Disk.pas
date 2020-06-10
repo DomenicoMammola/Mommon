@@ -49,7 +49,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    procedure Refresh(const aShowHourGlassCursor : boolean); override;
+    procedure Refresh; override;
 
     property FullPathRootFolder : string read FFullPathRootFolder write FFullPathRootFolder;
     property ExplodeSubFolders : boolean read FExplodeSubFolders write FExplodeSubFolders;
@@ -109,30 +109,19 @@ begin
   end;
 end;
 
-procedure TDiskSingleFolderFileSystemManager.Refresh(const aShowHourGlassCursor : boolean);
+procedure TDiskSingleFolderFileSystemManager.Refresh;
 var
   root : TmFolder;
-  tmpCursor : TCursor;
 begin
-  if aShowHourGlassCursor then
-  begin
-    tmpCursor := Screen.Cursor;
-    Screen.Cursor:= crHourGlass;
-  end;
-  try
-    FRoots.Clear;
-    root := FRoots.Add;
-    root.Path:= FFullPathRootFolder;
+  FRoots.Clear;
+  root := FRoots.Add;
+  root.Path:= FFullPathRootFolder;
 
-    root.Name:= ExtractLastFolderFromPath(FFullPathRootFolder);
-    ReloadFilesInFolder(root);
+  root.Name:= ExtractLastFolderFromPath(FFullPathRootFolder);
+  ReloadFilesInFolder(root);
 
-    if FExplodeSubFolders then
-      FindFolder(root);
-  finally
-    if aShowHourGlassCursor then
-      Screen.Cursor:= tmpCursor;
-  end;
+  if FExplodeSubFolders then
+    FindFolder(root);
 end;
 
 procedure TDiskSingleFolderFileSystemManager.FindFolder(aFolder: TmFolder);
