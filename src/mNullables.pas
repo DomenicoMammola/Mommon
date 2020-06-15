@@ -368,6 +368,7 @@ type
     function AsBoolean: Boolean;
     function ValueIsEqual (const aValue : Boolean) : boolean; overload;
     function ValueIsEqual (const aValue : TNullableBoolean) : boolean; overload;
+    function AsJson(const aFieldName : String; const aSkipIfNull : boolean): String; override;
 
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -1758,6 +1759,14 @@ begin
     Result := aValue.IsNull
   else
     Result := aValue.NotNull and ValueIsEqual(aValue.Value);
+end;
+
+function TNullableBoolean.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
+begin
+  if Self.IsNull and aSkipIfNull then
+    Result := ''
+  else
+    Result := '"' + aFieldName + '":"' + BoolToStr(Self.AsBoolean, 'true', 'false') + '"';
 end;
 
 function TNullableBoolean.CheckIfDifferentAndAssign(const aValue: Variant): boolean;
