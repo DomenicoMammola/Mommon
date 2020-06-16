@@ -51,7 +51,7 @@ type
 
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; virtual; abstract;
     function AsString: String; virtual; abstract;
-    function AsJson(const aFieldName : String; const aSkipIfNull : boolean): String; virtual;
+    function AsJson(const aFieldName : String; const aSkipIfNull : boolean; const aMaxLength: integer = 0): String; virtual;
 
     property IsNull: Boolean read GetIsNull write SetIsNull;
     property NotNull: Boolean read GetNotNull;
@@ -253,7 +253,7 @@ type
       function AsString (const aShowTime : boolean) : String; overload;
       function AsString : String; override; overload;
       function AsStringForFilename (const aShowTime, aUseSeparators: boolean): String;
-      function AsJson(const aFieldName : String; const aSkipIfNull: boolean): String; override;
+      function AsJson(const aFieldName : String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String; override;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -281,7 +281,7 @@ type
     class function VariantToString(const aValue: Variant): String;
 
     function AsString : String; override;
-    function AsJson(const aFieldName : String; const aSkipIfNull: boolean): String; override;
+    function AsJson(const aFieldName : String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String; override;
 
     property Value : TDateTime read GetValue write SetValue;
   end;
@@ -323,7 +323,7 @@ type
     function AsString : String; override;
     function AsFloat : Double;
     function AsFormattedString (const aFormat: String): String;
-    function AsJson(const aFieldName : String; const aSkipIfNull : boolean): String; override;
+    function AsJson(const aFieldName : String; const aSkipIfNull : boolean; const aMaxLength: integer = 0): String; override;
 
     property Value : Double read GetValue write SetValue;
     property DisplayFormat : String read FDisplayFormat write SetDisplayFormat;
@@ -368,7 +368,7 @@ type
     function AsBoolean: Boolean;
     function ValueIsEqual (const aValue : Boolean) : boolean; overload;
     function ValueIsEqual (const aValue : TNullableBoolean) : boolean; overload;
-    function AsJson(const aFieldName : String; const aSkipIfNull : boolean): String; override;
+    function AsJson(const aFieldName : String; const aSkipIfNull : boolean; const aMaxLength: integer = 0): String; override;
 
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant): String;
@@ -473,7 +473,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure AddValue(const aFieldName: String; const aValue: TAbstractNullable; const aSkipIfNull: boolean);
+    procedure AddValue(const aFieldName: String; const aValue: TAbstractNullable; const aSkipIfNull: boolean; const aMaxLength : integer = 0);
     procedure AddJson(const aJsonString : String);
     function GetJson : String;
   end;
@@ -498,11 +498,11 @@ begin
   inherited Destroy;
 end;
 
-procedure TNullableJsonHelper.AddValue(const aFieldName: String; const aValue: TAbstractNullable; const aSkipIfNull: boolean);
+procedure TNullableJsonHelper.AddValue(const aFieldName: String; const aValue: TAbstractNullable; const aSkipIfNull: boolean; const aMaxLength : integer = 0);
 var
   tmp : String;
 begin
-  tmp := aValue.AsJson(aFieldName, aSkipIfNull);
+  tmp := aValue.AsJson(aFieldName, aSkipIfNull, aMaxLength);
   if tmp <> '' then
     FList.Add(tmp);
 end;
@@ -994,7 +994,7 @@ begin
   Result := TNullableTime.VariantToString(Self.AsVariant);
 end;
 
-function TNullableTime.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
+function TNullableTime.AsJson(const aFieldName: String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
@@ -1761,7 +1761,7 @@ begin
     Result := aValue.NotNull and ValueIsEqual(aValue.Value);
 end;
 
-function TNullableBoolean.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
+function TNullableBoolean.AsJson(const aFieldName: String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
@@ -2185,7 +2185,7 @@ begin
     Result := FormatFloat(aFormat, Self.Value);
 end;
 
-function TNullableDouble.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
+function TNullableDouble.AsJson(const aFieldName: String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
@@ -2443,7 +2443,7 @@ begin
   end;
 end;
 
-function TNullableDateTime.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
+function TNullableDateTime.AsJson(const aFieldName: String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
@@ -2503,12 +2503,19 @@ begin
   SetTagChanged(false);
 end;
 
-function TAbstractNullable.AsJson(const aFieldName: String; const aSkipIfNull: boolean): String;
+function TAbstractNullable.AsJson(const aFieldName: String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String;
+var
+  tmp : String;
 begin
   if Self.IsNull and aSkipIfNull then
     Result := ''
   else
-    Result := '"' + aFieldName + '":"' + Self.AsString + '"';
+  begin
+    tmp := Self.AsString;
+    if aMaxLength > 0 then
+      tmp := Copy(tmp, 1, aMaxLength);
+    Result := '"' + aFieldName + '":"' + tmp + '"';
+  end;
 end;
 
 end.
