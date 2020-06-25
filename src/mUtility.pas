@@ -162,7 +162,7 @@ function sysconf(i:cint):clong;cdecl;external name 'sysconf';
 procedure WordwrapStringByRows(const aSourceString: String; const aNumOfRows: integer; aRows: TStringList);
 var
   remaining : String;
-  start, leftSpace, rightSpace, curRow, i : integer;
+  start, leftSpace, curRow, i : integer;
 begin
   aRows.Clear;
   if aNumOfRows = 1 then

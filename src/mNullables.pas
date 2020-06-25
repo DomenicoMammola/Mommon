@@ -1376,8 +1376,6 @@ begin
 end;
 
 procedure TNullableInteger.Assign(const aSourceField: TField);
-var
-  tmpValue : integer;
 begin
   if aSourceField.IsNull then
     Self.IsNull:= true
