@@ -60,6 +60,10 @@ begin
     Result := 'IN'
   else if aOperator = foBetween then
     Result := 'BETWEEN'
+  else if aOperator = foIs then
+    Result := 'IS'
+  else if aOperator = foIsNot then
+    Result := 'IS NOT'
   else
     Result := '?';
 end;

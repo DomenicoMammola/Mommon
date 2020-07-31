@@ -17,7 +17,7 @@ unit mFilterOperators;
 interface
 
 type
-  TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foGt, foLt, foLike, foNotEq, foStartWith, foEndWith, foIn, foBetween);
+  TmFilterOperator = (foUnknown, foEq, foGtOrEq, foLtOrEq, foGt, foLt, foLike, foNotEq, foStartWith, foEndWith, foIn, foBetween, foIs, foIsNot);
 
   TmFilterOperatorsSet = set of TmFilterOperator;
 
@@ -52,7 +52,11 @@ begin
   else if aValue = foIn then
     Result := 'in'
   else if aValue = foBetween then
-    Result := 'between';
+    Result := 'between'
+  else if aValue = foIs then
+    Result := 'is'
+  else if aValue = foIsNot then
+    Result := 'is not';
 end;
 
 end.
