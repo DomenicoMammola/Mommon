@@ -431,31 +431,26 @@ end;
 procedure TmSpreadsheetHelper.ReadInteger(const aRow, aCol: integer; aValue: TNullableInteger);
 begin
   spReadInteger(FSheet, aRow, aCol, aValue);
-  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadFloat(const aRow, aCol: integer; aValue: TNullableDouble);
 begin
   spReadFloat(FSheet, aRow, aCol, aValue);
-  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadUppercaseText(const aRow, aCol: integer; aValue: TNullableString; const aDoTrim : boolean = true);
 begin
   spReadUppercaseText(FSheet, aRow, aCol, aValue, aDoTrim);
-  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadText(const aRow, aCol: integer; aValue: TNullableString; const aDoTrim : boolean = true);
 begin
   spReadText(FSheet, aRow, aCol, aValue, aDoTrim);
-  WriteDefaultFont(aRow, aCol);
 end;
 
 procedure TmSpreadsheetHelper.ReadDate(const aRow, aCol: integer; aValue: TNullableDateTime);
 begin
   spReadDate(FSheet, aRow, aCol, aValue);
-  WriteDefaultFont(aRow, aCol);
 end;
 
 end.
