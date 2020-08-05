@@ -81,6 +81,10 @@ procedure MergeSort(List: TList; const OnCompare: TListSortCompare); overload;
 function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 {$ENDIF}
 
+function KeepOnlyNumbers (const aSource : String) : String;
+function KeepOnlyLetters (const aSource : String; const aUnderscoreForSpaces: boolean) : String;
+function KeepOnlyLettersAndNumbers (const aSource : String; const aUnderscoreForSpaces: boolean) : String;
+
 function ExtractLastFolderFromPath (aFullPath : string) : string;
 
 // https://forum.lazarus.freepascal.org/index.php/topic,33013.msg213197.html#msg213197
@@ -911,6 +915,46 @@ begin
   Result := C in CharSet;
 end;
 {$ENDIF}
+
+function KeepOnlyNumbers(const aSource: String): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := 1 to Length(aSource) do
+  begin
+    if aSource[i] in ['0'..'9'] then
+      Result := Result + aSource[i];
+  end;
+end;
+
+function KeepOnlyLetters(const aSource: String; const aUnderscoreForSpaces: boolean): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := 1 to Length(aSource) do
+  begin
+    if (aSource[i] in ['A'..'Z']) or (aSource[i] in ['a'..'z']) then
+      Result := Result + aSource[i]
+    else if aUnderscoreForSpaces and (aSource[i] = ' ') then
+        Result := Result + '_';
+  end
+end;
+
+function KeepOnlyLettersAndNumbers(const aSource: String; const aUnderscoreForSpaces: boolean): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := 1 to Length(aSource) do
+  begin
+    if (aSource[i] in ['A'..'Z']) or (aSource[i] in ['a'..'z']) or (aSource[i] in ['0'..'9']) then
+      Result := Result + aSource[i]
+    else if aUnderscoreForSpaces and (aSource[i] = ' ') then
+      Result := Result + '_';
+  end;
+end;
 
 function ExtractLastFolderFromPath(aFullPath: string): string;
 var
