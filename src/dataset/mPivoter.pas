@@ -85,19 +85,28 @@ type
     function Get(const aIndex : integer): TmCalculationDef;
   end;
 
+  TmValuesList = class
+  strict private
+  public
+  end;
+
 
   TmKeysIndex = class
   strict private
     FKeysDictionary : TmStringDictionary;
-    // FKeysValues : TStringList;
+    FKeysValues : TStringList;
 
     FLevel : integer;
-  public
-    constructor Create;
-    destructor Destroy; override;
+    FParent : TmKeysIndex;
+  private
     procedure Clear;
     function GetSubIndex (const aKey : string): TmKeysIndex;
     function GetValueList (const aKey : string): TCardinalList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property KeysValues : TStringList read FKeysValues;
   end;
 
   { TKeyValuesForGroupByDef }
@@ -193,6 +202,8 @@ type
 
     property VerticalValues: TKeyValuesForGroupByDefs read FVerticalValues;
     property HorizontalValues: TKeyValuesForGroupByDefs read FHorizontalValues;
+
+
   end;
 
 
@@ -477,21 +488,22 @@ end;
 constructor TmKeysIndex.Create;
 begin
   FKeysDictionary := TmStringDictionary.Create(true);
-  //FKeysValues := TStringList.Create();
   FLevel := 0;
+  FParent := nil;
+  FKeysValues := TStringList.Create;
 end;
 
 destructor TmKeysIndex.Destroy;
 begin
   FKeysDictionary.Free;
-//  FKeysValues.Free;
+  FKeysValues.Free;
   inherited Destroy;
 end;
 
 procedure TmKeysIndex.Clear;
 begin
   FKeysDictionary.Clear;
-//  FKeysValues.Clear;
+  FKeysValues.Clear;;
 end;
 
 function TmKeysIndex.GetSubIndex(const aKey: string): TmKeysIndex;
@@ -507,8 +519,10 @@ begin
   else
   begin
     Result := TmKeysIndex.Create;
+    Result.FLevel:= Self.FLevel + 1;
+    Result.FParent := Self;
     FKeysDictionary.Add(aKey, Result);
-//    FKeysValues.Add(aKey);
+    FKeysValues.Add(aKey);
   end;
 end;
 
@@ -526,7 +540,6 @@ begin
   begin
     Result := TCardinalList.Create;
     FKeysDictionary.Add(aKey, Result);
-//    FKeysValues.Add(aKey);
   end;
 end;
 
