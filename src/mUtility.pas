@@ -100,6 +100,7 @@ function ConvertStringListToVariant (const aList : TStringList): Variant;
 function ConvertIntegerListToVariant (const aList : TIntegerList): Variant;
 function ConvertDoubleListToVariant (const aList : TDoubleList): Variant;
 function ConvertDoublesToVariant(const aValue1, aValue2: double): Variant;
+function ConvertIntegersToVariant(const aValue1, aValue2: integer): Variant;
 
 function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
@@ -1279,6 +1280,16 @@ var
   tmpVariant : variant;
 begin
   tmpVariant := Variants.VarArrayCreate([0, 1], vardouble);
+  VarArrayPut(tmpVariant, aValue1, [0]);
+  VarArrayPut(tmpVariant, aValue2, [1]);
+  Result := tmpVariant;
+end;
+
+function ConvertIntegersToVariant(const aValue1, aValue2: integer): Variant;
+var
+  tmpVariant : variant;
+begin
+  tmpVariant := Variants.VarArrayCreate([0, 1], varinteger);
   VarArrayPut(tmpVariant, aValue1, [0]);
   VarArrayPut(tmpVariant, aValue2, [1]);
   Result := tmpVariant;
