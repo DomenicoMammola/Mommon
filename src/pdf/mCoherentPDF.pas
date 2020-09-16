@@ -18,7 +18,7 @@ unit mCoherentPDF;
 interface
 
 uses
-  sysutils;
+  sysutils, Classes;
 
 resourcestring
   SCpdf_error_file_missing = 'Pdf file is missing: ';
@@ -35,6 +35,7 @@ type
     class function CheckCpdfExePath : boolean;
   public
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
+    class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
     class function RotateClockwisePdf(const aPdfFileName: string; const aAngle : integer): boolean;
     class function GetLastError : String;
   end;
@@ -86,6 +87,38 @@ begin
   if not RunCommand(CpdfExePath, ['-split', aPdfFileName, '-o', thumbFilename], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
   cmd := '-split ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + thumbFilename + '"';
+  if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  {$ENDIF}
+  begin
+    {$IFDEF UNIX}
+    {$IFDEF DEBUG}
+    writeln(outputString);
+    {$ENDIF}
+    {$ENDIF}
+    FLastError := SCpdf_error_unable_to_run + outputString;
+    exit;
+  end;
+  Result := true;
+end;
+
+class function TCpdfToolbox.MergePdfFiles(const aFiles: TStringList; const aDestinationFileName: string): boolean;
+var
+  outputString, cmd : string;
+  i : integer;
+begin
+  Result := false;
+  if not CheckCpdfExePath then
+    exit;
+
+  cmd := '-merge ';
+  for i := 0 to aFiles.Count - 1 do
+    cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aFiles.Strings[i]),'"');
+
+  cmd := cmd + '-end -o ' + AnsiQuotedStr(UTF8ToWinCP(aDestinationFileName),'"');
+
+  {$IFDEF UNIX}
+  raise Exception.Create('Not implemented');
+  {$ELSE}
   if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
