@@ -154,9 +154,9 @@ begin
 
   cmd := '';
   for i := 0 to aFiles.Count - 1 do
-    cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aFiles.Strings[i]),'"');
+    cmd := cmd + ' ' + AnsiQuotedStr(aFiles.Strings[i],'"');
 
-  cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aDestinationFileName),'"');
+  cmd := cmd + ' ' + AnsiQuotedStr(aDestinationFileName,'"');
 
   {$IFDEF UNIX}
   raise Exception.Create('Not implemented');
