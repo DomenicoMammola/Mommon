@@ -22,6 +22,7 @@ interface
   function ExtFormatDateTime(const Format: String; DateTime: TDateTime): String;
 
   function Intersect (const aStart1, aEnd1, aStart2, aEnd2 : TDateTime) : boolean;
+  function EndOfQuarter(const aDate : TDateTime): TDateTime;
 
 implementation
 
@@ -101,6 +102,17 @@ begin
     c4 := mFloatsManagement.DoubleIsLessThan(aEnd1, aEnd2);
     Result := ((not c3) and c4) or (c1 and (not c4));
   end;
+end;
+
+function EndOfQuarter(const aDate: TDateTime): TDateTime;
+var
+  d, m, y: Word;
+begin
+  DecodeDate(aDate, y, m, d);
+  if (m mod 3) = 0 then
+    Result := EndOfAMonth(y, m)
+  else
+    Result := EndOfAMonth(y, ((m div 3) + 1) * 3);
 end;
 
 end.
