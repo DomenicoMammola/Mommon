@@ -741,6 +741,10 @@ begin
       else
         raise Exception.Create('Unable to convert ' + VarToStr(aValue) + ' to boolean');
     end
+    else if aType = ptString then
+    begin
+      FValue := mUtility.EscapeSQLStringValue(VarToStr(aValue));
+    end
     else
       FValue:= aValue;
   end;
