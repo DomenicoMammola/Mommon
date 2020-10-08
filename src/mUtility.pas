@@ -129,6 +129,8 @@ function EncodeURIComponent(const aSrc: String): UTF8String;
 
 function EncodeSVGString(const aSrc : String): String;
 
+function EscapeSQLStringValue(const aSrc: String): String;
+
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
 function SanitizeSubstringForFileName(const aSubString : String): String;
@@ -1413,9 +1415,13 @@ end;
 procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
 begin
   {$IFDEF WINDOWS}
+  {$push}{$warnings off}
+  begin
   // http://forum.lazarus.freepascal.org/index.php?topic=33574.0
   If aFlashEvenIfActive or (not Application.Active) Then
     FlashWindow({$IFDEF FPC}WidgetSet.AppHandle{$ELSE}Application.Handle{$ENDIF}, True);
+  end;
+  {$pop}
   {$ENDIF}
 end;
 {$ENDIF}
@@ -2108,6 +2114,46 @@ begin
   end;
 end;
 
+function EscapeSQLStringValue(const aSrc: String): String;
+var
+  i : integer;
+  curOrd : word;
+begin
+  Result := '';
+  for i := 1 to Length(aSrc) do
+  begin
+    // \n
+    // \b
+    // \r
+    // \\
+    // \%
+    // \_
+    // \t
+    // \'
+    // \"
+    curOrd:= Ord(aSrc[i]);
+    if curOrd = 10 then
+      Result := Result + '\n'
+    else if curOrd = 8 then
+      Result := Result + '\b'
+    else if curOrd = 13 then
+      Result := Result + '\r'
+    else if curOrd = 92 then
+      Result := Result + '\\'
+    else if curOrd = 37  then
+      Result := Result + '\%'
+    else if curOrd = 95 then
+      Result := Result + '\_'
+    else if curOrd = 9 then
+      Result := Result + '\t'
+    else if curOrd = 39 then
+      Result := Result + '\'''
+    else if curOrd = 34 then
+      Result := Result + '\"'
+    else
+      Result := Result + aSrc[i];
+  end
+end;
 
 (*
     https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
