@@ -54,6 +54,12 @@ type
     procedure WriteFloat(const aRow, aCol : integer; const aValue : double); overload;
     procedure WriteFloat(const aRow, aCol : integer; const aValue : double; const aFormatString: String); overload;
 
+    procedure WriteCurrency(const aRow, aCol : integer; const aValue : TNullableDouble; const aNegativeInRed : boolean); overload;
+    procedure WriteCurrency(const aRow, aCol : integer; const aValue : double; const aNegativeInRed : boolean); overload;
+
+    procedure WritePercentage(const aRow, aCol : integer; const aValue : TNullableInteger); overload;
+    procedure WritePercentage(const aRow, aCol : integer; const aValue : integer); overload;
+
     procedure WriteDate(const aRow, aCol : integer; const aValue: TNullableDateTime); overload;
     procedure WriteDate(const aRow, aCol : integer; const aValue : TDateTime); overload;
     procedure WriteDateTime(const aRow, aCol : integer; const aValue: TNullableDateTime); overload;
@@ -69,8 +75,10 @@ type
     procedure WriteText(const aRow, aCol : integer; const aValue : String; const aItalic, aBold : boolean; const aBackgroundColor : DWord = scNotDefined); overload;
 
     procedure WriteSouthBorder(const aRow, aCol: integer);
+    procedure WriteBorders(const aRow, aCol : integer; const aNorth, aSouth, aEast, aWest : boolean);
     procedure WriteBackgroundColor(const aRow, aCol : integer; const aColor : DWord); // $00BBGGRR
     procedure WriteFontStyle(const aRow, aCol : integer; const aItalic, aBold : boolean);
+
 
     procedure ReadInteger(const aRow, aCol : integer; aValue : TNullableInteger);
     procedure ReadFloat(const aRow, aCol : integer; aValue : TNullableDouble);
@@ -86,6 +94,12 @@ type
 procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TNullableDouble; const aFractionalPartDigits : integer); overload;
 procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : double; const aFractionalPartDigits : integer); overload;
 procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : double; const aFormatString : String); overload;
+
+procedure spWriteCurrency(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TNullableDouble; const aNegativeInRed : boolean); overload;
+procedure spWriteCurrency(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : double; const aNegativeInRed : boolean); overload;
+
+procedure spWritePercentage(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TNullableInteger); overload;
+procedure spWritePercentage(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : integer); overload;
 
 procedure spWriteDate(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue: TNullableDateTime); overload;
 procedure spWriteDate(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TDateTime); overload;
@@ -134,6 +148,34 @@ end;
 procedure spWriteDate(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: TDateTime);
 begin
   aSheet.WriteDateTime(aRow, aCol, aValue, nfShortDate);
+end;
+
+procedure spWriteCurrency(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: TNullableDouble; const aNegativeInRed: boolean);
+begin
+  if aValue.NotNull then
+    spWriteCurrency(aSheet, aRow, aCol, aValue.AsFloat, aNegativeInRed);
+end;
+
+procedure spWriteCurrency(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: double; const aNegativeInRed: boolean);
+begin
+  if aNegativeInRed then
+    aSheet.WriteCurrency(aRow, aCol, aValue, nfCurrencyRed)
+  else
+    aSheet.WriteCurrency(aRow, aCol, aValue, nfCurrency);
+end;
+
+procedure spWritePercentage(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: TNullableInteger);
+begin
+  if aValue.NotNull then
+    spWritePercentage(aSheet, aRow, aCol, aValue.AsInteger);
+end;
+
+procedure spWritePercentage(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: integer);
+var
+  vDouble : Double;
+begin
+  vDouble := aValue * 0.01;
+  aSheet.WriteNumber(aRow, aCol, vDouble, nfPercentage, 0);
 end;
 
 procedure spWriteDate(aSheet: TsWorksheet; const aRow, aCol: integer; const aValue: TNullableDateTime);
@@ -323,6 +365,30 @@ begin
   WriteDefaultFont(aRow, aCol);
 end;
 
+procedure TmSpreadsheetHelper.WriteCurrency(const aRow, aCol: integer; const aValue: TNullableDouble; const aNegativeInRed: boolean);
+begin
+  spWriteCurrency(FSheet, aRow, aCol, aValue, aNegativeInRed);
+  WriteDefaultFont(aRow, aCol);
+end;
+
+procedure TmSpreadsheetHelper.WriteCurrency(const aRow, aCol: integer; const aValue: double; const aNegativeInRed: boolean);
+begin
+  spWriteCurrency(FSheet, aRow, aCol, aValue, aNegativeInRed);
+  WriteDefaultFont(aRow, aCol);
+end;
+
+procedure TmSpreadsheetHelper.WritePercentage(const aRow, aCol: integer; const aValue: TNullableInteger);
+begin
+  spWritePercentage(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
+end;
+
+procedure TmSpreadsheetHelper.WritePercentage(const aRow, aCol: integer; const aValue: integer);
+begin
+  spWritePercentage(FSheet, aRow, aCol, aValue);
+  WriteDefaultFont(aRow, aCol);
+end;
+
 procedure TmSpreadsheetHelper.WriteDate(const aRow, aCol: integer; const aValue: TNullableDateTime);
 begin
   spWriteDate(FSheet, aRow, aCol, aValue);
@@ -407,6 +473,22 @@ end;
 procedure TmSpreadsheetHelper.WriteSouthBorder(const aRow, aCol: integer);
 begin
   FSheet.WriteBorders(aRow,aCol, [cbSouth]);
+end;
+
+procedure TmSpreadsheetHelper.WriteBorders(const aRow, aCol: integer; const aNorth, aSouth, aEast, aWest: boolean);
+var
+  tmpBorders : TsCellBorders;
+begin
+  tmpBorders:= [];
+  if aNorth then
+    Include(tmpBorders, cbNorth);
+  if aSouth then
+    Include(tmpBorders, cbSouth);
+  if aEast then
+    Include(tmpBorders, cbEast);
+  if aWest then
+    Include(tmpBorders, cbWest);
+  FSheet.WriteBorders(aRow, aCol, tmpBorders);
 end;
 
 procedure TmSpreadsheetHelper.WriteFontStyle(const aRow, aCol: integer; const aItalic, aBold: boolean);
