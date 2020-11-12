@@ -11,6 +11,7 @@
 // ***********************************
 // Poppler
 // https://blog.alivate.com.au/poppler-windows/
+// https://github.com/oschwartz10612/poppler-windows
 // https://www.mankier.com/package/poppler-utils 
 // ***********************************
 //
