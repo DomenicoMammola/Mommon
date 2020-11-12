@@ -74,7 +74,7 @@ begin
   if not Assigned(FFilePublisher) then
   begin
     FFilePublisher := TmFilePublisher.Create;
-    logManager.AddPublisher(FFilePublisher);
+    logManager.AddPublisher(FFilePublisher, false);
     FFilePublisher.Active := true;
     FFilePublisher.FileName := IncludeTrailingPathDelimiter(ExtractFilePath(Application.ExeName)) + 'log.txt';
   end;
@@ -111,7 +111,7 @@ initialization
   {$ENDIF}
   FMemoPublisher := TmMemoPublisher.Create;
   FMemoPublisher.Active := true;
-  logManager.AddPublisher(FMemoPublisher);
+  logManager.AddPublisher(FMemoPublisher, false);
   FFilePublisher := nil;
 
 finalization
