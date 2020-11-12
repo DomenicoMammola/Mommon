@@ -24,6 +24,9 @@ interface
   function Intersect (const aStart1, aEnd1, aStart2, aEnd2 : TDateTime) : boolean;
   function EndOfQuarter(const aDate : TDateTime): TDateTime;
 
+  // https://forum.lazarus.freepascal.org/index.php?topic=9310.0
+  function ToUnixTimestamp (const aDate : TDateTime): integer;
+
 implementation
 
 uses
@@ -113,6 +116,11 @@ begin
     Result := EndOfAMonth(y, m)
   else
     Result := EndOfAMonth(y, ((m div 3) + 1) * 3);
+end;
+
+function ToUnixTimestamp(const aDate: TDateTime): integer;
+begin
+  Result := Trunc((aDate - EncodeDate(1970, 1 ,1)) * 24 * 60 * 60);
 end;
 
 end.
