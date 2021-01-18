@@ -15,7 +15,7 @@ interface
 uses
   contnrs, db, variants, Classes,
   mDataProviderInterfaces,
-  mIntList, mMaps;
+  mIntList, mMaps, mSummary;
 
 type
 
@@ -183,7 +183,12 @@ type
     // indexes of keys of vertical and horizontal group-by sets
     FVerticalKeysIndex : TmKeysIndex;
     FHorizontalKeysIndex : TmKeysIndex;
+    // definitions of pivot values
+    FSummaryDefinitions : TmSummaryDefinitions;
+    FValues : TmStringDictionary;
+
     function GetIndexKeyValue(aValue : Variant; aGroupByDef : TmGroupByDef): string;
+    procedure InternalCalculate(const aOnlyHierarchy : boolean);
   strict private
     const KEY_SEPARATOR = '^~';
   public
@@ -191,19 +196,25 @@ type
     destructor Destroy; override;
 
     procedure CalculateHierarchy;
+    procedure Calculate;
+
+    // internal or test functions
     function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList; overload;
     function GetRecords (const aVerticalKeys, aHorizontalKeys : string): TCardinalList; overload;
+    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : TStringList; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue; overload;
+    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : String; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue;
+    class function BuildKey(const aOldKey, aNewKeyPartValue : String) : String;
+    class function StringListToKey(const aKeys : TStringList): String;
 
-    function BuildKey(const aOldKey, aNewKeyPartValue : String) : String;
-
+    // definitions
     property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
     property VerticalGroupByDefs : TmGroupByDefs read FVerticalGroupByDefs;
     property HorizontalGroupByDefs : TmGroupByDefs read FHorizontalGroupByDefs;
+    property SummaryDefinitions : TmSummaryDefinitions read FSummaryDefinitions;
 
+    // output values
     property VerticalValues: TKeyValuesForGroupByDefs read FVerticalValues;
     property HorizontalValues: TKeyValuesForGroupByDefs read FHorizontalValues;
-
-
   end;
 
 
@@ -293,8 +304,10 @@ begin
   FVerticalValues := TKeyValuesForGroupByDefs.Create;
   FHorizontalValues := TKeyValuesForGroupByDefs.Create;
   FRecordCoordinates := TmStringDictionary.Create(true);
+  FValues := TmStringDictionary.Create(true);
   FVerticalKeysIndex := TmKeysIndex.Create;
   FHorizontalKeysIndex := TmKeysIndex.Create;
+  FSummaryDefinitions := TmSummaryDefinitions.Create;
 end;
 
 destructor TmPivoter.Destroy;
@@ -304,23 +317,28 @@ begin
   FVerticalValues.Free;
   FHorizontalValues.Free;
   FRecordCoordinates.Free;
+  FValues.Free;
   FVerticalKeysIndex.Free;
   FHorizontalKeysIndex.Free;
+  FSummaryDefinitions.Free;
 
   inherited Destroy;
 end;
 
-procedure TmPivoter.CalculateHierarchy;
+procedure TmPivoter.InternalCalculate(const aOnlyHierarchy : boolean);
 var
-  i, k : integer;
+  i, k, z : integer;
   currentCoord, tmpKeyValue : string;
   tmpIndex : TmKeysIndex;
   tmpValue : Variant;
   tmpList : TCardinalList;
+  tmpValues : TmSummaryValues;
+  summaryValue : TmSummaryValue;
 begin
   FVerticalValues.Clear;
   FHorizontalValues.Clear;
   FRecordCoordinates.Clear;
+  FValues.Clear;
 
   for i := 0 to FVerticalGroupByDefs.Count - 1 do
     FVerticalValues.Add;
@@ -365,8 +383,33 @@ begin
       FRecordCoordinates.Add(currentCoord, tmpList);
     end;
     tmpList.Add(i);
+    if not aOnlyHierarchy then
+    begin
+      tmpValues := FValues.Find(currentCoord) as TmSummaryValues;
+      if not Assigned(tmpValues) then
+      begin
+        tmpValues := TmSummaryValues.Create;
+        FValues.Add(currentCoord, tmpValues);
+      end;
+      for z := 0 to FSummaryDefinitions.Count - 1 do
+      begin
+        summaryValue := tmpValues.FindByDefinition(FSummaryDefinitions.Get(z));
+        if not Assigned(summaryValue) then
+          summaryValue := tmpValues.AddValue(FSummaryDefinitions.Get(z), false);
+        summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+      end;
+    end;
   end;
+end;
 
+procedure TmPivoter.CalculateHierarchy;
+begin
+  InternalCalculate(true);
+end;
+
+procedure TmPivoter.Calculate;
+begin
+  InternalCalculate(false);
 end;
 
 function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: TStringList): TCardinalList;
@@ -374,22 +417,10 @@ var
   tmpHor, tmpVer : String;
   i : integer;
 begin
-  tmpHor := '';
-  if Assigned(aVerticalKeys) then
-  begin
-    for i := 0 to aVerticalKeys.Count - 1 do
-      tmpHor := BuildKey(tmpHor, aVerticalKeys.Strings[i]);
-      //tmp := tmp + aVerticalKeys.Strings[i] + KEY_SEPARATOR;
-  end;
-  tmpVer := '';
-  if Assigned(aHorizontalKeys) then
-  begin
-    for i := 0 to aHorizontalKeys.Count - 1 do
-      tmpVer := BuildKey(tmpVer, aHorizontalKeys.Strings[i]);
-      //tmp := tmp + aHorizontalKeys.Strings[i] + KEY_SEPARATOR;
-  end;
+  tmpHor := StringListToKey(aVerticalKeys);
+  tmpVer := StringListToKey(aHorizontalKeys);
 
-  Result := GetRecords(tmpVer, tmpHor); //FRecordCoordinates.Find(tmp) as TCardinalList;
+  Result := GetRecords(tmpVer, tmpHor);
 end;
 
 function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: string): TCardinalList;
@@ -397,9 +428,46 @@ begin
   Result := FRecordCoordinates.Find(aVerticalKeys + aHorizontalKeys) as TCardinalList;
 end;
 
-function TmPivoter.BuildKey(const aOldKey, aNewKeyPartValue: String): String;
+function TmPivoter.ComputeSummary(const aVerticalKeys, aHorizontalKeys: TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+begin
+  Result := ComputeSummary(StringListToKey(aVerticalKeys), StringListToKey(aHorizontalKeys), aSummaryDefinition);
+end;
+
+function TmPivoter.ComputeSummary(const aVerticalKeys, aHorizontalKeys: String; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+var
+  tmpList : TCardinalList;
+  i : integer;
+  curValue : Variant;
+begin
+  Result := nil;
+  tmpList := Self.GetRecords(aVerticalKeys, aHorizontalKeys);
+  if Assigned(tmpList) then
+  begin
+    Result := TmSummaryValue.Create(false);
+    Result.Definition := aSummaryDefinition;
+    for i := 0 to tmpList.Count - 1 do
+    begin
+      curValue := FDataProvider.GetDatum(tmpList.Nums[i]).GetPropertyByFieldName(aSummaryDefinition.FieldName);
+      Result.ComputeValueInSummaries(curValue);
+    end;
+  end;
+end;
+
+class function TmPivoter.BuildKey(const aOldKey, aNewKeyPartValue: String): String;
 begin
   Result := aOldKey + aNewKeyPartValue + KEY_SEPARATOR;
+end;
+
+class function TmPivoter.StringListToKey(const aKeys: TStringList): String;
+var
+  i : integer;
+begin
+  Result := '';
+  if Assigned(aKeys) then
+  begin
+    for i := 0 to aKeys.Count - 1 do
+      Result := BuildKey(Result, aKeys.Strings[i]);
+  end;
 end;
 
 { TRecordsCoordinates }

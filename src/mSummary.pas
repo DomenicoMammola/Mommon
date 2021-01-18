@@ -17,10 +17,11 @@ unit mSummary;
 interface
 
 uses
-  Classes, contnrs, db,
+  Classes, contnrs, db, sysutils,
   mFloatsManagement, mNullables, mMaps;
 
 type
+  TmSummaryException = class(Exception);
 
   TmSummaryValueType = (svtDouble, svtInteger, svtString, svtDate, svtDateTime);
 
@@ -71,6 +72,8 @@ type
     FFieldType : TFieldType;
     FSummaryOperator : TmSummaryOperator;
     procedure SetFieldName(AValue: string);
+  private
+    function GetUniqueIdentifier : String;
   public
     constructor Create;
     procedure Assign(const aSource : TmSummaryDefinition);
@@ -112,19 +115,21 @@ type
     FUniqueValues: TmStringDictionary;
 
     FDefinition : TmSummaryDefinition;
+    FOwnDefinition : boolean;
 
     function GetDataType: TmSummaryValueType;
     function GetValueAsString: string;
     function GetValueAsVariant: variant;
     function GetFormattedValue : string;
     procedure Init;
+    procedure SetDefinition(AValue: TmSummaryDefinition);
   public
-    constructor Create;
+    constructor Create (const aOwnDefinition : boolean = true);
     destructor Destroy; override;
 
     procedure ComputeValueInSummaries (const aValue: Variant);
 
-    property Definition : TmSummaryDefinition read FDefinition;
+    property Definition : TmSummaryDefinition read FDefinition write SetDefinition;
     property ValueAsString: string read GetValueAsString;
     property ValueAsVariant: variant read GetValueAsVariant;
     property DataType: TmSummaryValueType read GetDataType;
@@ -136,13 +141,15 @@ type
   TmSummaryValues = class
   strict private
     FList : TObjectList;
+    FIndex : TmStringDictionary;
   public
     constructor Create;
     destructor Destroy; override;
-    function AddValue (const aDefinition : TmSummaryDefinition) : TmSummaryValue;
+    function AddValue (const aDefinition : TmSummaryDefinition; const aOwnDefinition : boolean = true) : TmSummaryValue;
     procedure Clear;
     function Count : integer;
     function Get(const aIndex : integer) : TmSummaryValue;
+    function FindByDefinition(const aDefinition : TmSummaryDefinition): TmSummaryValue;
   end;
 
   function TmSummaryOperatorToString (const aOperator : TmSummaryOperator) : String;
@@ -150,7 +157,7 @@ type
 implementation
 
 uses
-  variants, sysutils;
+  variants;
 
 function FieldTypeIsInteger(const aFieldType : TFieldType): boolean;
 begin
@@ -253,6 +260,11 @@ begin
   FCaption := AValue;
 end;
 
+function TmSummaryDefinition.GetUniqueIdentifier: String;
+begin
+  Result := FieldName + '#' + TmSummaryOperatorToString(SummaryOperator)
+end;
+
 constructor TmSummaryDefinition.Create;
 begin
   FFieldName:= '';
@@ -274,25 +286,30 @@ end;
 constructor TmSummaryValues.Create;
 begin
   FList := TObjectList.Create(true);
+  FIndex := TmStringDictionary.Create(false);
 end;
 
 destructor TmSummaryValues.Destroy;
 begin
   FList.Free;
+  FIndex.Free;
   inherited Destroy;
 end;
 
-function TmSummaryValues.AddValue(const aDefinition: TmSummaryDefinition): TmSummaryValue;
+function TmSummaryValues.AddValue(const aDefinition: TmSummaryDefinition; const aOwnDefinition : boolean = true): TmSummaryValue;
 begin
-  Result := TmSummaryValue.Create;
+  Result := TmSummaryValue.Create(aOwnDefinition);
   FList.Add(Result);
-  Result.FDefinition.Assign(aDefinition);
+  if aOwnDefinition then
+    Result.Definition.Assign(aDefinition);
+  FIndex.Add(aDefinition.GetUniqueIdentifier, Result);
   Result.Init;
 end;
 
 procedure TmSummaryValues.Clear;
 begin
   FList.Clear;
+  FIndex.Clear;
 end;
 
 function TmSummaryValues.Count: integer;
@@ -305,6 +322,11 @@ begin
   Result := FList.Items[aIndex] as TmSummaryValue;
 end;
 
+function TmSummaryValues.FindByDefinition(const aDefinition: TmSummaryDefinition): TmSummaryValue;
+begin
+  Result := FIndex.Find(aDefinition.GetUniqueIdentifier) as TmSummaryValue;
+end;
+
 { TmSummaryValue }
 
 procedure TmSummaryValue.Init;
@@ -312,6 +334,14 @@ begin
   if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) or
      (FDefinition.SummaryOperator = soAverage) or (FDefinition.SummaryOperator = soAverageNotNull) then
     FIntegerValue2.Value:= 0;
+end;
+
+procedure TmSummaryValue.SetDefinition(AValue: TmSummaryDefinition);
+begin
+  if not FOwnDefinition then
+    raise TmSummaryException.Create('Definition of summary value is owned so it cannot be changed');
+  if FDefinition=AValue then Exit;
+  FDefinition:=AValue;
 end;
 
 function TmSummaryValue.GetValueAsString: string;
@@ -404,9 +434,11 @@ begin
     Result := Null
 end;
 
-constructor TmSummaryValue.Create;
+constructor TmSummaryValue.Create(const aOwnDefinition : boolean = true);
 begin
-  FDefinition:= TmSummaryDefinition.Create;
+  FOwnDefinition := aOwnDefinition;
+  if FOwnDefinition then
+    FDefinition:= TmSummaryDefinition.Create;
   FDoubleValue:= TNullableDouble.Create();
   FDoubleValue2 := TNullableDouble.Create();
   FStringValue:= TNullableString.Create();
@@ -417,7 +449,8 @@ end;
 
 destructor TmSummaryValue.Destroy;
 begin
-  FDefinition.Free;
+  if FOwnDefinition then
+    FDefinition.Free;
   FDoubleValue.Free;
   FDoubleValue2.Free;
   FStringValue.Free;
