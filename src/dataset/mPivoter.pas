@@ -201,8 +201,8 @@ type
     // internal or test functions
     function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList; overload;
     function GetRecords (const aVerticalKeys, aHorizontalKeys : string): TCardinalList; overload;
-    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : TStringList; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue; overload;
-    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : String; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue;
+//    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : TStringList; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue; overload;
+//    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : String; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue;
     class function BuildKey(const aOldKey, aNewKeyPartValue : String) : String;
     class function StringListToKey(const aKeys : TStringList): String;
 
@@ -428,7 +428,7 @@ begin
   Result := FRecordCoordinates.Find(aVerticalKeys + aHorizontalKeys) as TCardinalList;
 end;
 
-function TmPivoter.ComputeSummary(const aVerticalKeys, aHorizontalKeys: TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+(*function TmPivoter.ComputeSummary(const aVerticalKeys, aHorizontalKeys: TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
 begin
   Result := ComputeSummary(StringListToKey(aVerticalKeys), StringListToKey(aHorizontalKeys), aSummaryDefinition);
 end;
@@ -445,6 +445,7 @@ begin
   begin
     Result := TmSummaryValue.Create(false);
     Result.Definition := aSummaryDefinition;
+    Result.Init;
     for i := 0 to tmpList.Count - 1 do
     begin
       curValue := FDataProvider.GetDatum(tmpList.Nums[i]).GetPropertyByFieldName(aSummaryDefinition.FieldName);
@@ -452,6 +453,7 @@ begin
     end;
   end;
 end;
+*)
 
 class function TmPivoter.BuildKey(const aOldKey, aNewKeyPartValue: String): String;
 begin

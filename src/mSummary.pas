@@ -301,7 +301,9 @@ begin
   Result := TmSummaryValue.Create(aOwnDefinition);
   FList.Add(Result);
   if aOwnDefinition then
-    Result.Definition.Assign(aDefinition);
+    Result.Definition.Assign(aDefinition)
+  else
+    Result.Definition := aDefinition;
   FIndex.Add(aDefinition.GetUniqueIdentifier, Result);
   Result.Init;
 end;
@@ -338,7 +340,7 @@ end;
 
 procedure TmSummaryValue.SetDefinition(AValue: TmSummaryDefinition);
 begin
-  if not FOwnDefinition then
+  if FOwnDefinition then
     raise TmSummaryException.Create('Definition of summary value is owned so it cannot be changed');
   if FDefinition=AValue then Exit;
   FDefinition:=AValue;
