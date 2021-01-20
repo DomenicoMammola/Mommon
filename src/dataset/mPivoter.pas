@@ -201,8 +201,8 @@ type
     // internal or test functions
     function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList; overload;
     function GetRecords (const aVerticalKeys, aHorizontalKeys : string): TCardinalList; overload;
-//    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : TStringList; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue; overload;
-//    function ComputeSummary (const aVerticalKeys, aHorizontalKeys : String; const aSummaryDefinition : TmSummaryDefinition) : TmSummaryValue;
+    function GetValue(const aVerticalKeys, aHorizontalKeys : TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
+    function GetValue(const aVerticalKeys, aHorizontalKeys : string; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
     class function BuildKey(const aOldKey, aNewKeyPartValue : String) : String;
     class function StringListToKey(const aKeys : TStringList): String;
 
@@ -356,7 +356,7 @@ begin
       tmpKeyValue := GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(k));
       FVerticalValues.Get(k).AddValueIfMissing(tmpKeyValue);
 
-      currentCoord := currentCoord + tmpKeyValue + KEY_SEPARATOR;
+      currentCoord := BuildKey(currentCoord, tmpKeyValue);
       if k < (FVerticalGroupByDefs.Count - 1) then
         tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
       else
@@ -369,7 +369,7 @@ begin
       tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FHorizontalGroupByDefs.Get(k).FieldName);
       tmpKeyValue := GetIndexKeyValue(tmpValue, FHorizontalGroupByDefs.Get(k));
       FHorizontalValues.Get(k).AddValueIfMissing(tmpKeyValue);
-      currentCoord := currentCoord + tmpKeyValue + KEY_SEPARATOR;
+      currentCoord := BuildKey(currentCoord, tmpKeyValue);
       if k < (FHorizontalGroupByDefs.Count - 1) then
         tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
       else
@@ -415,10 +415,9 @@ end;
 function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: TStringList): TCardinalList;
 var
   tmpHor, tmpVer : String;
-  i : integer;
 begin
-  tmpHor := StringListToKey(aVerticalKeys);
-  tmpVer := StringListToKey(aHorizontalKeys);
+  tmpHor := StringListToKey(aHorizontalKeys);
+  tmpVer := StringListToKey(aVerticalKeys);
 
   Result := GetRecords(tmpVer, tmpHor);
 end;
@@ -428,32 +427,25 @@ begin
   Result := FRecordCoordinates.Find(aVerticalKeys + aHorizontalKeys) as TCardinalList;
 end;
 
-(*function TmPivoter.ComputeSummary(const aVerticalKeys, aHorizontalKeys: TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+function TmPivoter.GetValue(const aVerticalKeys, aHorizontalKeys : TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+var
+  tmpHor, tmpVer : String;
 begin
-  Result := ComputeSummary(StringListToKey(aVerticalKeys), StringListToKey(aHorizontalKeys), aSummaryDefinition);
+  tmpHor := StringListToKey(aHorizontalKeys);
+  tmpVer := StringListToKey(aVerticalKeys);
+  Result := GetValue(tmpVer, tmpHor, aSummaryDefinition);
 end;
 
-function TmPivoter.ComputeSummary(const aVerticalKeys, aHorizontalKeys: String; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+function TmPivoter.GetValue(const aVerticalKeys, aHorizontalKeys: string; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
 var
-  tmpList : TCardinalList;
-  i : integer;
-  curValue : Variant;
+  tmpValues : TmSummaryValues;
 begin
   Result := nil;
-  tmpList := Self.GetRecords(aVerticalKeys, aHorizontalKeys);
-  if Assigned(tmpList) then
-  begin
-    Result := TmSummaryValue.Create(false);
-    Result.Definition := aSummaryDefinition;
-    Result.Init;
-    for i := 0 to tmpList.Count - 1 do
-    begin
-      curValue := FDataProvider.GetDatum(tmpList.Nums[i]).GetPropertyByFieldName(aSummaryDefinition.FieldName);
-      Result.ComputeValueInSummaries(curValue);
-    end;
-  end;
+
+  tmpValues := FValues.Find(aVerticalKeys + aHorizontalKeys) as TmSummaryValues;
+  if Assigned(tmpValues) then
+    Result := tmpValues.FindByDefinition(aSummaryDefinition);
 end;
-*)
 
 class function TmPivoter.BuildKey(const aOldKey, aNewKeyPartValue: String): String;
 begin
