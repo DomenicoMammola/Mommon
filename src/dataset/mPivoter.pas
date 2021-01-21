@@ -100,11 +100,11 @@ type
     FParent : TmKeysIndex;
   private
     procedure Clear;
-    function GetSubIndex (const aKey : string): TmKeysIndex;
     function GetValueList (const aKey : string): TCardinalList;
   public
     constructor Create;
     destructor Destroy; override;
+    function GetSubIndex (const aKey : string): TmKeysIndex;
 
     property KeysValues : TStringList read FKeysValues;
   end;
@@ -215,6 +215,8 @@ type
     // output values
     property VerticalValues: TKeyValuesForGroupByDefs read FVerticalValues;
     property HorizontalValues: TKeyValuesForGroupByDefs read FHorizontalValues;
+    property VerticalKeysIndex : TmKeysIndex read FVerticalKeysIndex;
+    property HorizontalKeysIndex : TmKeysIndex read FHorizontalKeysIndex;
   end;
 
 
@@ -360,7 +362,10 @@ begin
       if k < (FVerticalGroupByDefs.Count - 1) then
         tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
       else
+      begin
         tmpIndex.GetValueList(tmpKeyValue).Add(i);
+        tmpIndex.KeysValues.Add(tmpKeyValue);
+      end;
     end;
 
     tmpIndex := FHorizontalKeysIndex;
@@ -373,7 +378,10 @@ begin
       if k < (FHorizontalGroupByDefs.Count - 1) then
         tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
       else
+      begin
         tmpIndex.GetValueList(tmpKeyValue).Add(i);
+        tmpIndex.KeysValues.Add(tmpKeyValue);
+      end;
     end;
 
     tmpList := FRecordCoordinates.Find(currentCoord) as TCardinalList;
