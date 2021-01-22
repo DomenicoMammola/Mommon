@@ -19,7 +19,7 @@ uses
 
 type
 
-  TmGroupByOperationKind = (gpoDistinct, gpoDateYear, gpoDateMonth, gpoDateDay, gpoFirstLetter, goFormula);
+  TmGroupByOperationKind = (gpoDistinct, gpoDateYear, gpoDateMonth, gpoDateTheMonth, gpoDateDay, gpoDateTheDay, gpoDateQuarter, gpoDateTheQuarter, gpoFirstLetter, goFormula);
 
   { TmGroupByDef }
 
@@ -50,6 +50,7 @@ type
     function Add : TmGroupByDef;
     function Count : integer;
     function Get(const aIndex : integer): TmGroupByDef;
+    procedure Clear;
   end;
 
   TmCalculationKind = (ckSum, ckCount, ckMin, ckMax, ckFormula);
@@ -197,6 +198,7 @@ type
 
     procedure CalculateHierarchy;
     procedure Calculate;
+    procedure Clear;
 
     // internal or test functions
     function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList; overload;
@@ -277,6 +279,8 @@ function TmPivoter.GetIndexKeyValue(aValue: Variant; aGroupByDef: TmGroupByDef):
     end;
   end;
 
+var
+  y, m, d : word;
 begin
   case aGroupByDef.OperationKind of
     gpoDistinct:
@@ -285,8 +289,25 @@ begin
       Result := IntToStr(YearOf(TryToConvertToDate(aValue)));
     gpoDateMonth:
       Result := IntToStr(MonthOf(TryToConvertToDate(aValue)));
+    gpoDateTheMonth:
+    begin
+      DecodeDate(TryToConvertToDate(aValue), y, m, d);
+      Result := IntToStr(y) + '-' + IntToStr(m);
+    end;
     gpoDateDay:
       Result := IntToStr(DayOf(TryToConvertToDate(aValue)));
+    gpoDateTheDay:
+    begin
+      DecodeDate(TryToConvertToDate(aValue), y, m, d);
+      Result := IntToStr(y) + '-' + IntToStr(m) + '-' + IntToStr(d);
+    end;
+    gpoDateQuarter:
+      Result := IntToStr(((MonthOf(TryToConvertToDate(aValue)) - 1) div 3) + 1);
+    gpoDateTheQuarter:
+    begin
+      DecodeDate(TryToConvertToDate(aValue), y, m, d);
+      Result := IntToStr(y) + '-' + IntToStr(((m - 1) div 3) + 1);
+    end;
     gpoFirstLetter:
       begin
         Result := VarToStr(aValue);
@@ -337,10 +358,7 @@ var
   tmpValues : TmSummaryValues;
   summaryValue : TmSummaryValue;
 begin
-  FVerticalValues.Clear;
-  FHorizontalValues.Clear;
-  FRecordCoordinates.Clear;
-  FValues.Clear;
+  Self.Clear;
 
   for i := 0 to FVerticalGroupByDefs.Count - 1 do
     FVerticalValues.Add;
@@ -418,6 +436,16 @@ end;
 procedure TmPivoter.Calculate;
 begin
   InternalCalculate(false);
+end;
+
+procedure TmPivoter.Clear;
+begin
+  FVerticalValues.Clear;
+  FHorizontalValues.Clear;
+  FRecordCoordinates.Clear;
+  FValues.Clear;
+  FVerticalKeysIndex.Clear;
+  FHorizontalKeysIndex.Clear;
 end;
 
 function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: TStringList): TCardinalList;
@@ -669,6 +697,11 @@ end;
 function TmGroupByDefs.Get(const aIndex: integer): TmGroupByDef;
 begin
   Result := FList.Items[aIndex] as TmGroupByDef;
+end;
+
+procedure TmGroupByDefs.Clear;
+begin
+  FList.Clear;
 end;
 
 { TmGroupByDef }
