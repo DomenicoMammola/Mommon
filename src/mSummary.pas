@@ -101,6 +101,7 @@ type
     procedure Delete (const aIndex : integer);
     procedure Remove (const aDefinition : TmSummaryDefinition);
     procedure Clear;
+    procedure Assign(const aSource : TmSummaryDefinitions);
   end;
 
   { TmSummaryValue }
@@ -677,6 +678,15 @@ end;
 procedure TmSummaryDefinitions.Clear;
 begin
   FList.Clear;
+end;
+
+procedure TmSummaryDefinitions.Assign(const aSource: TmSummaryDefinitions);
+var
+  i : integer;
+begin
+  Self.Clear;
+  for i := 0 to aSource.Count -1 do
+    Self.Add.Assign(aSource.Get(i));
 end;
 
 end.
