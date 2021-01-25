@@ -10,6 +10,10 @@
 
 unit mPivoter;
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses
@@ -31,6 +35,7 @@ type
     FFormula : String;
   public
     constructor Create;
+    procedure Assign(const aSource : TmGroupByDef);
 
     property FieldName : string read FFieldName write FFieldName;
     property DataType : TFieldType read FDataType write FDataType;
@@ -46,6 +51,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Assign(const aSource : TmGroupByDefs);
 
     function Add : TmGroupByDef;
     function Count : integer;
@@ -221,12 +227,37 @@ type
     property HorizontalKeysIndex : TmKeysIndex read FHorizontalKeysIndex;
   end;
 
-
+  function TmGroupByOperationKindToString(const aValue: TmGroupByOperationKind) : String;
 
 implementation
 
 uses
   sysutils, dateutils;
+
+function TmGroupByOperationKindToString(const aValue: TmGroupByOperationKind): String;
+begin
+  Result := 'unknown';
+  if aValue = gpoDistinct then
+    Result := 'distinct'
+  else if aValue = gpoDateYear then
+    Result := 'year'
+  else if aValue = gpoDateMonth then
+    Result := 'month'
+  else if aValue = gpoDateTheMonth then
+    Result := 'year + month'
+  else if aValue = gpoDateDay then
+    Result := 'day'
+  else if aValue = gpoDateTheDay then
+    Result := 'year + month + day'
+  else if aValue = gpoDateQuarter then
+    Result := 'quarter'
+  else if aValue = gpoDateTheQuarter then
+    Result := ' year + quarter'
+  else if aValue = gpoFirstLetter then
+    Result := 'first letter'
+  else if aValue = goFormula then
+    Result := 'formula';
+end;
 
 { TKeyValuesForGroupByDefs }
 
@@ -683,6 +714,15 @@ begin
   inherited Destroy;
 end;
 
+procedure TmGroupByDefs.Assign(const aSource: TmGroupByDefs);
+var
+  i : integer;
+begin
+  Self.Clear;
+  for i := 0 to aSource.Count - 1 do
+    Self.Add.Assign(aSource.Get(i));
+end;
+
 function TmGroupByDefs.Add: TmGroupByDef;
 begin
   Result := TmGroupByDef.Create;
@@ -712,6 +752,14 @@ begin
   FDataType:= ftString;
   FOperationKind:= gpoDistinct;
   FFormula := '';
+end;
+
+procedure TmGroupByDef.Assign(const aSource: TmGroupByDef);
+begin
+  FFieldName:= aSource.FieldName;
+  FDataType := aSource.DataType;
+  FOperationKind := aSource.OperationKind;
+  FFormula := aSource.Formula;
 end;
 
 { TmCalculationDef }
