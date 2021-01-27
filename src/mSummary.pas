@@ -77,6 +77,7 @@ type
   public
     constructor Create;
     procedure Assign(const aSource : TmSummaryDefinition);
+    class function CheckOperatorCompatibility (const aOperator : TmSummaryOperator; const aFieldType : TFieldType) : boolean;
 
     property FieldName : string read FFieldName write SetFieldName;
     property Caption : string read FCaption write FCaption;
@@ -154,6 +155,14 @@ type
   end;
 
   function TmSummaryOperatorToString (const aOperator : TmSummaryOperator) : String;
+
+  function FieldTypeIsInteger(const aFieldType : TFieldType): boolean;
+  function FieldTypeIsTime(const aFieldType : TFieldType): boolean;
+  function FieldTypeIsDate(const aFieldType : TFieldType): boolean;
+  function FieldTypeIsDateTime(const aFieldType : TFieldType): boolean;
+  function FieldTypeIsFloat(const aFieldType : TFieldType) : boolean;
+  function FieldTypeIsPascalDouble(const aFieldType : TFieldType): boolean;
+  function FieldTypeIsString(const aFieldType : TFieldType) : boolean;
 
 implementation
 
@@ -280,6 +289,15 @@ begin
   FCaption := aSource.FCaption;
   FFieldType := aSource.FFieldType;
   FSummaryOperator := aSource.FSummaryOperator;
+end;
+
+class function TmSummaryDefinition.CheckOperatorCompatibility(const aOperator: TmSummaryOperator; const aFieldType: TFieldType): boolean;
+begin
+  // soCount, soCountDistinct, soSum, soMax, soMin, soAverage, soAverageNotNull
+  if (aOperator = soSum) or (aOperator = soAverage) or (aOperator = soAverageNotNull) then
+    Result := aFieldType in [ftInteger, ftFloat, ftCurrency, ftLargeint, ftSmallint]
+  else
+    Result := true;
 end;
 
 { TmSummaryValues }
