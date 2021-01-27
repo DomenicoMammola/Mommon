@@ -36,6 +36,7 @@ type
   public
     constructor Create;
     procedure Assign(const aSource : TmGroupByDef);
+    class function CheckOperationKindCompatibility(const aOperationKind : TmGroupByOperationKind; const aDataType : TFieldType) : boolean;
 
     property FieldName : string read FFieldName write FFieldName;
     property DataType : TFieldType read FDataType write FDataType;
@@ -92,15 +93,14 @@ type
     function Get(const aIndex : integer): TmCalculationDef;
   end;
 
-  TmValuesList = class
-  strict private
-  public
-  end;
 
-
+  { TmKeysIndex }
+(*
   TmKeysIndex = class
   strict private
     FKeysDictionary : TmStringDictionary;
+
+    FKeysValuesDictionary : TmStringDictionary;
     FKeysValues : TStringList;
 
     FLevel : integer;
@@ -111,9 +111,35 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
+    procedure AddKeyValueIfMissing(const aKey : String);
+
     function GetSubIndex (const aKey : string): TmKeysIndex;
+    function AddKey (const aKey : string): TmKeysIndex;
 
     property KeysValues : TStringList read FKeysValues;
+    property Level : integer read FLevel;
+  end;
+  *)
+
+  TmKeysIndex = class
+  strict private
+    FKeyValues : TStringList;
+    FKeyValuesDictionary : TmStringDictionary;
+    FSubIndexes : TmStringDictionary;
+  private
+    function AddSubIndexForKey(const aKeyValue: String) : TmKeysIndex;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+    function KeyValuesCount : integer;
+    function GetKeyValue(const aIndex: integer): String;
+    function Terminal : boolean;
+
+    procedure AddValueIfMissing(const aKeyValue: String);
+    function GetSubIndexOfKey(const aKeyValue: String) : TmKeysIndex;
+    function GetSubIndex(const aIndex : integer): TmKeysIndex;
   end;
 
   { TKeyValuesForGroupByDef }
@@ -204,7 +230,7 @@ type
 
     procedure CalculateHierarchy;
     procedure Calculate;
-    procedure Clear;
+    procedure Clear(const aClearSettings : boolean);
 
     // internal or test functions
     function GetRecords (const aVerticalKeys, aHorizontalKeys : TStringList): TCardinalList; overload;
@@ -221,8 +247,8 @@ type
     property SummaryDefinitions : TmSummaryDefinitions read FSummaryDefinitions;
 
     // output values
-    property VerticalValues: TKeyValuesForGroupByDefs read FVerticalValues;
-    property HorizontalValues: TKeyValuesForGroupByDefs read FHorizontalValues;
+    property VerticalValues: TKeyValuesForGroupByDefs read FVerticalValues; // the collection of all key values for any vertical level
+    property HorizontalValues: TKeyValuesForGroupByDefs read FHorizontalValues; // the collection of all key values for any vertical level
     property VerticalKeysIndex : TmKeysIndex read FVerticalKeysIndex;
     property HorizontalKeysIndex : TmKeysIndex read FHorizontalKeysIndex;
   end;
@@ -257,6 +283,74 @@ begin
     Result := 'first letter'
   else if aValue = goFormula then
     Result := 'formula';
+end;
+
+{ TmKeysIndex }
+
+function TmKeysIndex.AddSubIndexForKey(const aKeyValue: String): TmKeysIndex;
+begin
+  Result := FSubIndexes.Find(aKeyValue) as TmKeysIndex;
+  if not Assigned(Result) then
+  begin
+    Result := TmKeysIndex.Create;
+    FSubIndexes.Add(aKeyValue, Result);
+  end;
+end;
+
+constructor TmKeysIndex.Create;
+begin
+  FKeyValues := TStringList.Create;
+  FKeyValuesDictionary := TmStringDictionary.Create(false);
+  FSubIndexes := TmStringDictionary.Create(true);
+end;
+
+destructor TmKeysIndex.Destroy;
+begin
+  FKeyValues.Free;
+  FKeyValuesDictionary.Free;
+  FSubIndexes.Free;
+  inherited Destroy;
+end;
+
+procedure TmKeysIndex.Clear;
+begin
+  FKeyValues.Clear;
+  FKeyValuesDictionary.Clear;
+  FSubIndexes.Clear;
+end;
+
+function TmKeysIndex.KeyValuesCount: integer;
+begin
+  Result := FKeyValues.Count;
+end;
+
+function TmKeysIndex.GetKeyValue(const aIndex: integer): String;
+begin
+  Result := FKeyValues.Strings[aIndex];
+end;
+
+function TmKeysIndex.Terminal: boolean;
+begin
+  Result := (FSubIndexes.Count = 0);
+end;
+
+procedure TmKeysIndex.AddValueIfMissing(const aKeyValue: String);
+begin
+  if not FKeyValuesDictionary.Contains(aKeyValue) then
+  begin
+    FKeyValues.Add(aKeyValue);
+    FKeyValuesDictionary.Add(aKeyValue, FKeyValuesDictionary);
+  end;
+end;
+
+function TmKeysIndex.GetSubIndexOfKey(const aKeyValue: String): TmKeysIndex;
+begin
+  Result := FSubIndexes.Find(aKeyValue) as TmKeysIndex;
+end;
+
+function TmKeysIndex.GetSubIndex(const aIndex: integer): TmKeysIndex;
+begin
+  Result := GetSubIndexOfKey(Self.GetKeyValue(aIndex));
 end;
 
 { TKeyValuesForGroupByDefs }
@@ -382,14 +476,14 @@ end;
 procedure TmPivoter.InternalCalculate(const aOnlyHierarchy : boolean);
 var
   i, k, z : integer;
-  currentCoord, tmpKeyValue : string;
+  currentCoord, tmpKeyValue, parentKeyValue : string;
   tmpIndex : TmKeysIndex;
   tmpValue : Variant;
   tmpList : TCardinalList;
   tmpValues : TmSummaryValues;
   summaryValue : TmSummaryValue;
 begin
-  Self.Clear;
+  Self.Clear(false);
 
   for i := 0 to FVerticalGroupByDefs.Count - 1 do
     FVerticalValues.Add;
@@ -401,36 +495,35 @@ begin
   begin
     currentCoord := '';
     tmpIndex := FVerticalKeysIndex;
+    parentKeyValue := '';
     for k := 0 to FVerticalGroupByDefs.Count -1 do
     begin
       tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FVerticalGroupByDefs.Get(k).FieldName);
+      // tmpKeyValue is the calculate value based on tmpValue which is the actual value
+      // GetIndexKeyValue apply the GroupByOperator of the GroupByDef to the actual value
       tmpKeyValue := GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(k));
       FVerticalValues.Get(k).AddValueIfMissing(tmpKeyValue);
+      if parentKeyValue <> '' then
+        tmpIndex := tmpIndex.AddSubIndexForKey(parentKeyValue);
+      parentKeyValue := tmpKeyValue;
+      tmpIndex.AddValueIfMissing(tmpKeyValue);
 
       currentCoord := BuildKey(currentCoord, tmpKeyValue);
-      if k < (FVerticalGroupByDefs.Count - 1) then
-        tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
-      else
-      begin
-        tmpIndex.GetValueList(tmpKeyValue).Add(i);
-        tmpIndex.KeysValues.Add(tmpKeyValue);
-      end;
     end;
 
     tmpIndex := FHorizontalKeysIndex;
+    parentKeyValue := '';
     for k := 0 to FHorizontalGroupByDefs.Count -1 do
     begin
       tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FHorizontalGroupByDefs.Get(k).FieldName);
       tmpKeyValue := GetIndexKeyValue(tmpValue, FHorizontalGroupByDefs.Get(k));
       FHorizontalValues.Get(k).AddValueIfMissing(tmpKeyValue);
+      if parentKeyValue <> '' then
+        tmpIndex := tmpIndex.AddSubIndexForKey(parentKeyValue);
+      parentKeyValue := tmpKeyValue;
+      tmpIndex.AddValueIfMissing(tmpKeyValue);
+
       currentCoord := BuildKey(currentCoord, tmpKeyValue);
-      if k < (FHorizontalGroupByDefs.Count - 1) then
-        tmpIndex := tmpIndex.GetSubIndex(tmpKeyValue)
-      else
-      begin
-        tmpIndex.GetValueList(tmpKeyValue).Add(i);
-        tmpIndex.KeysValues.Add(tmpKeyValue);
-      end;
     end;
 
     tmpList := FRecordCoordinates.Find(currentCoord) as TCardinalList;
@@ -469,14 +562,22 @@ begin
   InternalCalculate(false);
 end;
 
-procedure TmPivoter.Clear;
+procedure TmPivoter.Clear(const aClearSettings : boolean);
 begin
   FVerticalValues.Clear;
   FHorizontalValues.Clear;
-  FRecordCoordinates.Clear;
-  FValues.Clear;
   FVerticalKeysIndex.Clear;
   FHorizontalKeysIndex.Clear;
+
+  FRecordCoordinates.Clear;
+  FValues.Clear;
+
+  if aClearSettings then
+  begin
+    FVerticalGroupByDefs.Clear;
+    FHorizontalGroupByDefs.Clear;
+    FSummaryDefinitions.Clear;
+  end;
 end;
 
 function TmPivoter.GetRecords(const aVerticalKeys, aHorizontalKeys: TStringList): TCardinalList;
@@ -614,9 +715,11 @@ end;
 
 { TmIndex }
 
+(*
 constructor TmKeysIndex.Create;
 begin
   FKeysDictionary := TmStringDictionary.Create(true);
+  FKeysValuesDictionary := TmStringDictionary.Create(true);
   FLevel := 0;
   FParent := nil;
   FKeysValues := TStringList.Create;
@@ -625,6 +728,7 @@ end;
 destructor TmKeysIndex.Destroy;
 begin
   FKeysDictionary.Free;
+  FKeysValuesDictionary.Free;
   FKeysValues.Free;
   inherited Destroy;
 end;
@@ -632,6 +736,7 @@ end;
 procedure TmKeysIndex.Clear;
 begin
   FKeysDictionary.Clear;
+  FKeysValuesDictionary.Clear;;
   FKeysValues.Clear;;
 end;
 
@@ -646,20 +751,23 @@ begin
     Result := tmpObj as TmKeysIndex;
   end
   else
-  begin
-    Result := TmKeysIndex.Create;
-    Result.FLevel:= Self.FLevel + 1;
-    Result.FParent := Self;
-    FKeysDictionary.Add(aKey, Result);
-    FKeysValues.Add(aKey);
-  end;
+    Result := nil;
+end;
+
+function TmKeysIndex.AddKey(const aKey: string) : TmKeysIndex;
+begin
+  Result := TmKeysIndex.Create;
+  Result.FLevel:= Self.FLevel + 1;
+  Result.FParent := Self;
+  FKeysDictionary.Add(aKey, Result);
+  FKeysValues.Add(aKey);
 end;
 
 function TmKeysIndex.GetValueList(const aKey: string): TCardinalList;
 var
   tmpObj : TObject;
 begin
-  tmpObj := FKeysDictionary.Find(aKey);
+  tmpObj := FKeysValuesDictionary.Find(aKey);
   if Assigned(tmpObj) then
   begin
     assert(tmpObj is TCardinalList);
@@ -668,9 +776,9 @@ begin
   else
   begin
     Result := TCardinalList.Create;
-    FKeysDictionary.Add(aKey, Result);
+    FKeysValuesDictionary.Add(aKey, Result);
   end;
-end;
+end;*)
 
 { TmCalculationDefs }
 
@@ -760,6 +868,15 @@ begin
   FDataType := aSource.DataType;
   FOperationKind := aSource.OperationKind;
   FFormula := aSource.Formula;
+end;
+
+class function TmGroupByDef.CheckOperationKindCompatibility(const aOperationKind: TmGroupByOperationKind; const aDataType: TFieldType): boolean;
+begin
+  if (aOperationKind =  gpoDateDay) or (aOperationKind = gpoDateYear) or (aOperationKind =  gpoDateMonth) or (aOperationKind = gpoDateTheMonth) or (aOperationKind = gpoDateDay) or (aOperationKind = gpoDateTheDay) or (aOperationKind = gpoDateQuarter) or (aOperationKind = gpoDateTheQuarter) then
+    Result := aDataType in [ftDate, ftDateTime, ftTimeStamp, ftTime]
+  else
+    Result := true;
+//  gpoDistinct, gpoDateYear, gpoDateMonth, gpoDateTheMonth, gpoDateDay, gpoDateTheDay, gpoDateQuarter, gpoDateTheQuarter, gpoFirstLetter, goFormula
 end;
 
 { TmCalculationDef }
