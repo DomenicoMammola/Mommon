@@ -19,7 +19,7 @@ interface
 uses
   contnrs, db, variants, Classes,
   mDataProviderInterfaces,
-  mIntList, mMaps, mSummary;
+  mIntList, mMaps, mSummary, mNullables;
 
 type
 
@@ -32,16 +32,21 @@ type
     FFieldName: string;
     FDataType : TFieldType;
     FOperationKind : TmGroupByOperationKind;
-    FFormula : String;
+    FFormula : TNullableString;
+    FDisplayFormat: TNullableString;
+    FDisplayLabel : TNullableString;
   public
     constructor Create;
+    destructor Destroy; override;
     procedure Assign(const aSource : TmGroupByDef);
     class function CheckOperationKindCompatibility(const aOperationKind : TmGroupByOperationKind; const aDataType : TFieldType) : boolean;
 
     property FieldName : string read FFieldName write FFieldName;
     property DataType : TFieldType read FDataType write FDataType;
     property OperationKind : TmGroupByOperationKind read FOperationKind write FOperationKind;
-    property Formula: String read FFormula write FFormula;
+    property Formula: TNullableString read FFormula;
+    property DisplayLabel : TNullableString read FDisplayLabel;
+    property DisplayFormat : TNullableString read FDisplayFormat;
   end;
 
   { TmGroupByDefs }
@@ -60,67 +65,7 @@ type
     procedure Clear;
   end;
 
-  TmCalculationKind = (ckSum, ckCount, ckMin, ckMax, ckFormula);
-
-  { TmCalculationDef }
-
-  TmCalculationDef = class
-  strict private
-    FFieldName : String;
-    FDataType : TFieldType;
-    FCalculationKind : TmCalculationKind;
-    FFormula : String;
-  public
-    constructor Create;
-
-    property FieldName : string read FFieldName write FFieldName;
-    property DataType : TFieldType read FDataType write FDataType;
-    property CalculationKind : TmCalculationKind read FCalculationKind write FCalculationKind;
-    property Formula : String read FFormula write FFormula;
-  end;
-
-  { TmCalculationDefs }
-
-  TmCalculationDefs = class
-  strict private
-    FList : TObjectList;
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    function Add : TmCalculationDef;
-    function Count : integer;
-    function Get(const aIndex : integer): TmCalculationDef;
-  end;
-
-
   { TmKeysIndex }
-(*
-  TmKeysIndex = class
-  strict private
-    FKeysDictionary : TmStringDictionary;
-
-    FKeysValuesDictionary : TmStringDictionary;
-    FKeysValues : TStringList;
-
-    FLevel : integer;
-    FParent : TmKeysIndex;
-  private
-    procedure Clear;
-    function GetValueList (const aKey : string): TCardinalList;
-  public
-    constructor Create;
-    destructor Destroy; override;
-
-    procedure AddKeyValueIfMissing(const aKey : String);
-
-    function GetSubIndex (const aKey : string): TmKeysIndex;
-    function AddKey (const aKey : string): TmKeysIndex;
-
-    property KeysValues : TStringList read FKeysValues;
-    property Level : integer read FLevel;
-  end;
-  *)
 
   TmKeysIndex = class
   strict private
@@ -224,6 +169,8 @@ type
     procedure InternalCalculate(const aOnlyHierarchy : boolean);
   strict private
     const KEY_SEPARATOR = '^~';
+  public
+    const EMPTY_STRING_VALUE = '     #@#@#@#$$$$$';
   public
     constructor Create;
     destructor Destroy; override;
@@ -495,7 +442,7 @@ begin
   begin
     currentCoord := '';
     tmpIndex := FVerticalKeysIndex;
-    parentKeyValue := '';
+    parentKeyValue := EMPTY_STRING_VALUE;
     for k := 0 to FVerticalGroupByDefs.Count -1 do
     begin
       tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FVerticalGroupByDefs.Get(k).FieldName);
@@ -503,7 +450,7 @@ begin
       // GetIndexKeyValue apply the GroupByOperator of the GroupByDef to the actual value
       tmpKeyValue := GetIndexKeyValue(tmpValue, FVerticalGroupByDefs.Get(k));
       FVerticalValues.Get(k).AddValueIfMissing(tmpKeyValue);
-      if parentKeyValue <> '' then
+      if parentKeyValue <> EMPTY_STRING_VALUE then
         tmpIndex := tmpIndex.AddSubIndexForKey(parentKeyValue);
       parentKeyValue := tmpKeyValue;
       tmpIndex.AddValueIfMissing(tmpKeyValue);
@@ -512,13 +459,13 @@ begin
     end;
 
     tmpIndex := FHorizontalKeysIndex;
-    parentKeyValue := '';
+    parentKeyValue := EMPTY_STRING_VALUE;
     for k := 0 to FHorizontalGroupByDefs.Count -1 do
     begin
       tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FHorizontalGroupByDefs.Get(k).FieldName);
       tmpKeyValue := GetIndexKeyValue(tmpValue, FHorizontalGroupByDefs.Get(k));
       FHorizontalValues.Get(k).AddValueIfMissing(tmpKeyValue);
-      if parentKeyValue <> '' then
+      if parentKeyValue <> EMPTY_STRING_VALUE then
         tmpIndex := tmpIndex.AddSubIndexForKey(parentKeyValue);
       parentKeyValue := tmpKeyValue;
       tmpIndex.AddValueIfMissing(tmpKeyValue);
@@ -713,102 +660,6 @@ begin
   Result := FValues.Strings[aIndex];
 end;
 
-{ TmIndex }
-
-(*
-constructor TmKeysIndex.Create;
-begin
-  FKeysDictionary := TmStringDictionary.Create(true);
-  FKeysValuesDictionary := TmStringDictionary.Create(true);
-  FLevel := 0;
-  FParent := nil;
-  FKeysValues := TStringList.Create;
-end;
-
-destructor TmKeysIndex.Destroy;
-begin
-  FKeysDictionary.Free;
-  FKeysValuesDictionary.Free;
-  FKeysValues.Free;
-  inherited Destroy;
-end;
-
-procedure TmKeysIndex.Clear;
-begin
-  FKeysDictionary.Clear;
-  FKeysValuesDictionary.Clear;;
-  FKeysValues.Clear;;
-end;
-
-function TmKeysIndex.GetSubIndex(const aKey: string): TmKeysIndex;
-var
-  tmpObj : TObject;
-begin
-  tmpObj := FKeysDictionary.Find(aKey);
-  if Assigned(tmpObj) then
-  begin
-    assert(tmpObj is TmKeysIndex);
-    Result := tmpObj as TmKeysIndex;
-  end
-  else
-    Result := nil;
-end;
-
-function TmKeysIndex.AddKey(const aKey: string) : TmKeysIndex;
-begin
-  Result := TmKeysIndex.Create;
-  Result.FLevel:= Self.FLevel + 1;
-  Result.FParent := Self;
-  FKeysDictionary.Add(aKey, Result);
-  FKeysValues.Add(aKey);
-end;
-
-function TmKeysIndex.GetValueList(const aKey: string): TCardinalList;
-var
-  tmpObj : TObject;
-begin
-  tmpObj := FKeysValuesDictionary.Find(aKey);
-  if Assigned(tmpObj) then
-  begin
-    assert(tmpObj is TCardinalList);
-    Result := tmpObj as TCardinalList;
-  end
-  else
-  begin
-    Result := TCardinalList.Create;
-    FKeysValuesDictionary.Add(aKey, Result);
-  end;
-end;*)
-
-{ TmCalculationDefs }
-
-constructor TmCalculationDefs.Create;
-begin
-  FList := TObjectList.Create(true);
-end;
-
-destructor TmCalculationDefs.Destroy;
-begin
-  FList.Free;
-  inherited Destroy;
-end;
-
-function TmCalculationDefs.Add: TmCalculationDef;
-begin
-  Result := TmCalculationDef.Create;
-  FList.Add(Result);
-end;
-
-function TmCalculationDefs.Count: integer;
-begin
-  Result := FList.Count;
-end;
-
-function TmCalculationDefs.Get(const aIndex: integer): TmCalculationDef;
-begin
-  Result := FList.Items[aIndex] as TmCalculationDef;
-end;
-
 { TmGroupByDefs }
 
 constructor TmGroupByDefs.Create;
@@ -859,7 +710,17 @@ begin
   FFieldName:= '';
   FDataType:= ftString;
   FOperationKind:= gpoDistinct;
-  FFormula := '';
+  FFormula := TNullableString.Create;
+  FDisplayLabel := TNullableString.Create;
+  FDisplayFormat := TNullableString.Create;
+end;
+
+destructor TmGroupByDef.Destroy;
+begin
+  FFormula.Free;
+  FDisplayLabel.Free;
+  FDisplayFormat.Free;
+  inherited Destroy;
 end;
 
 procedure TmGroupByDef.Assign(const aSource: TmGroupByDef);
@@ -867,7 +728,9 @@ begin
   FFieldName:= aSource.FieldName;
   FDataType := aSource.DataType;
   FOperationKind := aSource.OperationKind;
-  FFormula := aSource.Formula;
+  FFormula.Assign(aSource.Formula);
+  FDisplayLabel.Assign(aSource.DisplayLabel);
+  FDisplayFormat.Assign(aSource.DisplayFormat);
 end;
 
 class function TmGroupByDef.CheckOperationKindCompatibility(const aOperationKind: TmGroupByOperationKind; const aDataType: TFieldType): boolean;
@@ -877,16 +740,6 @@ begin
   else
     Result := true;
 //  gpoDistinct, gpoDateYear, gpoDateMonth, gpoDateTheMonth, gpoDateDay, gpoDateTheDay, gpoDateQuarter, gpoDateTheQuarter, gpoFirstLetter, goFormula
-end;
-
-{ TmCalculationDef }
-
-constructor TmCalculationDef.Create;
-begin
-  FFieldName:= '';
-  FDataType:= ftFloat;
-  FCalculationKind:= ckSum;
-  FFormula:= '';
 end;
 
 end.
