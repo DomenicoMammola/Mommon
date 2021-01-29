@@ -68,21 +68,24 @@ type
   TmSummaryDefinition = class
   strict private
     FFieldName : string;
-    FCaption : string;
     FFieldType : TFieldType;
     FSummaryOperator : TmSummaryOperator;
+    FDisplayLabel : TNullableString;
+    FDisplayFormat : TNullableString;
     procedure SetFieldName(AValue: string);
   private
     function GetUniqueIdentifier : String;
   public
     constructor Create;
+    destructor Destroy; override;
     procedure Assign(const aSource : TmSummaryDefinition);
     class function CheckOperatorCompatibility (const aOperator : TmSummaryOperator; const aFieldType : TFieldType) : boolean;
 
     property FieldName : string read FFieldName write SetFieldName;
-    property Caption : string read FCaption write FCaption;
     property SummaryOperator : TmSummaryOperator read FSummaryOperator write FSummaryOperator;
     property FieldType : TFieldType read FFieldType write FFieldType;
+    property DisplayLabel : TNullableString read FDisplayLabel;
+    property DisplayFormat : TNullableString read FDisplayFormat;
   end;
 
 
@@ -267,7 +270,7 @@ procedure TmSummaryDefinition.SetFieldName(AValue: string);
 begin
   if FFieldName=AValue then Exit;
   FFieldName:=AValue;
-  FCaption := AValue;
+  FDisplayLabel.Value := AValue;
 end;
 
 function TmSummaryDefinition.GetUniqueIdentifier: String;
@@ -278,17 +281,26 @@ end;
 constructor TmSummaryDefinition.Create;
 begin
   FFieldName:= '';
-  FCaption:= '';
   FFieldType:= ftUnknown;
   FSummaryOperator:= soCount;
+  FDisplayLabel := TNullableString.Create;
+  FDisplayFormat := TNullableString.Create;
+end;
+
+destructor TmSummaryDefinition.Destroy;
+begin
+  FDisplayLabel.Free;
+  FDisplayFormat.Free;
+  inherited Destroy;
 end;
 
 procedure TmSummaryDefinition.Assign(const aSource: TmSummaryDefinition);
 begin
   FFieldName := aSource.FFieldName;
-  FCaption := aSource.FCaption;
   FFieldType := aSource.FFieldType;
   FSummaryOperator := aSource.FSummaryOperator;
+  FDisplayLabel.Assign(aSource.DisplayLabel);
+  FDisplayFormat.Assign(aSource.DisplayFormat);
 end;
 
 class function TmSummaryDefinition.CheckOperatorCompatibility(const aOperator: TmSummaryOperator; const aFieldType: TFieldType): boolean;
@@ -376,18 +388,38 @@ begin
     if FieldTypeIsInteger(FDefinition.FieldType) then
     begin
       if FIntegerValue.IsNull or (FIntegerValue2.AsInteger = 0) then
-        Result := '-'
+      begin
+        if FDefinition.DisplayFormat.NotNull then
+          Result := ''
+        else
+          Result := '-';
+      end
       else
-        Result := FormatFloat('#,##0', FIntegerValue.AsInteger / FIntegerValue2.AsInteger);
+      begin
+        if FDefinition.DisplayFormat.NotNull then
+          Result := FormatFloat(FDefinition.DisplayFormat.AsString, FIntegerValue.AsInteger / FIntegerValue2.AsInteger)
+        else
+          Result := FormatFloat('#,##0', FIntegerValue.AsInteger / FIntegerValue2.AsInteger);
+      end;
     end
     else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
     begin
       if FDoubleValue.IsNull or (FIntegerValue2.AsInteger = 0)  then
-        Result := '-'
+      begin
+        if FDefinition.DisplayFormat.NotNull then
+          Result := ''
+        else
+          Result := '-';
+      end
       else
       begin
         if FieldTypeIsFloat(FDefinition.FieldType) then
-          Result := FormatFloat('#,##0.0000', RoundDoubleToStandardPrecision(FDoubleValue.Value / FIntegerValue2.AsInteger))
+        begin
+          if FDefinition.DisplayFormat.NotNull then
+            Result := FormatFloat(FDefinition.DisplayFormat.AsString, RoundDoubleToStandardPrecision(FDoubleValue.Value / FIntegerValue2.AsInteger))
+          else
+            Result := FormatFloat('#,##0.0000', RoundDoubleToStandardPrecision(FDoubleValue.Value / FIntegerValue2.AsInteger));
+        end
         else if FieldTypeIsDate(FDefinition.FieldType) then
           Result := DateToStr(Round(FDoubleValue.Value / FIntegerValue2.AsInteger))
         else if FieldTypeIsTime(FDefinition.FieldType) then
@@ -404,18 +436,38 @@ begin
     if FieldTypeIsInteger(FDefinition.FieldType) then
     begin
       if FIntegerValue.IsNull then
-        Result := '-'
+      begin
+        if FDefinition.DisplayFormat.NotNull then
+          Result := ''
+        else
+          Result := '-';
+      end
       else
-        Result := FormatFloat('#,##0', FIntegerValue.Value);
+      begin
+        if FDefinition.DisplayFormat.NotNull then
+          Result := FormatFloat(FDefinition.DisplayFormat.AsString, FIntegerValue.Value)
+        else
+          Result := FormatFloat('#,##0', FIntegerValue.Value);
+      end;
     end
     else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
     begin
       if FDoubleValue.IsNull then
-        Result := '-'
+      begin
+        if FDefinition.DisplayFormat.NotNull then
+          Result := ''
+        else
+          Result := '-';
+      end
       else
       begin
         if FieldTypeIsFloat(FDefinition.FieldType) then
-          Result := FormatFloat('#,##0.0000', RoundDoubleToStandardPrecision(FDoubleValue.Value))
+        begin
+          if FDefinition.DisplayFormat.NotNull then
+            Result := FormatFloat(FDefinition.DisplayFormat.AsString, RoundDoubleToStandardPrecision(FDoubleValue.Value))
+          else
+            Result := FormatFloat('#,##0.0000', RoundDoubleToStandardPrecision(FDoubleValue.Value));
+        end
         else if FieldTypeIsDate(FDefinition.FieldType) then
           Result := DateToStr(Round(FDoubleValue.Value))
         else if FieldTypeIsTime(FDefinition.FieldType) then
@@ -632,7 +684,7 @@ function TmSummaryValue.GetFormattedValue: string;
 begin
   Result := TmSummaryOperatorToString(Self.Definition.SummaryOperator);
   Result := Result + '(';
-  Result := Result + Self.Definition.Caption + ')= ';
+  Result := Result + Self.Definition.DisplayLabel.AsString + ')= ';
   Result := Result + Self.ValueAsString;
 end;
 

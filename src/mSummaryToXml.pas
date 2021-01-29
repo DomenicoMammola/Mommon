@@ -56,17 +56,25 @@ end;
 procedure SaveSummaryDefinitionToXmlElement(const aSource: TmSummaryDefinition; aXmlElement: TmXmlElement);
 begin
   aXmlElement.SetAttribute('fieldName', aSource.FieldName);
-  aXmlElement.SetAttribute('caption', aSource.Caption);
   aXmlElement.SetAttribute('operator', GetEnumName(TypeInfo(TmSummaryOperator), integer(aSource.SummaryOperator)));
   aXmlElement.SetAttribute('fieldType', GetEnumName(TypeInfo(TFieldType), integer(aSource.FieldType)));
+  aXmlElement.SetAttribute('caption', aSource.DisplayLabel);
+  aXmlElement.SetAttribute('displayFormat', aSource.DisplayFormat);
 end;
 
 procedure LoadSummaryDefinitionFromXmlElement(aDestination: TmSummaryDefinition; aXmlElement: TmXmlElement);
 begin
   aDestination.FieldName := aXmlElement.GetAttribute('fieldName');
-  aDestination.Caption := aXmlElement.GetAttribute('caption');
   aDestination.SummaryOperator:= TmSummaryOperator(GetEnumValue(TypeInfo(TmSummaryOperator), aXmlElement.GetAttribute('operator')));
   aDestination.FieldType:= TFieldType(GetEnumValue(TypeInfo(TFieldType), aXmlElement.GetAttribute('fieldType')));
+  if aXmlElement.HasAttribute('caption') then
+    aXmlElement.GetAttribute('caption', aDestination.DisplayLabel)
+  else
+    aDestination.DisplayLabel.IsNull := true;
+  if aXmlElement.HasAttribute('displayFormat') then
+    aXmlElement.GetAttribute('displayFormat', aDestination.DisplayFormat)
+  else
+    aDestination.DisplayFormat.IsNull := true;
 end;
 
 end.
