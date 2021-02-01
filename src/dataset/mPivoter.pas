@@ -178,7 +178,7 @@ type
     function Add : TRecordCoordinates;
   end;
 
-  TmPivoterOption = (poEnableSort, poHorizontalGrandTotal, poVerticalGrandTotal);
+  TmPivoterOption = (poHorizontalGrandTotal, poVerticalGrandTotal);
   TmPivoterOptions = set of TmPivoterOption;
 
 const
@@ -195,6 +195,7 @@ type
     FHorizontalGroupByDefs : TmGroupByDefs;
     // Options
     FOptions : TmPivoterOptions;
+    FEnableSort : boolean;
     // values of keys of group-by sets
     FVerticalValues: TKeyValuesForGroupByDefs;
     FHorizontalValues: TKeyValuesForGroupByDefs;
@@ -239,6 +240,7 @@ type
     property SummaryDefinitions : TmSummaryDefinitions read FSummaryDefinitions;
     // options
     property Options : TmPivoterOptions read FOptions write FOptions default pOptionsDef;
+    property EnableSort : boolean read FEnableSort write FEnableSort;
 
     // output values
     property VerticalValues: TKeyValuesForGroupByDefs read FVerticalValues; // the collection of all key values for any vertical level
@@ -572,6 +574,7 @@ begin
   FVerticalKeysIndex := TmKeysIndex.Create(0);
   FHorizontalKeysIndex := TmKeysIndex.Create(0);
   FSummaryDefinitions := TmSummaryDefinitions.Create;
+  FEnableSort:= false;
 end;
 
 destructor TmPivoter.Destroy;
@@ -712,7 +715,7 @@ begin
     end;
   end;
 
-  if poEnableSort in FOptions then
+  if FEnableSort then
   begin
     DoSortIndex(FVerticalKeysIndex, FVerticalGroupByDefs);
     DoSortIndex(FHorizontalKeysIndex, FHorizontalGroupByDefs);
