@@ -270,7 +270,6 @@ procedure TmSummaryDefinition.SetFieldName(AValue: string);
 begin
   if FFieldName=AValue then Exit;
   FFieldName:=AValue;
-  FDisplayLabel.Value := AValue;
 end;
 
 function TmSummaryDefinition.GetUniqueIdentifier: String;

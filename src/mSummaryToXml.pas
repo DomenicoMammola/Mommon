@@ -58,8 +58,10 @@ begin
   aXmlElement.SetAttribute('fieldName', aSource.FieldName);
   aXmlElement.SetAttribute('operator', GetEnumName(TypeInfo(TmSummaryOperator), integer(aSource.SummaryOperator)));
   aXmlElement.SetAttribute('fieldType', GetEnumName(TypeInfo(TFieldType), integer(aSource.FieldType)));
-  aXmlElement.SetAttribute('caption', aSource.DisplayLabel);
-  aXmlElement.SetAttribute('displayFormat', aSource.DisplayFormat);
+  if aSource.DisplayLabel.NotNull then
+    aXmlElement.SetAttribute('caption', aSource.DisplayLabel);
+  if aSource.DisplayFormat.NotNull then
+    aXmlElement.SetAttribute('displayFormat', aSource.DisplayFormat);
 end;
 
 procedure LoadSummaryDefinitionFromXmlElement(aDestination: TmSummaryDefinition; aXmlElement: TmXmlElement);
