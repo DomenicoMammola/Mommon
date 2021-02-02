@@ -230,6 +230,11 @@ type
     function GetRecords (const aVerticalKeys, aHorizontalKeys : string): TCardinalList; overload;
     function GetValue(const aVerticalKeys, aHorizontalKeys : TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
     function GetValue(const aVerticalKeys, aHorizontalKeys : string; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
+    function GetHorizontalGrandTotalValue(const aVerticalKeys : TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
+    function GetHorizontalGrandTotalValue(const aVerticalKeys : string; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
+    function GetVerticalGrandTotalValue(const aHorizontalKeys : TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
+    function GetVerticalGrandTotalValue(const aHorizontalKeys : string; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue; overload;
+
     class function BuildKey(const aOldKey, aNewKeyPartValue : String) : String;
     class function StringListToKey(const aKeys : TStringList): String;
 
@@ -526,7 +531,7 @@ begin
       DecodeDate(TryToConvertToDate(aValue), y, m, d);
       tmpInt := ((m - 1) div 3) + 1;
       Result := IntToStr(y) + '-' + IntToStr(tmpInt);
-      aActualValue:= EncodeDate(y, (tmpInt -1) * 3, 1);
+      aActualValue:= EncodeDate(y, 1+ ((tmpInt -1) * 3), 1);
     end;
     gpoFirstLetter:
       begin
@@ -679,36 +684,36 @@ begin
         summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
       end;
 
-      if poVerticalGrandTotal in FOptions then
+      if poHorizontalGrandTotal in FOptions then
       begin
-        tmpGrandTotalValues := FVerticalGrandTotals.Find(currentVertCoord) as TmSummaryValues;
-        if not Assigned(tmpValues) then
+        tmpGrandTotalValues := FHorizontalGrandTotals.Find(currentVertCoord) as TmSummaryValues;
+        if not Assigned(tmpGrandTotalValues) then
         begin
-          tmpValues := TmSummaryValues.Create;
-          FVerticalGrandTotals.Add(currentVertCoord, tmpValues);
+          tmpGrandTotalValues := TmSummaryValues.Create;
+          FHorizontalGrandTotals.Add(currentVertCoord, tmpGrandTotalValues);
         end;
         for z := 0 to FSummaryDefinitions.Count - 1 do
         begin
-          summaryValue := tmpValues.FindByDefinition(FSummaryDefinitions.Get(z));
+          summaryValue := tmpGrandTotalValues.FindByDefinition(FSummaryDefinitions.Get(z));
           if not Assigned(summaryValue) then
-            summaryValue := tmpValues.AddValue(FSummaryDefinitions.Get(z), false);
+            summaryValue := tmpGrandTotalValues.AddValue(FSummaryDefinitions.Get(z), false);
           summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
         end;
       end;
 
-      if poHorizontalGrandTotal in FOptions then
+      if poVerticalGrandTotal in FOptions then
       begin
-        tmpGrandTotalValues := FHorizontalGrandTotals.Find(currentHorizCoord) as TmSummaryValues;
-        if not Assigned(tmpValues) then
+        tmpGrandTotalValues := FVerticalGrandTotals.Find(currentHorizCoord) as TmSummaryValues;
+        if not Assigned(tmpGrandTotalValues) then
         begin
-          tmpValues := TmSummaryValues.Create;
-          FHorizontalGrandTotals.Add(currentHorizCoord, tmpValues);
+          tmpGrandTotalValues := TmSummaryValues.Create;
+          FVerticalGrandTotals.Add(currentHorizCoord, tmpGrandTotalValues);
         end;
         for z := 0 to FSummaryDefinitions.Count - 1 do
         begin
-          summaryValue := tmpValues.FindByDefinition(FSummaryDefinitions.Get(z));
+          summaryValue := tmpGrandTotalValues.FindByDefinition(FSummaryDefinitions.Get(z));
           if not Assigned(summaryValue) then
-            summaryValue := tmpValues.AddValue(FSummaryDefinitions.Get(z), false);
+            summaryValue := tmpGrandTotalValues.AddValue(FSummaryDefinitions.Get(z), false);
           summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
         end;
       end;
@@ -784,6 +789,44 @@ begin
   Result := nil;
 
   tmpValues := FValues.Find(aVerticalKeys + aHorizontalKeys) as TmSummaryValues;
+  if Assigned(tmpValues) then
+    Result := tmpValues.FindByDefinition(aSummaryDefinition);
+end;
+
+function TmPivoter.GetHorizontalGrandTotalValue(const aVerticalKeys: TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+var
+  tmpVer : String;
+begin
+  tmpVer := StringListToKey(aVerticalKeys);
+  Result := GetHorizontalGrandTotalValue(tmpVer, aSummaryDefinition);
+end;
+
+function TmPivoter.GetHorizontalGrandTotalValue(const aVerticalKeys: string; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+var
+  tmpValues : TmSummaryValues;
+begin
+  Result := nil;
+
+  tmpValues := FHorizontalGrandTotals.Find(aVerticalKeys) as TmSummaryValues;
+  if Assigned(tmpValues) then
+    Result := tmpValues.FindByDefinition(aSummaryDefinition);
+end;
+
+function TmPivoter.GetVerticalGrandTotalValue(const aHorizontalKeys: TStringList; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+var
+  tmpHor : String;
+begin
+  tmpHor := StringListToKey(aHorizontalKeys);
+  Result := GetVerticalGrandTotalValue(tmpHor, aSummaryDefinition);
+end;
+
+function TmPivoter.GetVerticalGrandTotalValue(const aHorizontalKeys: string; const aSummaryDefinition: TmSummaryDefinition): TmSummaryValue;
+var
+  tmpValues : TmSummaryValues;
+begin
+  Result := nil;
+
+  tmpValues := FVerticalGrandTotals.Find(aHorizontalKeys) as TmSummaryValues;
   if Assigned(tmpValues) then
     Result := tmpValues.FindByDefinition(aSummaryDefinition);
 end;
