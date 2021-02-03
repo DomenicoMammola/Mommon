@@ -209,6 +209,7 @@ type
     FValues : TmStringDictionary;
     FHorizontalGrandTotals : TmStringDictionary;
     FVerticalGrandTotals : TmStringDictionary;
+    FSuperGrandTotal : TmSummaryValues;
 
     function GetIndexKeyValue(const aValue : Variant; out aActualValue : Variant; const aGroupByDef : TmGroupByDef): string;
     procedure DoSortIndex (aIndex : TmKeysIndex; const aGroupByDefs : TmGroupByDefs);
@@ -252,6 +253,7 @@ type
     property HorizontalValues: TKeyValuesForGroupByDefs read FHorizontalValues; // the collection of all key values for any vertical level
     property VerticalKeysIndex : TmKeysIndex read FVerticalKeysIndex;
     property HorizontalKeysIndex : TmKeysIndex read FHorizontalKeysIndex;
+    property SuperGrandTotal : TmSummaryValues read FSuperGrandTotal;
   end;
 
   function TmGroupByOperationKindToString(const aValue: TmGroupByOperationKind) : String;
@@ -579,6 +581,7 @@ begin
   FVerticalKeysIndex := TmKeysIndex.Create(0);
   FHorizontalKeysIndex := TmKeysIndex.Create(0);
   FSummaryDefinitions := TmSummaryDefinitions.Create;
+  FSuperGrandTotal := TmSummaryValues.Create;
   FEnableSort:= false;
 end;
 
@@ -595,6 +598,7 @@ begin
   FVerticalKeysIndex.Free;
   FHorizontalKeysIndex.Free;
   FSummaryDefinitions.Free;
+  FSuperGrandTotal.Free;
 
   inherited Destroy;
 end;
@@ -639,7 +643,7 @@ begin
       tmpIndex.AddValueIfMissing(tmpKeyValue, tmpActualValue);
 
       currentCoord := BuildKey(currentCoord, tmpKeyValue);
-      if poVerticalGrandTotal in FOptions then
+      if poHorizontalGrandTotal in FOptions then
         currentVertCoord:= currentCoord;
     end;
 
@@ -657,7 +661,7 @@ begin
       tmpIndex.AddValueIfMissing(tmpKeyValue, tmpActualValue);
 
       currentCoord := BuildKey(currentCoord, tmpKeyValue);
-      if poHorizontalGrandTotal in FOptions then
+      if poVerticalGrandTotal in FOptions then
         currentHorizCoord:= BuildKey(currentHorizCoord, tmpKeyValue);
     end;
 
@@ -698,6 +702,11 @@ begin
           if not Assigned(summaryValue) then
             summaryValue := tmpGrandTotalValues.AddValue(FSummaryDefinitions.Get(z), false);
           summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+
+          summaryValue := FSuperGrandTotal.FindByDefinition(FSummaryDefinitions.Get(z));
+          if not Assigned(summaryValue) then
+            summaryValue := FSuperGrandTotal.AddValue(FSummaryDefinitions.Get(z), false);
+          summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
         end;
       end;
 
@@ -714,6 +723,11 @@ begin
           summaryValue := tmpGrandTotalValues.FindByDefinition(FSummaryDefinitions.Get(z));
           if not Assigned(summaryValue) then
             summaryValue := tmpGrandTotalValues.AddValue(FSummaryDefinitions.Get(z), false);
+          summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+
+          summaryValue := FSuperGrandTotal.FindByDefinition(FSummaryDefinitions.Get(z));
+          if not Assigned(summaryValue) then
+            summaryValue := FSuperGrandTotal.AddValue(FSummaryDefinitions.Get(z), false);
           summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
         end;
       end;
@@ -748,6 +762,7 @@ begin
   FValues.Clear;
   FHorizontalGrandTotals.Clear;
   FVerticalGrandTotals.Clear;
+  FSuperGrandTotal.Clear;
 
   if aClearSettings then
   begin
