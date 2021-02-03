@@ -496,10 +496,53 @@ end;
 
 function TmSummaryValue.GetValueAsVariant: variant;
 begin
-  if FieldTypeIsInteger(FDefinition.FieldType) then
+  if (FDefinition.SummaryOperator = soCount) or (FDefinition.SummaryOperator = soCountDistinct) then
+    Result := FIntegerValue2.AsVariant
+  else
+  if (FDefinition.SummaryOperator = soAverage) or (FDefinition.SummaryOperator = soAverageNotNull) then
+  begin
+    if FieldTypeIsInteger(FDefinition.FieldType) then
+    begin
+      if FIntegerValue.IsNull or (FIntegerValue2.AsInteger = 0) then
+        Result := Null
+      else
+        Result := FIntegerValue.AsInteger / FIntegerValue2.AsInteger;
+    end
+    else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
+    begin
+      if FDoubleValue.IsNull or (FIntegerValue2.AsInteger = 0)  then
+      begin
+        Result := Null;
+      end
+      else
+      begin
+        if FieldTypeIsFloat(FDefinition.FieldType) then
+        begin
+          Result := RoundDoubleToStandardPrecision(FDoubleValue.Value / FIntegerValue2.AsInteger);
+        end
+        else if FieldTypeIsDate(FDefinition.FieldType) then
+          Result := Round(FDoubleValue.Value / FIntegerValue2.AsInteger)
+        else
+          Result := FDoubleValue.Value  / FIntegerValue2.AsInteger;
+      end;
+    end
+    else
+      Result := '';
+  end
+  else if FieldTypeIsInteger(FDefinition.FieldType) then
     Result := FIntegerValue.AsVariant
   else if FieldTypeIsPascalDouble(FDefinition.FieldType) then
-    Result := FDoubleValue.AsVariant
+  begin
+    if FieldTypeIsDateTime(FDefinition.FieldType) or FieldTypeIsDate(FDefinition.FieldType) or FieldTypeIsTime(FDefinition.FieldType) then
+    begin
+      if FDoubleValue.NotNull then
+        Result := VarToDateTime(FDoubleValue.AsVariant)
+      else
+        Result := Null;
+    end
+    else
+      Result := FDoubleValue.AsVariant
+  end
   else if FieldTypeIsString(FDefinition.FieldType) then
     Result := FStringValue.AsVariant
   else
