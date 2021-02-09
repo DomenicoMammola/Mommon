@@ -58,6 +58,9 @@ begin
   FConnection := TMySQL57Connection.Create(nil);
   FConnection.CharSet:='UTF8';
   FConnection.Transaction := FTransaction;
+  {$ifdef unix}
+  TMySQL57Connection(FConnection).SkipLibraryVersionCheck:= true;
+  {$endif}
 end;
 
 
