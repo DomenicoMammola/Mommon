@@ -223,6 +223,26 @@ end;
     Result := SetLuminance(aColor, l);
   end;
 
+  {$ifdef unix}
+
+  // https://www.developpez.net/forums/d545432/autres-langages/pascal/lazarus/recherche-l-equivalent-getrvalue-sous-linux/
+
+  function _GetRValue(RGB: TColor): Byte;
+  begin
+    Result := Byte(RGB);
+  end;
+
+  function _GetGValue(RGB: TColor): Byte;
+  begin
+    Result := Byte(RGB shr 8);
+  end;
+
+  function _GetBValue(RGB: TColor): Byte;
+  begin
+    Result := Byte(RGB shr 16);
+  end;
+  {$endif}
+
   (* lighter color of thisColor by thePercent value *)
   function LighterColor(aColor: TColor; percent: Byte): TColor;
   var
@@ -230,9 +250,9 @@ end;
     cGreen,
     cBlue: Byte;
   begin
-    cRed := GetRValue(aColor);
-    cGreen := GetGValue(aColor);
-    cBlue := GetBValue(aColor);
+    cRed := {$ifdef unix}_GetRValue{$else}GetRValue{$endif}(aColor);
+    cGreen := {$ifdef unix}_GetGValue{$else}GetGValue{$endif}(aColor);
+    cBlue := {$ifdef unix}_GetBValue{$else}GetBValue{$endif}(aColor);
     (* a byte's range is from 0 to 255
        so Red, Green and Blue can have
        a value between 0 and 255 *)
