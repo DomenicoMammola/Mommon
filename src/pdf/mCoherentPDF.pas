@@ -116,17 +116,13 @@ begin
 
   cmd := cmd + '-end -o ' + AnsiQuotedStr(UTF8ToWinCP(aDestinationFileName),'"');
 
+  outputString := '';
   {$IFDEF UNIX}
   raise Exception.Create('Not implemented');
   {$ELSE}
   if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
-    {$IFDEF UNIX}
-    {$IFDEF DEBUG}
-    writeln(outputString);
-    {$ENDIF}
-    {$ENDIF}
     FLastError := SCpdf_error_unable_to_run + outputString;
     exit;
   end;

@@ -133,11 +133,6 @@ begin
   if not RunCommand(Poppler_pdfseparate_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
-    {$IFDEF UNIX}
-    {$IFDEF DEBUG}
-    writeln(outputString);
-    {$ENDIF}
-    {$ENDIF}
     FLastError := SPoppler_pdfseparate_error_unable_to_run + outputString;
     exit;
   end;
@@ -165,11 +160,6 @@ begin
   if not RunCommand(Poppler_pdfunite_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
-    {$IFDEF UNIX}
-    {$IFDEF DEBUG}
-    writeln(outputString);
-    {$ENDIF}
-    {$ENDIF}
     FLastError := SPoppler_pdfunite_error_unable_to_run + outputString;
     exit;
   end;

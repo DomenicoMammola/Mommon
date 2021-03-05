@@ -156,7 +156,7 @@ procedure RunConsoleApplicationAndGetOutput(const aCommand : string; const aPara
 implementation
 
 uses
-  DateUtils, base64, strutils, process,
+  DateUtils, base64, strutils, process, math,
   {$IFDEF WINDOWS}shlobj, registry, winutils,{$ELSE}LazUTF8,{$ENDIF}
   {$IFDEF LINUX}initc, ctypes, BaseUnix,{$ENDIF}
   mMathUtility;
@@ -1414,6 +1414,7 @@ var
   AppDataPath: Array[0..MaxPathLen] of Char; //http://wiki.lazarus.freepascal.org/Windows_Programming_Tips
   {$ENDIF}
 begin
+  Result := '';
   {$IFDEF WINDOWS}
   AppDataPath:='';
   SHGetSpecialFolderPath(0,AppDataPath,CSIDL_APPDATA,false);
