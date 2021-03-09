@@ -1055,9 +1055,7 @@ function TmGroupByDef.FormatValue(const aKeyValue : TmKeyValue): String;
 begin
   Result := '';
 
-  if Self.IsString then
-    Result := aKeyValue.KeyValueAsString
-  else if Self.IsInteger or Self.IsFloat then
+  if Self.IsInteger or Self.IsFloat then
   begin
     if FDisplayFormat.NotNull then
     begin
@@ -1079,7 +1077,9 @@ begin
     end
     else
       Result := aKeyValue.KeyValueAsString;
-  end;
+  end
+  else
+    Result := aKeyValue.KeyValueAsString
 end;
 
 end.
