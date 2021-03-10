@@ -65,6 +65,7 @@ type
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly: boolean); override;
     procedure SetDefaultVisibilityOfFields (aFields : TFields); override;
 
+    procedure Clear;
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; override;
     procedure CalculateSummaries; override;
     procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); override;
@@ -372,6 +373,17 @@ begin
       if FFieldsFromJoin.IndexOf(aFields[i].FieldName) >= 0 then
         aFields[i].Visible:= false;
     end;
+  end;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.Clear;
+begin
+  if not Assigned(FIDataProvider) then
+    exit
+  else
+  begin
+    FIDataProvider.Clear;
+    Self.Refresh(true, true);
   end;
 end;
 

@@ -19,7 +19,7 @@ interface
 uses
   contnrs, db, variants, Classes,
   mDataProviderInterfaces,
-  mIntList, mMaps, mSummary, mNullables;
+  mIntList, mMaps, mSummary, mNullables, mQuickReadOnlyVirtualDataSet;
 
 type
 
@@ -189,7 +189,7 @@ type
 
   TmPivoter = class
   strict private
-    FDataProvider : IVDDataProvider;
+    FProvider : TReadOnlyVirtualDatasetProvider;
     // group by definitions
     FVerticalGroupByDefs : TmGroupByDefs;
     FHorizontalGroupByDefs : TmGroupByDefs;
@@ -240,7 +240,7 @@ type
     class function StringListToKey(const aKeys : TStringList): String;
 
     // definitions
-    property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
+    property Provider : TReadOnlyVirtualDatasetProvider read FProvider;
     property VerticalGroupByDefs : TmGroupByDefs read FVerticalGroupByDefs;
     property HorizontalGroupByDefs : TmGroupByDefs read FHorizontalGroupByDefs;
     property SummaryDefinitions : TmSummaryDefinitions read FSummaryDefinitions;
@@ -569,7 +569,7 @@ end;
 
 constructor TmPivoter.Create;
 begin
-  FDataProvider := nil;
+  FProvider := TReadOnlyVirtualDatasetProvider.Create;
   FVerticalGroupByDefs := TmGroupByDefs.Create;
   FHorizontalGroupByDefs := TmGroupByDefs.Create;
   FVerticalValues := TKeyValuesForGroupByDefs.Create;
@@ -599,6 +599,7 @@ begin
   FHorizontalKeysIndex.Free;
   FSummaryDefinitions.Free;
   FSuperGrandTotal.Free;
+  FProvider.Free;
 
   inherited Destroy;
 end;
@@ -623,7 +624,7 @@ begin
     FHorizontalValues.Add;
 
 
-  for i:= 0 to FDataProvider.Count -1 do
+  for i:= 0 to FProvider.GetRecordCount -1 do
   begin
     currentCoord := '';
     currentVertCoord:= '';
@@ -632,7 +633,7 @@ begin
     parentKeyValue := EMPTY_STRING_VALUE;
     for k := 0 to FVerticalGroupByDefs.Count -1 do
     begin
-      tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FVerticalGroupByDefs.Get(k).FieldName);
+      FProvider.GetFieldValue(FVerticalGroupByDefs.Get(k).FieldName, i, tmpValue);
       // tmpKeyValue is the calculate value based on tmpValue which is the actual value
       // GetIndexKeyValue apply the GroupByOperator of the GroupByDef to the actual value
       tmpKeyValue := GetIndexKeyValue(tmpValue, tmpActualValue, FVerticalGroupByDefs.Get(k));
@@ -652,7 +653,7 @@ begin
     parentKeyValue := EMPTY_STRING_VALUE;
     for k := 0 to FHorizontalGroupByDefs.Count -1 do
     begin
-      tmpValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FHorizontalGroupByDefs.Get(k).FieldName);
+      FProvider.GetFieldValue(FHorizontalGroupByDefs.Get(k).FieldName, i, tmpValue);
       tmpKeyValue := GetIndexKeyValue(tmpValue, tmpActualValue, FHorizontalGroupByDefs.Get(k));
       FHorizontalValues.Get(k).AddValueIfMissing(tmpKeyValue);
       if parentKeyValue <> EMPTY_STRING_VALUE then
@@ -685,7 +686,8 @@ begin
         summaryValue := tmpValues.FindByDefinition(FSummaryDefinitions.Get(z));
         if not Assigned(summaryValue) then
           summaryValue := tmpValues.AddValue(FSummaryDefinitions.Get(z), false);
-        summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+        FProvider.GetFieldValue(FSummaryDefinitions.Get(z).FieldName, i, tmpValue);
+        summaryValue.ComputeValueInSummaries(tmpValue);
       end;
 
       if poHorizontalGrandTotal in FOptions then
@@ -698,15 +700,16 @@ begin
         end;
         for z := 0 to FSummaryDefinitions.Count - 1 do
         begin
+          FProvider.GetFieldValue(FSummaryDefinitions.Get(z).FieldName, i, tmpValue);
           summaryValue := tmpGrandTotalValues.FindByDefinition(FSummaryDefinitions.Get(z));
           if not Assigned(summaryValue) then
             summaryValue := tmpGrandTotalValues.AddValue(FSummaryDefinitions.Get(z), false);
-          summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+          summaryValue.ComputeValueInSummaries(tmpValue);
 
           summaryValue := FSuperGrandTotal.FindByDefinition(FSummaryDefinitions.Get(z));
           if not Assigned(summaryValue) then
             summaryValue := FSuperGrandTotal.AddValue(FSummaryDefinitions.Get(z), false);
-          summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+          summaryValue.ComputeValueInSummaries(tmpValue);
         end;
       end;
 
@@ -720,15 +723,16 @@ begin
         end;
         for z := 0 to FSummaryDefinitions.Count - 1 do
         begin
+          FProvider.GetFieldValue(FSummaryDefinitions.Get(z).FieldName, i, tmpValue);
           summaryValue := tmpGrandTotalValues.FindByDefinition(FSummaryDefinitions.Get(z));
           if not Assigned(summaryValue) then
             summaryValue := tmpGrandTotalValues.AddValue(FSummaryDefinitions.Get(z), false);
-          summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+          summaryValue.ComputeValueInSummaries(tmpValue);
 
           summaryValue := FSuperGrandTotal.FindByDefinition(FSummaryDefinitions.Get(z));
           if not Assigned(summaryValue) then
             summaryValue := FSuperGrandTotal.AddValue(FSummaryDefinitions.Get(z), false);
-          summaryValue.ComputeValueInSummaries(FDataProvider.GetDatum(i).GetPropertyByFieldName(FSummaryDefinitions.Get(z).FieldName));
+          summaryValue.ComputeValueInSummaries(tmpValue);
         end;
       end;
     end;
