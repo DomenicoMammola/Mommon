@@ -1080,7 +1080,9 @@ begin
         end;
       until Accept or (Result <> grOK);
     except
+      {$IFNDEF NOGUI}
       Application.HandleException(Self);
+      {$ENDIF}
       Result := grError;
     end;
     RestoreState(SaveState);
@@ -1198,7 +1200,9 @@ end;
 
 procedure TmCustomVirtualDataset.InternalHandleException;
 begin
+  {$IFNDEF NOGUI}
   Application.HandleException(Self);
+  {$ENDIF}
 end;
 
 procedure TmCustomVirtualDataset.InternalInitFieldDefs;
