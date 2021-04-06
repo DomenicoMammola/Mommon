@@ -224,7 +224,7 @@ end;
 procedure TReceivedMail.SaveToFolder(const aFolder: String);
 var
   i: integer;
-  str: String;
+  str, ff: String;
 begin
   if FBody.Count > 0 then
     FBody.SaveToFile(CheckExistingFile(IncludeTrailingPathDelimiter(aFolder) + 'body.txt'));
@@ -232,7 +232,13 @@ begin
     FHTMLBody.SaveToFile(CheckExistingFile(IncludeTrailingPathDelimiter(aFolder) + 'body.htm'));
 
   for i := 0 to AttachmentsCount - 1 do
-    GetAttachment(i).FileData.SaveToFile(CheckExistingFile(IncludeTrailingPathDelimiter(aFolder) + GetAttachment(i).FileName));
+  begin
+    if GetAttachment(i).FileName <> '' then
+      ff := GetAttachment(i).FileName
+    else
+      ff := 'undefined';
+    GetAttachment(i).FileData.SaveToFile(CheckExistingFile(IncludeTrailingPathDelimiter(aFolder) + ff));
+  end;
 end;
 
 { TReceivedMailAttachment }
