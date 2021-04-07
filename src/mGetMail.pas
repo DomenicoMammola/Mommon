@@ -73,6 +73,8 @@ type
     FPort: Integer;
     FUserName: String;
     FPassword: String;
+    FAcceptOnlyMailFromSpecificDomain : boolean;
+    FAllowedSenderDomain : String;
     FSSLConnection : boolean;
     FTLSConnection : boolean;
     FReceivedMails : TObjectList;
@@ -91,6 +93,8 @@ type
     function SetPassword(const aPassword: String): TGetMailPop3;
     function SetSSLConnection : TGetMailPop3;
     function SetTLSConnection : TGetMailPop3;
+    function SetAcceptOnlyMailFromSpecificDomain : TGetMailPop3;
+    function SetAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
   end;
 
 implementation
@@ -446,7 +450,14 @@ begin
           msg := TIdMessage.Create;
           try
             tmpPop3.Retrieve(i, msg);
-            ImportMessage(msg, AddReceivedMail);
+            if (not FAcceptOnlyMailFromSpecificDomain) or (CompareText(msg.From.Domain, FAllowedSenderDomain) = 0) then
+              ImportMessage(msg, AddReceivedMail)
+              {$IFDEF MLOG_AVAILABLE}
+            else
+              logger.Info('Discarded mail from ' + msg.From.Address)
+              {$ENDIF}
+            ;
+            tmpPop3.Delete(i);
           finally
             msg.Free;
           end;
@@ -510,6 +521,18 @@ end;
 function TGetMailPop3.SetTLSConnection: TGetMailPop3;
 begin
   FTLSConnection:=true;
+  Result := Self;
+end;
+
+function TGetMailPop3.SetAcceptOnlyMailFromSpecificDomain: TGetMailPop3;
+begin
+  FAcceptOnlyMailFromSpecificDomain:= true;
+  Result := Self;
+end;
+
+function TGetMailPop3.SetAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
+begin
+  FAllowedSenderDomain:= aAllowedSenderDomain;
   Result := Self;
 end;
 
