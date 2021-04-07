@@ -24,6 +24,8 @@ type
   strict private
     FFileName : String;
     FFileData : TMemoryStream;
+  private
+    procedure Analyze;
   public
     constructor Create;
     destructor Destroy; override;
@@ -137,6 +139,7 @@ begin
       newAttachment := aReceivedMail.AddAttachment;
       TIdAttachment(aIdMessage.MessageParts.Items[i]).SaveToStream(newAttachment.FileData);
       newAttachment.FileName := TIdAttachment(aIdMessage.MessageParts.Items[i]).FileName;
+      newAttachment.Analyze;
     end
     else if aIdMessage.MessageParts.Items[i] is TIdText then
     begin
@@ -242,6 +245,62 @@ begin
 end;
 
 { TReceivedMailAttachment }
+
+procedure TReceivedMailAttachment.Analyze;
+var
+  list : TStringList;
+  i : integer;
+  fromFound, toFound, subjectFound : boolean;
+  subject, curLine : String;
+begin
+  if FFileName = '' then
+  begin
+
+    // https://www.w3.org/Protocols/rfc822/
+    // trying to read as eml message...
+
+    list := TStringList.Create;
+    try
+      try
+        FFileData.Position:= 0;
+        list.LoadFromStream(FFileData);
+        FFileData.Position:= 0;
+        fromFound := false;
+        toFound := false;
+        subjectFound := false;
+        subject := '';
+
+        for i := 0 to list.Count - 1 do
+        begin
+          curLine := Trim(list.Strings[i]);
+          fromFound := fromFound or (CompareText(LeftStr(curLine, 5), 'From:') = 0);
+          toFound := toFound or (CompareText(LeftStr(curLine, 3), 'To:') = 0);
+          if (not subjectFound) and (CompareText(LeftStr(curLine, 8), 'Subject:') = 0) then
+          begin
+            subjectFound:= true;
+            subject:= Trim(Copy(curLine, 9, 9999));
+          end;
+
+          if fromFound and toFound and subjectFound then
+          begin
+            if subject <> '' then
+              FFileName:= ChangeFileExt(SanitizeSubstringForFileName(subject), '.eml')
+            else
+              FFileName := 'no_subject.eml';
+          end;
+        end;
+      except
+        on e: Exception do
+        begin
+          FFileName:= 'undefined';
+          exit;
+        end;
+      end;
+    finally
+      list.Free;
+    end;
+  end;
+end;
 
 constructor TReceivedMailAttachment.Create;
 begin
