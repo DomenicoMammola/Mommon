@@ -121,6 +121,7 @@ var
   i : integer;
   newAttachment : TReceivedMailAttachment;
 begin
+  aReceivedMail.Sender := aIdMessage.From.Address;
   for i := 0 to aIdMessage.Recipients.Count - 1 do
     aReceivedMail.Recipients.Add(aIdMessage.Recipients.Items[i].Address);
   for i := 0 to aIdMessage.CCList.Count - 1 do
