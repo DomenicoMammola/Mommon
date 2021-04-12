@@ -18,6 +18,8 @@ unit mXPdf;
   {$MODE DELPHI}
 {$ENDIF}
 
+{$I mDefines.inc}
+
 interface
 
 uses
@@ -49,8 +51,14 @@ var
 implementation
 
 uses
-  Process, LazUTF8, ExtCtrls, Graphics,
-  mUtility, mGraphicsUtility;
+  Process, LazUTF8,
+  mUtility,
+  {$IFDEF NOGUI}
+  mGraphicsUtilityNoGUI
+  {$ELSE}
+  Graphics, mGraphicsUtility
+  {$ENDIF}
+  ;
 
 var
   FLastError : String;
