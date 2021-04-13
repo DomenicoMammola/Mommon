@@ -46,6 +46,8 @@ type
     FReceivedDate : TDateTime;
     FSender : String;
     FAttachments : TObjectList;
+    function GetHTMLReportHeader : String;
+    function GetTXTReportHeader : String;
   public
     constructor Create;
     destructor Destroy; override;
@@ -54,6 +56,8 @@ type
     function AttachmentsCount: integer;
     function AddAttachment : TReceivedMailAttachment;
     procedure SaveToFolder (const aFolder : String);
+    function GetHTMLReport : String;
+    function GetTXTReport : String;
 
     property Subject : String read FSubject write FSubject;
     property Recipients : TStringList read FRecipients;
@@ -102,12 +106,12 @@ implementation
 uses
   sysutils,
   IdPOP3,
-  IdMessage, IdMessageBuilder, IdAttachment, IdText,
+  IdMessage, IdMessageBuilder, IdAttachment, IdText, IdStrings,
   IdComponent, IdTCPConnection, IdTCPClient, IdExplicitTLSClientServerBase,
-  IdMessageClient, IdSMTPBase, IdBaseComponent, IdIOHandler,
-  IdIOHandlerSocket, IdIOHandlerStack, IdSSL, IdSSLOpenSSL, IdSASLLogin,
-  IdSASL_CRAM_SHA1, IdSASL, IdSASLUserPass, IdSASL_CRAMBase, IdSASL_CRAM_MD5,
-  IdSASLSKey, IdSASLPlain, IdSASLOTP, IdSASLExternal, IdSASLDigest,
+  IdBaseComponent, IdIOHandler,
+  IdIOHandlerStack, IdSSL, IdSSLOpenSSL, IdSASLLogin,
+  IdSASL_CRAM_SHA1, IdSASL, IdSASLUserPass, IdSASL_CRAM_MD5,
+  IdSASLSKey, IdSASLPlain, IdSASLOTP, IdSASLExternal,
   IdSASLAnonymous, IdUserPassProvider,
   mUtility{$IFDEF MLOG_AVAILABLE}, mLog{$ENDIF};
 
@@ -168,6 +172,87 @@ end;
 
 
 { TReceivedMail }
+
+function TReceivedMail.GetHTMLReportHeader: String;
+var
+  i : integer;
+  sep : String;
+begin
+  Result := '';
+  Result := Result + '<table style="font-family: Times New Roman; font-size: 12pt;">';
+  Result := Result + '<tr style="height: 18px; vertical-align: top; "><td style="font-weight: bold; white-space:nowrap; ">From:</td><td>' + Self.Sender + '</td></tr>';
+  Result := Result + '<tr style="height: 18px; vertical-align: top; "><td style="font-weight: bold; white-space:nowrap;">Sent on:</td><td>' + DateTimeToStr(Self.ReceivedDate) + '<br></td></tr>';
+  Result := Result + '<tr style="height: 18px; vertical-align: top; "><td style="font-weight: bold; white-space:nowrap; ">To:</td><td>';
+  sep := '';
+  for i := 0 to Self.Recipients.Count - 1 do
+  begin
+    Result := Result + sep + Self.Recipients.Strings[i];
+    sep := '; ';
+  end;
+  Result := Result + '</td></tr>';
+  Result := Result + '<tr style="height: 18px; vertical-align: top; "><td style="font-weight: bold; white-space:nowrap; ">CC:</td><td>';
+  sep := '';
+  for i := 0 to Self.CCRecipients.Count - 1 do
+  begin
+    Result := Result + sep + Self.CCRecipients.Strings[i];
+    sep := '; ';
+  end;
+  Result := Result + '</td></tr>';
+  Result := Result + '<tr style="height: 18px; vertical-align: top; "><td style="font-weight: bold; white-space:nowrap;">Subject:</td><td>' + StrHtmlEncode(Self.Subject) + '<br></td></tr>';
+  if Self.AttachmentsCount > 0 then
+  begin
+    Result := Result + '<tr style="height: 18px; vertical-align: top; "><td style="font-weight: bold; white-space:nowrap; ">Attachments:</td><td>';
+    sep := '';
+    for i := 0 to Self.AttachmentsCount - 1 do
+    begin
+      Result := Result + sep + StrHtmlEncode(Self.GetAttachment(i).FileName);
+      sep := ', ';
+    end;
+    Result := Result + '</td></tr>';
+  end;
+
+  Result := Result + '<tr style="height: 18px; vertical-align: top; "><td>&nbsp;</td><td>&nbsp;</td></tr>';
+  Result := Result + '</table><br>';
+end;
+
+function TReceivedMail.GetTXTReportHeader: String;
+var
+  i : integer;
+  sep : String;
+begin
+  Result := '';
+  Result := Result + 'From: ' + Self.Sender + sLineBreak;
+  Result := Result + 'Sent on: ' + DateTimeToStr(Self.ReceivedDate) + sLineBreak;
+  Result := Result + 'To: ';
+  sep := '';
+  for i := 0 to Self.Recipients.Count - 1 do
+  begin
+    Result := Result + sep + Self.Recipients.Strings[i];
+    sep := '; ';
+  end;
+  Result := Result + sLineBreak;
+  Result := Result + 'CC: ';
+  sep := '';
+  for i := 0 to Self.CCRecipients.Count - 1 do
+  begin
+    Result := Result + sep + Self.CCRecipients.Strings[i];
+    sep := '; ';
+  end;
+  Result := Result + sLineBreak;
+  Result := Result + 'Subject: ' + Self.Subject + sLineBreak;
+  if Self.AttachmentsCount > 0 then
+  begin
+    Result := Result + 'Attachments: ';
+    sep := '';
+    for i := 0 to Self.AttachmentsCount - 1 do
+    begin
+      Result := Result + sep + Self.GetAttachment(i).FileName;
+      sep := ', ';
+    end;
+    Result := Result + sLineBreak;
+  end;
+  Result := Result + sLineBreak;
+end;
 
 constructor TReceivedMail.Create;
 begin
@@ -232,7 +317,7 @@ end;
 procedure TReceivedMail.SaveToFolder(const aFolder: String);
 var
   i: integer;
-  str, ff: String;
+  ff: String;
 begin
   if FBody.Count > 0 then
     FBody.SaveToFile(CheckExistingFile(IncludeTrailingPathDelimiter(aFolder) + 'body.txt'));
@@ -247,6 +332,46 @@ begin
       ff := 'undefined';
     GetAttachment(i).FileData.SaveToFile(CheckExistingFile(IncludeTrailingPathDelimiter(aFolder) + ff));
   end;
+end;
+
+function TReceivedMail.GetHTMLReport: String;
+var
+  i, p, le : integer;
+  toAdd, allLower : String;
+begin
+  Result := '';
+
+  if FHTMLBody.Count > 0 then
+  begin
+    toAdd := FHTMLBody.Text;
+    allLower := LowerCase(toAdd);
+    p := Pos('<body', allLower);
+    if p > 0 then
+    begin
+      Result := Copy(toAdd, 1, p);
+      toAdd := Copy(toAdd, p + 1, MaxInt);
+      p := 1;
+      le := Length(toAdd);
+      while (p <= le) and (toAdd[p] <> '>') do
+        inc(p);
+      Result := Result + Copy(toAdd, 1, p);
+      toAdd := Copy(toAdd, p + 1, MaxInt);
+    end;
+    Result := Result + GetHTMLReportHeader + toAdd;
+  end
+  else
+  begin
+    Result := '<html><body>' + GetHTMLReportHeader + '<span>';
+    for i := 0 to FBody.Count - 1 do
+      Result := Result + FBody.Strings[i] + '<br>';
+    Result := Result + '</span></body></html>';
+  end;
+  logger.Debug('GetHTMLReport:' + Result);
+end;
+
+function TReceivedMail.GetTXTReport: String;
+begin
+  Result := GetTXTReportHeader + FBody.Text;
 end;
 
 { TReceivedMailAttachment }
@@ -402,7 +527,7 @@ function TGetMailPop3.CheckMail(out aErrorMessage: String): boolean;
 var
   tmpPop3 : TIdPOP3;
   error : boolean;
-  i, k, numMessages : integer;
+  i, numMessages : integer;
   msg : TIdMessage;
 begin
   Result := false;
