@@ -78,6 +78,7 @@ type
     function Count : integer;
     function Get(aIndex : integer) : TmFilter;
     procedure CopyFrom (aSource : TmFilters);
+    function HasFilterForFieldName(const aFieldName: String): boolean;
   end;
 
 
@@ -401,6 +402,22 @@ begin
   Self.Clear;
   for i := 0 to aSource.Count - 1 do
     Self.Add.CopyFrom(aSource.Get(i));
+end;
+
+function TmFilters.HasFilterForFieldName(const aFieldName: String): boolean;
+var
+  i : integer;
+begin
+  Result := false;
+  // no index, stupid find..
+  for i := 0 to Count - 1 do
+  begin
+    if CompareText(aFieldName, Get(i).FieldName) = 0 then
+    begin
+      Result := true;
+      exit;
+    end;
+  end;
 end;
 
 { TmFilter }
