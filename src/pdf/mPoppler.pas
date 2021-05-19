@@ -255,7 +255,7 @@ begin
 
   tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
   cmd := AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + AnsiQuotedStr(UTF8ToWinCP(tempFile),'"');
-  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  if RunCommand(Poppler_pdftotext_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   begin
     list := TStringList.Create;
     try
