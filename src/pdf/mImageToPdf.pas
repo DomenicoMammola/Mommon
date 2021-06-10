@@ -22,6 +22,8 @@ type
 function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean; overload;
 function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean): boolean; overload;
 
+procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPortraitOrientation : boolean = true);
+
 implementation
 
 
@@ -114,4 +116,34 @@ var
 begin
   Result := ConvertImageToPdf(aSourceImageFile, aDestinationPdfFile, aEnlargeToPage, cpoPortrait, tmpOrientation);
 end;
+
+procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPortraitOrientation : boolean = true);
+var
+  doc : TPDFDocument;
+  page : TPDFPage;
+  sec : TPDFSection;
+begin
+  doc := TPDFDocument.Create(Nil);
+  try
+    doc.Infos.CreationDate:= Now;
+    doc.Options:= [poCompressFonts, poCompressText, poCompressImages];
+    doc.StartDocument;
+    sec := doc.Sections.AddSection; // we always need at least one section
+
+    page := doc.Pages.AddPage;
+    page.PaperType:= ptA4;
+    page.UnitOfMeasure:= uomPixels;
+    if aPortraitOrientation then
+      page.Orientation:= ppoPortrait
+    else
+      page.Orientation:= ppoLandscape;
+
+    sec.AddPage(page);
+
+    doc.SaveToFile(aPdfFile);
+  finally
+    doc.Free;
+  end;
+end;
+
 end.
