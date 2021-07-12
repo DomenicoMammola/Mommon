@@ -47,7 +47,6 @@ type
     FSender : String;
     FAttachments : TObjectList;
     function GetHTMLReportHeader : String;
-    function GetTXTReportHeader : String;
   public
     constructor Create;
     destructor Destroy; override;
@@ -58,6 +57,7 @@ type
     procedure SaveToFolder (const aFolder : String);
     function GetHTMLReport : String;
     function GetTXTReport : String;
+    function GetTXTReportHeader : String;
 
     property Subject : String read FSubject write FSubject;
     property Recipients : TStringList read FRecipients;
