@@ -2228,7 +2228,11 @@ begin
   filename := ExtractFileName(aSrc);
   ext := ExtractFileExt(aSrc);
   filename := ChangeFileExt(filename, '');
-  Result := IncludeTrailingPathDelimiter(dir) + filename + aSuffix + ext;
+  if dir <> '' then
+    Result := IncludeTrailingPathDelimiter(dir)
+  else
+    Result := '';
+  Result := Result + filename + aSuffix + ext;
 end;
 
 procedure AddUTF8BOMToStream(aStream: TStream);
