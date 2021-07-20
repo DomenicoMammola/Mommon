@@ -21,6 +21,7 @@ type
     procedure TestISO6346MRNs;
     procedure TestHumanReadableUniqueIdentifiers;
     procedure TestEncodeDecodeTimestampForFilename;
+    procedure TestEscapeSQLString;
   end;
 
 implementation
@@ -291,6 +292,16 @@ begin
   CheckEquals(GetTimeStampForFileName(EncodeDateTime(2019,12,7, 0, 0, 0, 0)), '20191207-000000');
   CheckEquals(DecodeTimeStampForFileName('20191207-000000'), EncodeDateTime(2019,12,7, 0, 0, 0, 0));
 
+end;
+
+procedure TTestCaseUtility.TestEscapeSQLString;
+begin
+  CheckEquals('\/\\', RevertEscapedSQLStringValue(EscapeSQLStringValue('\/\\')));
+  CheckEquals('''green'' is the new "black_"', RevertEscapedSQLStringValue(EscapeSQLStringValue('''green'' is the new "black_"')));
+  CheckEquals('top' + Chr(9), RevertEscapedSQLStringValue(EscapeSQLStringValue('top' + Chr(9))));
+  CheckEquals('\\\\', RevertEscapedSQLStringValue(EscapeSQLStringValue('\\\\')));
+  CheckEquals('____O O_____', RevertEscapedSQLStringValue(EscapeSQLStringValue('____O O_____')));
+  CheckEquals('\\myserver\dir\dir2\pippo.txt', RevertEscapedSQLStringValue(EscapeSQLStringValue('\\myserver\dir\dir2\pippo.txt')));
 end;
 
 

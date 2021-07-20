@@ -132,6 +132,7 @@ function EncodeURIComponent(const aSrc: String): UTF8String;
 function EncodeSVGString(const aSrc : String): String;
 
 function EscapeSQLStringValue(const aSrc: String): String;
+function RevertEscapedSQLStringValue(const aSrc: String): String;
 
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
@@ -2181,6 +2182,59 @@ begin
     else
       Result := Result + aSrc[i];
   end
+end;
+
+function RevertEscapedSQLStringValue(const aSrc: String): String;
+var
+  i : integer;
+  curStr : String;
+
+  procedure AddStr(var aResultStr : String; const aStr : String);
+  begin
+    aResultStr := aResultStr + aStr;
+    curStr := '';
+  end;
+begin
+  Result := '';
+  curStr := '';
+  for i := 1 to Length(aSrc) do
+  begin
+    curStr := curStr + aSrc[i];
+    // \n
+    // \b
+    // \r
+    // \\
+    // \%
+    // \_
+    // \t
+    // \'
+    // \"
+    if curStr = '\n' then
+      AddStr(Result, Chr(10))
+    else if curStr = '\b' then
+      AddStr(Result, Chr(8))
+    else if curStr = '\r' then
+      AddStr (Result, Chr(13))
+    else if curStr = '\\' then
+      AddStr(Result, Chr(92))
+    else if curStr =  '\%' then
+      AddStr(Result, Chr(37))
+    else if curStr = '\_' then
+      AddStr(Result, Chr(95))
+    else if curStr = '\t' then
+      AddStr(Result, Chr(9))
+    else if curStr = '\''' then
+      AddStr(Result, Chr(39))
+    else if curStr = '\"' then
+      AddStr(Result, Chr(34))
+    else if Length(curStr) = 2 then
+    begin
+      Result := Result + curStr[1];
+      curStr := curStr[2];
+    end
+  end;
+  if curStr <> '' then
+    AddStr(Result, curStr);
 end;
 
 (*
