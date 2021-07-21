@@ -36,6 +36,7 @@ type
     FOnChangeName : TNotifyEvent;
   public
     constructor Create;
+    procedure ResetSize;
 
     property DataType : TmFormulaFieldType read FDataType write FDataType;
     property Size : integer read FSize write FSize;
@@ -188,9 +189,14 @@ end;
 constructor TmFormulaField.Create;
 begin
   FDataType:= fftFloat;
-  FSize := 0;
+  ResetSize;
   FName := '';
   FOnChangeName:= nil;
+end;
+
+procedure TmFormulaField.ResetSize;
+begin
+  FSize := 0;
 end;
 
 end.
