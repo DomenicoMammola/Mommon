@@ -21,7 +21,7 @@ type
     procedure TestISO6346MRNs;
     procedure TestHumanReadableUniqueIdentifiers;
     procedure TestEncodeDecodeTimestampForFilename;
-    procedure TestEscapeSQLString;
+    procedure TestEscapeString;
   end;
 
 implementation
@@ -294,14 +294,14 @@ begin
 
 end;
 
-procedure TTestCaseUtility.TestEscapeSQLString;
+procedure TTestCaseUtility.TestEscapeString;
 begin
-  CheckEquals('\/\\', RevertEscapedSQLStringValue(EscapeSQLStringValue('\/\\')));
-  CheckEquals('''green'' is the new "black_"', RevertEscapedSQLStringValue(EscapeSQLStringValue('''green'' is the new "black_"')));
-  CheckEquals('top' + Chr(9), RevertEscapedSQLStringValue(EscapeSQLStringValue('top' + Chr(9))));
-  CheckEquals('\\\\', RevertEscapedSQLStringValue(EscapeSQLStringValue('\\\\')));
-  CheckEquals('____O O_____', RevertEscapedSQLStringValue(EscapeSQLStringValue('____O O_____')));
-  CheckEquals('\\myserver\dir\dir2\pippo.txt', RevertEscapedSQLStringValue(EscapeSQLStringValue('\\myserver\dir\dir2\pippo.txt')));
+  CheckEquals('\/\\', RevertEscapedStringValue(EscapeStringValue('\/\\', 'json'), 'json'));
+  CheckEquals('''green'' is the new "black_"', RevertEscapedStringValue(EscapeStringValue('''green'' is the new "black_"', 'sql'), 'sql'));
+  CheckEquals('top' + Chr(9), RevertEscapedStringValue(EscapeStringValue('top' + Chr(9), 'json'), 'json'));
+  CheckEquals('\\\\', RevertEscapedStringValue(EscapeStringValue('\\\\', 'json'), 'json'));
+  CheckEquals('____O O_____', RevertEscapedStringValue(EscapeStringValue('____O O_____', 'json'), 'json'));
+  CheckEquals('\\myserver\dir\dir2\pippo.txt', RevertEscapedStringValue(EscapeStringValue('\\myserver\dir\dir2\pippo.txt', 'json'), 'json'));
 end;
 
 
