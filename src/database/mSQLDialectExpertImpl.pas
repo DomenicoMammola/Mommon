@@ -25,6 +25,8 @@ type
   { TSQLDialectExpertImpl }
 
   TSQLDialectExpertImpl = class abstract
+  protected
+    function GetEscapeChar(const aParamValue : String) : String;
   public
     constructor Create; virtual; abstract;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; virtual; abstract;
@@ -36,9 +38,31 @@ type
   TSQLDialectExpertImplementationClass = class of TSQLDialectExpertImpl;
 
 implementation
+uses
+  strutils, sysutils;
 
 
 { TSQLDialectExpertImpl }
+
+function TSQLDialectExpertImpl.GetEscapeChar(const aParamValue: String): String;
+begin
+  if not AnsiContainsStr(aParamValue, '#') then
+    Result := '#'
+  else if not AnsiContainsStr(aParamValue, '^') then
+    Result := '^'
+  else if not AnsiContainsStr(aParamValue, '$') then
+    Result := '$'
+  else if not AnsiContainsStr(aParamValue, '+') then
+    Result := '+'
+  else if not AnsiContainsStr(aParamValue, '-') then
+    Result := '-'
+  else if not AnsiContainsStr(aParamValue, '=') then
+    Result := '='
+  else if not AnsiContainsStr(aParamValue, '£') then
+    Result := '£'
+  else
+    raise Exception.Create('Unable to determine a valid escaping char');
+end;
 
 function TSQLDialectExpertImpl.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
 begin

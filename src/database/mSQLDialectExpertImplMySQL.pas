@@ -35,7 +35,7 @@ type
 implementation
 
 uses
-  SysUtils,
+  sysutils, strutils,
   mSQLDialectMySQL;
 
 { TSQLDialectExpertImplMySQL }
@@ -51,7 +51,7 @@ var
   DoubleList : TDoubleList;
   IntegerList : TIntegerList;
   i : integer;
-  Separator : string;
+  Separator, escapeChar : string;
 begin
   Result := '';
   Separator := '';
@@ -197,11 +197,35 @@ begin
               StringList.Free;
             end;
           end else if (aParam.Operator = TmFilterOperator.foLike) then
-            Result := StringToSQLString('%'+aParam.AsString + '%')
+          begin
+            if AnsiContainsStr(aParam.AsString, '_') then
+            begin
+              escapeChar:= GetEscapeChar(aParam.AsString);
+              Result := StringToSQLString('%' + StringReplace(aParam.AsString, '_', escapeChar + '_', [rfReplaceAll]) + '%') + ' ESCAPE ''' + escapeChar + '''';
+            end
+            else
+              Result := StringToSQLString('%' + aParam.AsString + '%')
+          end
           else if (aParam.Operator = TmFilterOperator.foStartWith) then
-            Result := StringToSQLString(aParam.AsString + '%')
+          begin
+            if AnsiContainsStr(aParam.AsString, '_') then
+            begin
+              escapeChar:= GetEscapeChar(aParam.AsString);
+              Result := StringToSQLString(StringReplace(aParam.AsString, '_', escapeChar + '_', [rfReplaceAll]) + '%') + ' ESCAPE ''' + escapeChar + '''';
+            end
+            else
+              Result := StringToSQLString(aParam.AsString + '%');
+          end
           else if (aParam.Operator = TmFilterOperator.foEndWith) then
-            Result := StringToSQLString('%'+aParam.AsString)
+          begin
+            if AnsiContainsStr(aParam.AsString, '_') then
+            begin
+              escapeChar:= GetEscapeChar(aParam.AsString);
+              Result := StringToSQLString('%' + StringReplace(aParam.AsString, '_', escapeChar + '_', [rfReplaceAll])) + ' ESCAPE ''' + escapeChar + '''';
+            end
+            else
+              Result := StringToSQLString('%' + aParam.AsString);
+          end
           else
             Result := StringToSQLString(aParam.AsString);
         end;
@@ -236,11 +260,35 @@ begin
               StringList.Free;
             end;
           end else if (aParam.Operator = TmFilterOperator.foLike) then
-            Result := StringToSQLString('%'+aParam.AsString + '%')
+          begin
+            if AnsiContainsStr(aParam.AsString, '_') then
+            begin
+              escapeChar:= GetEscapeChar(aParam.AsString);
+              Result := StringToSQLString('%' + StringReplace(aParam.AsString, '_', escapeChar + '_', [rfReplaceAll]) + '%') + ' ESCAPE ''' + escapeChar + '''';
+            end
+            else
+              Result := StringToSQLString('%' + aParam.AsString + '%')
+          end
           else if (aParam.Operator = TmFilterOperator.foStartWith) then
-            Result := StringToSQLString(aParam.AsString + '%')
+          begin
+            if AnsiContainsStr(aParam.AsString, '_') then
+            begin
+              escapeChar:= GetEscapeChar(aParam.AsString);
+              Result := StringToSQLString(StringReplace(aParam.AsString, '_', escapeChar + '_', [rfReplaceAll]) + '%') + ' ESCAPE ''' + escapeChar + '''';
+            end
+            else
+              Result := StringToSQLString(aParam.AsString + '%');
+          end
           else if (aParam.Operator = TmFilterOperator.foEndWith) then
-            Result := StringToSQLString('%'+aParam.AsString)
+          begin
+            if AnsiContainsStr(aParam.AsString, '_') then
+            begin
+              escapeChar:= GetEscapeChar(aParam.AsString);
+              Result := StringToSQLString('%' + StringReplace(aParam.AsString, '_', escapeChar + '_', [rfReplaceAll])) + ' ESCAPE ''' + escapeChar + '''';
+            end
+            else
+              Result := StringToSQLString('%' + aParam.AsString);
+          end
           else
             Result := StringToSQLString(aParam.AsString);
         end;
