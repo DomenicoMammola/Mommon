@@ -743,7 +743,7 @@ begin
     end
     else if aType = ptString then
     begin
-      FValue := mUtility.EscapeSQLStringValue(VarToStr(aValue));
+      FValue := VarToStr(aValue);
     end
     else
       FValue:= aValue;
