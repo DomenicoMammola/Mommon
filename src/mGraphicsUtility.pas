@@ -43,6 +43,9 @@ type
   function LighterColor(aColor: TColor; percent: Byte): TColor;
   function IsDark (const aColor: TColor): boolean;
 
+  // https://stackoverflow.com/questions/20129758/algorithm-to-randomly-generate-a-color-palette-in-delphi
+  function GenerateRandomColor(const Mix: TColor = clWhite): TColor;
+
   function ScaleForDPI (const aValue : integer) : integer;
 
 
@@ -456,6 +459,21 @@ begin
       Result := false;
     end;
   end;
+end;
+
+// https://stackoverflow.com/questions/20129758/algorithm-to-randomly-generate-a-color-palette-in-delphi
+function GenerateRandomColor(const Mix: TColor = clWhite): TColor;
+var
+  Red, Green, Blue: Integer;
+begin
+  Red := Random(256);
+  Green := Random(256);
+  Blue := Random(256);
+
+  Red := (Red + GetRValue(ColorToRGB(Mix))) div 2;
+  Green := (Green + GetGValue(ColorToRGB(Mix))) div 2;
+  Blue := (Blue + GetBValue(ColorToRGB(Mix))) div 2;
+  Result := RGB(Red, Green, Blue);
 end;
 
 
