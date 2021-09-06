@@ -16,7 +16,7 @@ uses Classes
 {$IFDEF FPC}
   , fgl
 {$ELSE}
-  ,System.Types
+  ,System.Types, System.Generics.Collections
 {$ENDIF};
 
 type
@@ -67,7 +67,11 @@ type
     procedure AddSorted(Num: mUnsignedInt);
   end;
 
+  {$IFDEF FPC}
   TIntegerList = specialize TFPGList<Integer>;
+  {$ELSE}
+  TIntegerList = TList<Integer>;
+  {$ENDIF}
 
 
 implementation

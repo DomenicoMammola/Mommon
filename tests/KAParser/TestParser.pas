@@ -9,6 +9,10 @@ unit TestParser;
 
 }
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses
@@ -124,7 +128,7 @@ var
 begin
   parser := TKAParser.Create;
   try
-    parser.OnGetValue:= @Self.GetValue;
+    parser.OnGetValue:= Self.GetValue;
     parser.Calculate('IF(1,4,2)', value);
     CheckEquals(trunc(value), 4);
     parser.Calculate('IF(0,4,2)', value);

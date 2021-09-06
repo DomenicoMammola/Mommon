@@ -1,4 +1,4 @@
-// This is part of the Mommon Library
+﻿// This is part of the Mommon Library
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,7 +36,9 @@ function GenerateRandomIdString : string; overload;
 function GenerateRandomIdString(aLength : integer): string; overload;
 function CreateUniqueIdentifier : String; // actually a GUID without parentheses, to be used as unique indentifier in db tables
 function IsUniqueIdentifier (const aUI : String): boolean;
+{$IFDEF FPC}
 function CreateHumanReadableUniqueIdentier (const aLanguageCode : String): String; // a random unique identifier which is easy to be remembered, inspired by https://github.com/PerWiklander/IdentifierSentence
+{$ENDIF}
 
 procedure WordwrapStringByRows(const aSourceString : String; const aNumOfRows : integer; aRows : TStringList);
 
@@ -70,12 +72,14 @@ function CompareVariants (aVal1, aVal2 : variant) : integer;
 
 function SafeVariantToInteger(aValue: variant; aDefaultValue : integer): integer;
 
+{$IFDEF FPC}
 // cloned from LCLProc unit but with OnCompare procedure that can be a method of a class
 // this to avoid singleton dilemma when comparing operations needs extra data
 // as in virtualdataset Sort method and it is possible to write thread-safe code without shared singleton resources
 // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
 procedure MergeSort(List: TFPList; const OnCompare: TListSortCompare); overload;
 procedure MergeSort(List: TList; const OnCompare: TListSortCompare); overload;
+{$ENDIF}
 
 {$IFDEF FPC}
 function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
@@ -145,24 +149,45 @@ function AddSuffixToFileName (const aSrc: String; const aSuffix: String) : Strin
 function GetTimeStampForFileName(const aInstant : TDateTime; const aAddTime : boolean = true): string;
 function DecodeTimeStampForFileName(const aTimestamp: String) : TDateTime;
 
+{$IFDEF FPC}
 // encode a file to base64
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
 procedure DecodeBase64ToFile(const aInputData : String; const aFullPathOutputFile: String);
+{$ENDIF}
 
 procedure AddUTF8BOMToStream (aStream : TStream);
 
-function IsRunningAsRoot: boolean;
 function CurrentProcessId: cardinal; // look at Indy function CurrentProcessId: TIdPID;
 
+{$IFDEF FPC}
+function IsRunningAsRoot: boolean;
 procedure RunConsoleApplicationAndGetOutput(const aCommand : string; const aParameters : array of string; out aOutputText : String);
+{$ENDIF}
+
+{$IFDEF DELPHI}
+function VarIsBool(const V: Variant): Boolean;
+{$ENDIF}
 
 implementation
 
 uses
-  DateUtils, base64, strutils, process, math,
-  {$IFDEF WINDOWS}shlobj, registry, winutils,{$ELSE}LazUTF8,{$ENDIF}
-  {$IFDEF LINUX}initc, ctypes, BaseUnix,{$ENDIF}
+  DateUtils,  strutils, math,
+  {$IFDEF FPC}
+    base64, process,
+    {$IFDEF WINDOWS}shlobj, registry, winutils,{$ELSE}LazUTF8,{$ENDIF}
+    {$IFDEF LINUX}initc, ctypes, BaseUnix,{$ENDIF}
+  {$ELSE}
+    ShlObj,
+    System.RegularExpressions,
+    AnsiStrings,
+    registry,
+    System.IOUtils,
+  {$ENDIF}
   mMathUtility;
+
+{$IFDEF DELPHI}
+const MaxPathLen = 260;
+{$ENDIF}
 
 var
   UTF8BOM : array[0..2] of byte = ($EF, $BB, $BF);
@@ -344,7 +369,7 @@ begin
     vtPointer:
       Result:=NativeInt(AValue.VPointer);
     vtPChar:
-      Result:=StrPas(AValue.VPChar);
+      Result:={$IFDEF FPC}StrPas(AValue.VPChar){$ELSE}AnsiStrings.StrPas(AValue.VPChar){$ENDIF};
     vtAnsiString:
       Result:=String(AValue.VAnsiString);
     vtWideString, vtWideChar:
@@ -642,7 +667,7 @@ end;
 function TryToUnderstandDateTimeString(const aInputString: String; out aValue: TDateTime): boolean;
 var
   i : integer;
-  tmpDate : TDate;
+  tmpDate : TDateTime;
   tmpTime : TDateTime;
   tmp : String;
 begin
@@ -735,7 +760,7 @@ begin
 
   while i < length(Fmt) do
   begin
-    if Fmt[i] in ['A', 'P', 'D', 'M', 'Y', 'H', 'N', 'S', 'Z'] then
+    if CharInSet(Fmt[i], ['A', 'P', 'D', 'M', 'Y', 'H', 'N', 'S', 'Z']) then
     begin
       // Start of a date specifier
       Mask := Fmt[i];
@@ -931,7 +956,7 @@ begin
   Result := '';
   for i := 1 to Length(aSource) do
   begin
-    if aSource[i] in ['0'..'9'] then
+    if CharInSet(aSource[i], ['0'..'9']) then
       Result := Result + aSource[i];
   end;
 end;
@@ -943,7 +968,7 @@ begin
   Result := '';
   for i := 1 to Length(aSource) do
   begin
-    if (aSource[i] in ['A'..'Z']) or (aSource[i] in ['a'..'z']) then
+    if CharInSet(aSource[i], ['A'..'Z']) or CharInSet(aSource[i], ['a'..'z']) then
       Result := Result + aSource[i]
     else if aUnderscoreForSpaces and (aSource[i] = ' ') then
         Result := Result + '_';
@@ -957,7 +982,7 @@ begin
   Result := '';
   for i := 1 to Length(aSource) do
   begin
-    if (aSource[i] in ['A'..'Z']) or (aSource[i] in ['a'..'z']) or (aSource[i] in ['0'..'9']) then
+    if CharInSet(aSource[i], ['A'..'Z']) or CharInSet(aSource[i], ['a'..'z']) or CharInSet(aSource[i], ['0'..'9']) then
       Result := Result + aSource[i]
     else if aUnderscoreForSpaces and (aSource[i] = ' ') then
       Result := Result + '_';
@@ -995,7 +1020,7 @@ var
 begin
   tmp := TStringList.Create;
   try
-    ExtractStrings(AllowDirectorySeparators, [], PChar(aFullPath), tmp, false );
+    ExtractStrings({$IFDEF FPC}AllowDirectorySeparators{$ELSE}['\','/']{$ENDIF}, [], PChar(aFullPath), tmp {$IFDEF FPC}, false {$ENDIF} );
     Result := tmp.Strings[tmp.Count - 1];
   finally
     tmp.Free;
@@ -1162,6 +1187,7 @@ begin
     Result := aDefaultValue;
 end;
 
+{$IFDEF FPC}
 // http://lazarus-ccr.sourceforge.net/docs/lcl/lclproc/mergesort.html
 procedure _MergeSort(List: TFPList; StartIndex, EndIndex: integer; const OnCompare: TListSortCompare);
 // sort so that for each i is OnCompare(List[i],List[i+1])<=0
@@ -1272,6 +1298,7 @@ begin
     tmpList.Free;
   end
 end;
+{$ENDIF}
 
 
 function ConvertStringListToVariant(const aList: TStringList): Variant;
@@ -1412,8 +1439,8 @@ end;
 
 function GetApplicationDataFolder(const aApplicationSubDir: string): String;
 var
-  tmpDir : string;
   {$IFDEF WINDOWS}
+  tmpDir : string;
   AppDataPath: Array[0..MaxPathLen] of Char; //http://wiki.lazarus.freepascal.org/Windows_Programming_Tips
   {$ENDIF}
 begin
@@ -1446,13 +1473,13 @@ end;
 procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
 begin
   {$IFDEF WINDOWS}
-  {$push}{$warnings off}
+  {$IFDEF FPC}{$push}{$warnings off}{$ENDIF}
   begin
   // http://forum.lazarus.freepascal.org/index.php?topic=33574.0
   If aFlashEvenIfActive or (not Application.Active) Then
     FlashWindow({$IFDEF FPC}WidgetSet.AppHandle{$ELSE}Application.Handle{$ENDIF}, True);
   end;
-  {$pop}
+  {$IFDEF FPC}{$pop}{$ENDIF}
   {$ENDIF}
 end;
 {$ENDIF}
@@ -1463,6 +1490,7 @@ var
   a: byte;
   tmpRegistry : TRegistry;
   tmpFileExt : String;
+  keyOpened : boolean;
 begin
   // http://forum.codecall.net/topic/69184-solved-file-association-and-the-registry/
   Result := false;
@@ -1519,7 +1547,10 @@ begin
 
     tmpRegistry.DeleteKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\');
 
-    if tmpRegistry.OpenKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\OpenW​ithProgids\', True) then
+    {$WARNINGS OFF}
+    keyOpened := tmpRegistry.OpenKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\OpenW​ithProgids\', True);
+    {$WARNINGS ON}
+    if keyOpened then
       tmpRegistry.WriteBinaryData(tmpFileExt + 'file', a, 1)
     else
     begin
@@ -1533,7 +1564,9 @@ begin
     tmpRegistry.Free;
   end;
 
+  {$WARNINGS OFF}
   SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nil, nil);
+  {$WARNINGS ON}
   Result := true;
 {$ELSE}
 begin
@@ -1568,6 +1601,9 @@ var
   s : String;
   tmpGuid : TGuid;
   lg : integer;
+  {$IFNDEF FPC}
+  regex : TRegEx;
+  {$ENDIF}
 begin
   Result := false;
   lg := Length(aUI);
@@ -1577,10 +1613,17 @@ begin
       s := '{' + aUI + '}'
     else
       s := aUI;
+    {$IFDEF FPC}
     Result := TryStringToGUID(s, tmpGuid);
+    {$ELSE}
+    // ^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$
+    regex := TRegEx.Create('^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$');
+    Result := regex.IsMatch(s);
+    {$ENDIF}
   end;
 end;
 
+{$IFDEF FPC}
 function CreateHumanReadableUniqueIdentier(const aLanguageCode : String): String;
 var
   nouns : array [1..66] of string  =
@@ -1835,6 +1878,7 @@ begin
     raise Exception.Create('Language ' + aLanguageCode + ' is not supported');
 
 end;
+{$ENDIF}
 
 // This function converts the integer value of file size into human readable form
 // Taken from:
@@ -1844,8 +1888,8 @@ function BytesToHumanReadableString(const bytes: UInt64): string;
 var
   B: byte;
   KB: word;
-  MB: QWord;
-  GB: QWord;
+  MB: {$IFDEF FPC}QWord{$ELSE}UInt64{$ENDIF};
+  GB: {$IFDEF FPC}QWord{$ELSE}UInt64{$ENDIF};
   TB: UInt64;
 begin
   B  := 1; //byte
@@ -1901,7 +1945,7 @@ begin
     c := email[i];
     case State of
     STATE_BEGIN:
-      if c in atom_chars then
+      if CharInSet(c, atom_chars) then
         State := STATE_ATOM
       else if c = '"' then
         State := STATE_QTEXT
@@ -1948,10 +1992,10 @@ begin
         State := STATE_EXPECTING_SUBDOMAIN
       end else if c = '-' then
         State := STATE_HYPHEN
-      else if not (c in letters_digits) then
+      else if not CharInSet(c, letters_digits) then
         break;
     STATE_HYPHEN:
-      if c in letters_digits then
+      if CharInSet(c, letters_digits) then
         State := STATE_SUBDOMAIN
       else if c <> '-' then
         break;
@@ -2124,9 +2168,9 @@ begin
       Result := Result + '_'
     else if aSubString[i] = '"' then
       Result := Result + '_'
-    else if (aSubString[i] = '/') and ((not aIgnoreDirectorySeparator) or ('/' <> DirectorySeparator)) then
+    else if (aSubString[i] = '/') and ((not aIgnoreDirectorySeparator) or ('/' <> {$IFDEF FPC}DirectorySeparator{$ELSE}TPath.DirectorySeparatorChar{$ENDIF})) then
       Result := Result + '_'
-    else if (aSubString[i] = '\') and ((not aIgnoreDirectorySeparator) or ('\' <> DirectorySeparator)) then
+    else if (aSubString[i] = '\') and ((not aIgnoreDirectorySeparator) or ('\' <> {$IFDEF FPC}DirectorySeparator{$ELSE}TPath.DirectorySeparatorChar{$ENDIF})) then
       Result := Result + '_'
     else if aSubString[i] = '|' then
       Result := Result + '_'
@@ -2322,6 +2366,7 @@ begin
   aStream.Write(UTF8BOM[0],3);
 end;
 
+{$IFDEF FPC}
 function IsRunningAsRoot: boolean;
 begin
 {$IFDEF WINDOWS}
@@ -2332,6 +2377,7 @@ begin
   Result := (fpgeteuid = 0);
 {$ENDIF}
 end;
+{$ENDIF}
 
 function CurrentProcessId: cardinal;
 begin
@@ -2347,6 +2393,7 @@ begin
 {$ENDIF}
 end;
 
+{$IFDEF FPC}
 procedure RunConsoleApplicationAndGetOutput(const aCommand: string; const aParameters : array of string; out aOutputText: String);
 var
   tmpProcess: TProcess;
@@ -2369,6 +2416,7 @@ begin
     tmpProcess.Free;
   end;
 end;
+{$ENDIF}
 
 function GetTimeStampForFileName(const aInstant: TDateTime; const aAddTime : boolean = true): string;
 var
@@ -2414,6 +2462,7 @@ begin
     Result := EncodeDate(year, month, day);
 end;
 
+{$IFDEF FPC}
 procedure EncodeFileToBase64(const aFullPathInputFile: String; out aOutputData: String);
 var
   fi: TFileStream;
@@ -2462,6 +2511,14 @@ begin
     fo.Free;
   end;
 end;
+{$ENDIF}
+
+{$IFDEF DELPHI}
+function VarIsBool(const V: Variant): Boolean;
+begin
+   result := varIsType(v, varBoolean);
+end;
+{$ENDIF}
 
 initialization
   Randomize;

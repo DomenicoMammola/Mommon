@@ -97,7 +97,9 @@ type
 implementation
 
 uses
+{$IFDEF FPC}
   FileUtil, LazFileUtils,
+{$ENDIF}
   mUtility, mMathUtility;
 
 { TmConsolePublisher }
@@ -152,17 +154,38 @@ begin
 end;
 
 procedure TmMemoPublisher.Publish(aContext, aLevel, aMessage : string; aDate : TDateTime);
+var
+  hasOption : boolean;
+  {$IFDEF DELPHI}
+  i : integer;
+  {$ENDIF}
 begin
-  if (FForm = nil) and Application.HasOption(SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER) then
+  if (FForm = nil) then
   begin
-    FForm := TForm.Create(nil);
-    FMemo := TMemo.Create(FForm);
-    FMemo.Parent := FForm;
-    FForm.ShowInTaskBar:= stAlways;
-    FMemo.Align := alClient;
-    FMemo.ScrollBars:= ssAutoVertical;
-    FForm.Show;
-    FForm.BringToFront;
+    {$IFDEF FPC}
+    hasOption := Application.HasOption(SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER)
+    {$ELSE}
+    hasOption := false;
+    for i := 0 to ParamCount do
+    begin
+      if paramstr(i) = SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER then
+      begin
+        hasOption := true;
+        break;
+      end;
+    end;
+    {$ENDIF}
+    if hasOption then
+    begin
+      FForm := TForm.Create(nil);
+      FMemo := TMemo.Create(FForm);
+      FMemo.Parent := FForm;
+      {$IFDEF FPC}FForm.ShowInTaskBar:= stAlways;{$ENDIF}
+      FMemo.Align := alClient;
+      FMemo.ScrollBars:= {$IFDEF FPC}ssAutoVertical{$ELSE}ssBoth{$ENDIF};
+      FForm.Show;
+      FForm.BringToFront;
+    end;
   end;
   if (FForm <> nil) and (FMemo <> nil) then
     FMemo.Lines.Append(Self.GetFormattedString(aContext, aLevel, aMessage, aDate));
@@ -238,7 +261,11 @@ end;
 destructor TmFilePublisher.Destroy;
 begin
   if Assigned(FFileStream) then
+  {$IFDEF FPC}
     FFileStream.WriteByte(10);
+  {$ELSE}
+    FFileStream.WriteData([10], 1);
+  {$ENDIF}
 
   FreeAndNil(FFileStream);
   inherited;

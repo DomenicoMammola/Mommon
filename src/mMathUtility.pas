@@ -50,7 +50,11 @@ begin
     posDot := Pos('.', aValue);
     if (posComma > 0) and (posDot > posComma) then // 1,547.25
     begin
+      {$IFDEF FPC}
       tmp := DelChars(aValue, ',');
+      {$ELSE}
+      tmp := StringReplace(aValue, ',', '', [rfReplaceAll]);
+      {$ENDIF}
       tmp := StringReplace(tmp, '.', FormatSettings.DecimalSeparator, [rfReplaceAll]);
       Result := TryStrToFloat(tmp, tmpValueDouble, SysUtils.FormatSettings);
       if Result then
@@ -61,7 +65,11 @@ begin
     end;
     if (posDot > 0) and (posComma > posDot) then // 1.547,25
     begin
+      {$IFDEF FPC}
       tmp := DelChars(aValue, '.');
+      {$ELSE}
+      tmp := StringReplace(aValue, '.', '', [rfReplaceAll]);
+      {$ENDIF}
       tmp := StringReplace(tmp, ',', FormatSettings.DecimalSeparator, [rfReplaceAll]);
       Result := TryStrToFloat(tmp, tmpValueDouble, SysUtils.FormatSettings);
       if Result then
