@@ -163,7 +163,7 @@ begin
   if (FForm = nil) then
   begin
     {$IFDEF FPC}
-    hasOption := Application.HasOption(SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER)
+    hasOption := Application.HasOption(SHOW_LOG_MEMO_FORM_COMMAND_LINE_PARAMETER);
     {$ELSE}
     hasOption := false;
     for i := 0 to ParamCount do
