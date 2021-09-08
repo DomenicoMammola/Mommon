@@ -1,6 +1,9 @@
+A copy of all the external libraries is already included. The following list is for reference.
+
+
 -----------------------------------------------------------
 
-Checkout: 
+OXML was checked out from: 
 svn checkout https://svn.code.sf.net/p/oxml/code/ oxml-code
 r155
 in folder:
@@ -11,7 +14,7 @@ http://www.kluug.net/oxml.php
 
 -----------------------------------------------------------
 
-Checkout
+Indy was checked out from:
 https://svn.atozed.com:444/svn/Indy10/Lib
 (User ID: Indy-Public-RO)
 in folder:
@@ -36,8 +39,8 @@ Indy10\System\IdCompilerDefines.inc
 
 -----------------------------------------------------------
 
-Put 
+StrHasMap unit was taken from:
 https://github.com/JuhaManninen/Pascal/blob/master/StrHashMap/StrHashMap.pas
-in folder:
+and put in folder:
 StrHashMap
 
