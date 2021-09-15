@@ -1438,11 +1438,11 @@ begin
 end;
 
 function GetApplicationDataFolder(const aApplicationSubDir: string): String;
+{$IFDEF WINDOWS}
 var
-  {$IFDEF WINDOWS}
   tmpDir : string;
   AppDataPath: Array[0..MaxPathLen] of Char; //http://wiki.lazarus.freepascal.org/Windows_Programming_Tips
-  {$ENDIF}
+{$ENDIF}
 begin
   Result := '';
   {$IFDEF WINDOWS}
