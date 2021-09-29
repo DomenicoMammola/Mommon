@@ -49,6 +49,8 @@ type
     constructor Create (aSheet : TsWorksheet); overload;
     destructor Destroy; override;
 
+    procedure LockFirstRow;
+
     procedure WriteFloat(const aRow, aCol : integer; const aValue : TNullableDouble); overload;
     procedure WriteFloat(const aRow, aCol : integer; const aValue : double; const aFractionalPartDigits: integer); overload;
     procedure WriteFloat(const aRow, aCol : integer; const aValue : double); overload;
@@ -339,6 +341,12 @@ destructor TmSpreadsheetHelper.Destroy;
 begin
   FDefaultFont.Free;
   inherited Destroy;
+end;
+
+procedure TmSpreadsheetHelper.LockFirstRow;
+begin
+  FSheet.Options:= FSheet.Options + [soHasFrozenPanes];
+  FSheet.TopPaneHeight:= 1;
 end;
 
 procedure TmSpreadsheetHelper.WriteFloat(const aRow, aCol: integer; const aValue: TNullableDouble);
