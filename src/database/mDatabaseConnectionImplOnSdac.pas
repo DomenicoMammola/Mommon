@@ -23,7 +23,7 @@ interface
 uses
   Classes, DB,
 
-  MSAccess, MsClasses,
+  MSAccess, MSClasses,
 
   mDatabaseConnectionClasses,
   mDatabaseConnectionImpl;
