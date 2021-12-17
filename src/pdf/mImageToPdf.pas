@@ -19,8 +19,8 @@ interface
 type
   TConvertedPdfOrientation = (cpoPortrait, cpoLandscape, cpoAdapt);
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean; overload;
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean): boolean; overload;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean; overload;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean): boolean; overload;
 
 procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPortraitOrientation : boolean = true);
 
@@ -33,7 +33,7 @@ uses
   fppdf,
   fpparsettf;
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean;
 var
   doc : TPDFDocument;
   page : TPDFPage;
@@ -75,8 +75,16 @@ begin
 
     sec.AddPage(page);
 
-    pageWidth := round(page.Paper.Printable.R - page.Paper.Printable.L);
-    pageHeight := round(page.Paper.Printable.B - page.Paper.Printable.T);
+    if aIgnoreBorders then
+    begin
+      pageWidth := page.Paper.W;
+      pageHeight := page.Paper.H;
+    end
+    else
+    begin
+      pageWidth := round(page.Paper.Printable.R - page.Paper.Printable.L);
+      pageHeight := round(page.Paper.Printable.B - page.Paper.Printable.T);
+    end;
     imgWidth := doc.Images[0].Width;
     imgHeight :=  doc.Images[0].Height;
 
@@ -110,11 +118,11 @@ begin
 end;
 
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean): boolean; overload;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean): boolean; overload;
 var
   tmpOrientation : TConvertedPdfOrientation;
 begin
-  Result := ConvertImageToPdf(aSourceImageFile, aDestinationPdfFile, aEnlargeToPage, cpoPortrait, tmpOrientation);
+  Result := ConvertImageToPdf(aSourceImageFile, aDestinationPdfFile, aEnlargeToPage, aIgnoreBorders, cpoPortrait, tmpOrientation);
 end;
 
 procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPortraitOrientation : boolean = true);
