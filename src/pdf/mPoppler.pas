@@ -245,11 +245,10 @@ begin
     exit;
   end;
 
-  {$IFDEF UNIX}
-  tmpDestFile := aDestinationFileName;
-  if RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdftoppm_ExePath, ['-singlefile', '-png', '-r ' + IntToStr(aResolution), aPdfFileName, tmpDestFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
-  {$ELSE}
   tmpDestFile := ChangeFileExt(aDestinationFileName, '');
+  {$IFDEF UNIX}
+  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftoppm_ExePath, ['-singlefile' , '-png', '-r', IntToStr(aResolution), aPdfFileName, tmpDestFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
   cmd := '-singlefile -png -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + AnsiQuotedStr(UTF8ToWinCP(tmpDestFile),'"');
   if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
