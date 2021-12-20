@@ -23,6 +23,7 @@ uses
   sysutils, Classes;
 
 resourcestring
+  SPoppler_error_missing_clu = 'Missing clu: ';
   SPoppler_error_file_missing = 'Pdf file is missing: ';
   SPoppler_pdfunite_error_unable_to_run = 'Unable to run Poppler pdfunite: ';
   SPoppler_pdfseparate_error_unable_to_run = 'Unable to run Poppler pdfseparate: ';
@@ -63,56 +64,62 @@ uses
 var
   FLastError : String;
 
+function CheckCLU (const aCLU : String): boolean;
+{$IFDEF UNIX}
+var
+  cmd, outputString : String;
+{$ENDIF}
+begin
+  {$IFDEF WINDOWS}
+  Result := false;
+  if not FileExists(aCLU) then
+  begin
+    FLastError := SPoppler_error_missing_clu +  aCLU;
+    exit;
+  end;
+  Result := true;
+  {$ELSE}
+  {$IFDEF UNIX}
+  cmd := '-v ' + aCLU;
+  Result := RunCommand('/bin/bash',['-c','command', cmd],outputString, [poNoConsole, poWaitOnExit]);
+  if not Result then
+    FLastError := SPoppler_error_missing_clu + aCLU;
+  {$ELSE}
+  FLastError := SPoppler_error_missing_clu +  aCLU;
+  Result := false;
+  {$ENDIF}
+  {$ENDIF}
+end;
+
 { TPopplerToolbox }
 
 class function TPopplerToolbox.CheckPoppler_pdfunite_ExePath: boolean;
 begin
-  Result := false;
-  if not FileExists(Poppler_pdfunite_ExePath) then
-  begin
-    FLastError := SPoppler_pdfunite_error_unable_to_run + Poppler_pdfunite_ExePath;
-    exit;
-  end;
-  Result := true;
+  Result := CheckCLU(Poppler_pdfunite_ExePath);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdfseparate_ExePath: boolean;
 begin
-  Result := false;
-  if not FileExists(Poppler_pdfseparate_ExePath) then
-  begin
-    FLastError := SPoppler_pdfseparate_error_unable_to_run + Poppler_pdfseparate_ExePath;
-    exit;
-  end;
-  Result := true;
+  Result := CheckCLU(Poppler_pdfseparate_ExePath);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdftoppm_ExePath: boolean;
 begin
-  Result := false;
-  if not FileExists(Poppler_pdftoppm_ExePath) then
-  begin
-    FLastError := SPoppler_pdftoppm_error_unable_to_run + Poppler_pdftoppm_ExePath;
-    exit;
-  end;
-  Result := true;
+  Result := CheckCLU(Poppler_pdftoppm_ExePath);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdftotext_ExePath: boolean;
 begin
-  Result := false;
-  if not FileExists(Poppler_pdftotext_ExePath) then
-  begin
-    FLastError := SPoppler_pdftotext_error_unable_to_run + Poppler_pdftotext_ExePath;
-    exit;
-  end;
-  Result := true;
+  Result := CheckCLU(Poppler_pdftotext_ExePath);
 end;
 
 class function TPopplerToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate: string): boolean;
 var
-  outputString, cmd : string;
+  outputString : string;
   thumbFileTemplate : String;
+  {$IFNDEF UNIX}
+  cmd : String;
+  {$ENDIF}
 begin
   Result := false;
   if not CheckPoppler_pdfseparate_ExePath then
@@ -127,7 +134,7 @@ begin
   thumbFileTemplate := IncludeTrailingPathDelimiter(aPagesFolder) + aFileNameTemplate;
 
   {$IFDEF UNIX}
-  raise Exception.Create('Not implemented');
+  if not RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdfseparate_ExePath, [aPdfFileName, thumbFileTemplate], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
   cmd := AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' "' + thumbFileTemplate + '"';
   if not RunCommand(Poppler_pdfseparate_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
@@ -141,22 +148,25 @@ end;
 
 class function TPopplerToolbox.MergePdfFiles(const aFiles: TStringList; const aDestinationFileName: string): boolean;
 var
-  outputString, cmd : string;
+  outputString : string;
   i : integer;
+  cmd: String;
 begin
   Result := false;
   if not CheckPoppler_pdfunite_ExePath then
     exit;
 
+  {$IFDEF UNIX}
+  cmd := '';
+  for i := 0 to aFiles.Count - 1 do
+    cmd := cmd + ' ' + AnsiQuotedStr(aFiles.Strings[i],'"');
+  if not RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdfunite_ExePath, [cmd, aDestinationFileName], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
   cmd := '';
   for i := 0 to aFiles.Count - 1 do
     cmd := cmd + ' ' + AnsiQuotedStr(aFiles.Strings[i],'"');
 
   cmd := cmd + ' ' + AnsiQuotedStr(aDestinationFileName,'"');
-
-  {$IFDEF UNIX}
-  raise Exception.Create('Not implemented');
-  {$ELSE}
   if not RunCommand(Poppler_pdfunite_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
@@ -168,8 +178,11 @@ end;
 
 class function TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word): boolean;
 var
-  outputString, cmd : string;
+  outputString : string;
   tempFile : string;
+  {$IFNDEF UNIX}
+  cmd: string;
+  {$ENDIF}
 begin
   Result := false;
   if not CheckPoppler_pdftoppm_ExePath then
@@ -182,8 +195,12 @@ begin
   end;
 
   tempFile := IncludeTrailingPathDelimiter(ExtractFilePath(aThumbnailFileName)) + GenerateRandomIdString(10);
+  {$IFDEF UNIX}
+  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftoppm_ExePath, ['-singlefile', '-png', aPdfFileName, tempFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
   cmd := '-singlefile -png ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + AnsiQuotedStr(tempFile,'"');
   if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  {$ENDIF}
   begin
     tempFile := ChangeFileExt(tempFile, '.png');
     // PPM-root-number.ppm
@@ -213,7 +230,10 @@ end;
 
 class function TPopplerToolbox.ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution: integer): boolean;
 var
-  outputString, cmd, tmpDestFile : string;
+  outputString, tmpDestFile : string;
+  {$IFNDEF UNIX}
+  cmd : String;
+  {$ENDIF}
 begin
   Result := false;
   if not CheckPoppler_pdftoppm_ExePath then
@@ -225,9 +245,14 @@ begin
     exit;
   end;
 
+  {$IFDEF UNIX}
+  tmpDestFile := aDestinationFileName;
+  if RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdftoppm_ExePath, ['-singlefile', '-png', '-r ' + IntToStr(aResolution), aPdfFileName, tmpDestFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
   tmpDestFile := ChangeFileExt(aDestinationFileName, '');
   cmd := '-singlefile -png -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + AnsiQuotedStr(UTF8ToWinCP(tmpDestFile),'"');
   if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  {$ENDIF}
   begin
     Result := true;
   end
@@ -239,8 +264,11 @@ end;
 
 class function TPopplerToolbox.ExtractTextFromPdf(const aPdfFileName: string; out aText: String): boolean;
 var
-  outputString, cmd : string;
+  outputString : string;
   tempFile : string;
+  {$IFNDEF UNIX}
+  cmd : string;
+  {$ENDIF}
   list : TStringList;
 begin
   Result := false;
@@ -254,8 +282,12 @@ begin
   end;
 
   tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
+  {$IFDEF UNIX}
+  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftotext_ExePath, [aPdfFileName, tempFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
   cmd := AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + AnsiQuotedStr(UTF8ToWinCP(tempFile),'"');
   if RunCommand(Poppler_pdftotext_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  {$ENDIF}
   begin
     list := TStringList.Create;
     try
