@@ -150,17 +150,22 @@ class function TPopplerToolbox.MergePdfFiles(const aFiles: TStringList; const aD
 var
   outputString : string;
   i : integer;
+  {$IFDEF UNIX}
+  filesArray: array of String;
+  {$ELSE}
   cmd: String;
+  {$ENDIF}
 begin
   Result := false;
   if not CheckPoppler_pdfunite_ExePath then
     exit;
 
   {$IFDEF UNIX}
-  cmd := '';
+  setLength(filesArray, aFiles.Count + 1);
   for i := 0 to aFiles.Count - 1 do
-    cmd := cmd + ' ' + AnsiQuotedStr(aFiles.Strings[i],'"');
-  if not RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdfunite_ExePath, [cmd, aDestinationFileName], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+    filesArray[i] := aFiles.Strings[i];
+  filesArray[aFiles.Count] := aDestinationFileName;
+  if not RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdfunite_ExePath, filesArray, outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
   cmd := '';
   for i := 0 to aFiles.Count - 1 do
