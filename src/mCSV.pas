@@ -33,6 +33,7 @@ type
     FExtStream : TStream;
     FOwnedFileStream : TFileStream;
     FUTF8 : boolean;
+    FUTF8BOM : boolean;
     FCurrentRow: String;
     FIsNewRow: boolean;
     function CheckFileStream : TStream;
@@ -56,6 +57,7 @@ type
     property LineEnding: String read FLineEnding write FLineEnding;
     property FileName: String read FFilename write FFilename;
     property UTF8: Boolean read FUTF8 write FUTF8;
+    property UTF8BOM : Boolean read FUTF8BOM write FUTF8BOM;
     property Stream : TStream read FExtStream write FExtStream;
   end;
 
@@ -92,6 +94,7 @@ begin
   FOwnedFileStream:= nil;
   FExtStream:= nil;
   FUTF8:= true;
+  FUTF8BOM := true;
   StartNewRow;
 end;
 
@@ -109,7 +112,7 @@ begin
 
   if Assigned(FExtStream) then
   begin
-    if FUTF8 then
+    if FUTF8 and FUTF8BOM then
       AddUTF8BOMToStream(FExtStream);
   end
   else
@@ -117,7 +120,7 @@ begin
     if (FFilename = '') then
       raise Exception.Create('Filename is empty');
     FOwnedFileStream := TFileStream.Create(FFilename, fmCreate);
-    if FUTF8 then
+    if FUTF8 and FUTF8BOM then
       AddUTF8BOMToStream(FOwnedFileStream);
     StartNewRow;
   end;
