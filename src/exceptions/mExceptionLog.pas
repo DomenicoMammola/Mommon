@@ -49,7 +49,7 @@ procedure RegisterExceptionLogPublisher (const aShowCallStack : TExceptionLogSho
 implementation
 
 uses
-  {$IFDEF WINDOWS}windows,{$ENDIF} Dos, contnrs,
+  {$IFDEF WINDOWS}windows,{$ENDIF} Dos, contnrs, {$IFDEF GUI} Forms,{$ENDIF}
   mUtility, mLazarusVersionInfo, mThreadsBaseClasses;
 
 type
@@ -169,10 +169,23 @@ begin
   end
   else
   begin
-    Result := BackTraceStrFunc(ExceptAddr);
-    Frames := ExceptFrames;
-    for i := 0 to ExceptFrameCount - 1 do
-      Result := Result + sLineBreak + BackTraceStrFunc(Frames[i]);
+    {$IFDEF GUI}
+    {$if(fpc_version=3) and (fpc_release>2)}
+    Screen.BeginWaitCursor;
+    {$ENDIF}
+    {$ENDIF}
+    try
+      Result := BackTraceStrFunc(ExceptAddr);
+      Frames := ExceptFrames;
+      for i := 0 to ExceptFrameCount - 1 do
+        Result := Result + sLineBreak + BackTraceStrFunc(Frames[i]);
+    finally
+      {$IFDEF GUI}
+      {$if(fpc_version=3) and (fpc_release>2)}
+      Screen.EndWaitCursor;
+      {$ENDIF}
+      {$ENDIF}
+    end;
   end;
 end;
 
