@@ -365,7 +365,7 @@ begin
     CP_WIN_1258: Result := UTF8ToCP1258(S);
     CP_ISO_8859_1: Result := UTF8ToISO_8859_1(S);
     CP_ISO_8859_2: Result := UTF8ToISO_8859_2(S);
-    CP_KOI8_R, CP_KOI8_U: Result := UTF8ToKOI8(S);
+    CP_KOI8_R, CP_KOI8_U: Result := UTF8ToKOI8R(S);
   else
     Result := S;//Encoding not supported by lazarus
   end;
