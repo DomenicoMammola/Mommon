@@ -14,16 +14,9 @@ http://www.kluug.net/oxml.php
 
 -----------------------------------------------------------
 
-Indy was checked out from:
-https://svn.atozed.com:444/svn/Indy10/Lib
-(User ID: Indy-Public-RO)
-in folder:
-Indy10
+Indy was cloned from: https://github.com/IndySockets/Indy.git
 
-http://www.indyproject.org/Sockets/Download/svn.EN.aspx
-rev.5480
-
-https://indy.fulgan.com/ZIP/
+Copy only the "lib" subfolder and rename it as "Indy10"
 
 to remove "voluntary" memory leaks : http://forum.lazarus.freepascal.org/index.php?topic=14556.0
 Set:
@@ -35,7 +28,6 @@ Indy10\FCL\IdCompilerDefines.inc
 Indy10\Protocols\IdCompilerDefines.inc
 Indy10\SuperCore\IdCompilerDefines.inc
 Indy10\System\IdCompilerDefines.inc
-
 
 -----------------------------------------------------------
 
