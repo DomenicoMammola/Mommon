@@ -86,7 +86,9 @@ begin
   {$IFDEF UNIX}
   if not RunCommand(CpdfExePath, ['-split', aPdfFileName, '-o', thumbFilename], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := '-split ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + thumbFilename + '"';
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  //cmd := '-split ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + thumbFilename + '"';
+  cmd := '-split ' + AnsiQuotedStr(aPdfFileName,'"') + ' -o "' + thumbFilename + '"';
   if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin
@@ -110,11 +112,14 @@ begin
   if not CheckCpdfExePath then
     exit;
 
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
   cmd := '-merge ';
   for i := 0 to aFiles.Count - 1 do
-    cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aFiles.Strings[i]),'"');
+    cmd := cmd + ' ' + AnsiQuotedStr(aFiles.Strings[i],'"');
+//    cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aFiles.Strings[i]),'"');
 
-  cmd := cmd + '-end -o ' + AnsiQuotedStr(UTF8ToWinCP(aDestinationFileName),'"');
+  cmd := cmd + '-end -o ' + AnsiQuotedStr(aDestinationFileName,'"');
+//  cmd := cmd + '-end -o ' + AnsiQuotedStr(UTF8ToWinCP(aDestinationFileName),'"');
 
   outputString := '';
   {$IFDEF UNIX}
@@ -158,7 +163,9 @@ begin
   {$IFDEF UNIX}
   if not RunCommand(CpdfExePath, ['-rotateby '  + IntToStr(aAngle), aPdfFileName, '-o', aPdfFileName], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := '-rotateby ' + IntToStr(aAngle)  + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + aPdfFileName + '"';
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  // cmd := '-rotateby ' + IntToStr(aAngle)  + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' -o "' + aPdfFileName + '"';
+  cmd := '-rotateby ' + IntToStr(aAngle)  + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' -o "' + aPdfFileName + '"';
   if not RunCommand(CpdfExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   {$ENDIF}
   begin

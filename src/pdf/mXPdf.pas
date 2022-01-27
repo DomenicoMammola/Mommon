@@ -104,7 +104,9 @@ begin
   end;
 
   tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
-  if RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]) then
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  //if RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]) then
+  if RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]) then
   begin
     list := TStringList.Create;
     try
@@ -140,7 +142,9 @@ begin
   end;
 
   tempFile := IncludeTrailingPathDelimiter(ExtractFilePath(aThumbnailFileName)) + GenerateRandomIdString(10);
-  cmd := '-f 1 -l 1 ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + AnsiQuotedStr(tempFile,'"');
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  //cmd := '-f 1 -l 1 ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + AnsiQuotedStr(tempFile,'"');
+  cmd := '-f 1 -l 1 ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"');
   if RunCommand(XPdf_pdftopng_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
   begin
     // PNG-root-nnnnnn.png

@@ -97,10 +97,11 @@ begin
     exit;
 
   tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
-  //if RunCommand(MutoolExePath, ['draw -F txt "' + aPdfFileName + '"'], outputString, [poNoConsole, poWaitOnExit]) then
-  if RunCommand(MutoolExePath, ['draw -F txt -o "' + tempFile + '" ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole, poWaitOnExit]) then
+
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  //if RunCommand(MutoolExePath, ['draw -F txt -o "' + tempFile + '" ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole, poWaitOnExit]) then
+  if RunCommand(MutoolExePath, ['draw -F txt -o "' + tempFile + '" ' + AnsiQuotedStr(aPdfFileName,'"')], outputString, [poNoConsole, poWaitOnExit]) then
   begin
-//    aText := outputString;
     list := TStringList.Create;
     try
       list.LoadFromFile(tempFile);
@@ -132,7 +133,9 @@ begin
   if not CheckFile(aPdfFileName) then
     exit;
 
-  if RunCommand(MutoolExePath, ['extract ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole,poWaitOnExit]) then
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  //if RunCommand(MutoolExePath, ['extract ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole,poWaitOnExit]) then
+  if RunCommand(MutoolExePath, ['extract ' + AnsiQuotedStr(aPdfFileName,'"')], outputString, [poNoConsole,poWaitOnExit]) then
   begin
     tmpList := TStringList.Create;
     try
@@ -185,7 +188,9 @@ begin
   if not CheckFile(aPdfFileName) then
     exit;
 
-  if RunCommand(MutoolExePath, ['info ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole,poWaitOnExit]) then
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  //if RunCommand(MutoolExePath, ['info ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"')], outputString, [poNoConsole,poWaitOnExit]) then
+  if RunCommand(MutoolExePath, ['info ' + AnsiQuotedStr(aPdfFileName,'"')], outputString, [poNoConsole,poWaitOnExit]) then
   begin
     tmpList := TStringList.Create;
     try
@@ -230,7 +235,9 @@ begin
   {$IFDEF UNIX}
   if RunCommand(MutoolExePath, ['draw', '-o', aThumbnailFileName, '-w', IntToStr(aWidth), '-h', IntToStr(aHeight), aPdfFileName, '1'], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := 'draw -o "' + aThumbnailFileName + '" -w ' + IntToStr(aWidth) + ' -h ' + IntToStr(aHeight) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' 1';
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  //cmd := 'draw -o "' + aThumbnailFileName + '" -w ' + IntToStr(aWidth) + ' -h ' + IntToStr(aHeight) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' 1';
+  cmd := 'draw -o "' + aThumbnailFileName + '" -w ' + IntToStr(aWidth) + ' -h ' + IntToStr(aHeight) + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' 1';
   if RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
   {$ENDIF}
     Result := true
@@ -260,7 +267,9 @@ begin
   {$IFDEF UNIX}
   if RunCommand(MutoolExePath, ['draw', '-o', aDestinationFileName, '-r', IntToStr(aResolution), aPdfFileName, '1'], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := 'draw -o "' + aDestinationFileName + '" -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' 1';
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  // cmd := 'draw -o "' + aDestinationFileName + '" -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' 1';
+  cmd := 'draw -o "' + aDestinationFileName + '" -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' 1';
   if RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
   {$ENDIF}
     Result := true
@@ -300,7 +309,9 @@ begin
     {$IFDEF UNIX}
     if not RunCommand(MutoolExePath, ['draw', '-o', thumbFilename, aPdfFileName, IntToStr(i)], outputString, [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
     {$ELSE}
-    cmd := 'draw -o "' + thumbFilename + '" ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + IntToStr(i);
+    // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+    // cmd := 'draw -o "' + thumbFilename + '" ' + AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"') + ' ' + IntToStr(i);
+    cmd := 'draw -o "' + thumbFilename + '" ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + IntToStr(i);
     if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
     {$ENDIF}
     begin
@@ -325,9 +336,11 @@ begin
   if not CheckMutoolExePath then
     exit;
 
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
   cmd := 'merge -o "' + aDestinationFileName + '"';
   for i := 0 to aFiles.Count - 1 do
-    cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aFiles.Strings[i]),'"');
+    cmd := cmd + ' ' + AnsiQuotedStr(aFiles.Strings[i],'"');
+  //cmd := cmd + ' ' + AnsiQuotedStr(UTF8ToWinCP(aFiles.Strings[i]),'"');
   if not RunCommand(MutoolExePath, [cmd], outputString, [poNoConsole,poWaitOnExit]) then
   begin
     FLastError := SMutool_error_unable_to_run + outputString;
