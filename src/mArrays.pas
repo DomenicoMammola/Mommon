@@ -29,13 +29,13 @@ uses
 function ArrayOfConstsToArrayOfVariants (aSourceArray : array of const) : TmArrayOfVariants;
 var
   k, sourceLenght: Integer;
+  arr : TmArrayOfVariants;
 begin
   sourceLenght := Length(aSourceArray);
-  SetLength(Result, sourceLenght);
+  SetLength(arr, sourceLenght);
   for k := 0 to sourceLenght - 1 do
-  begin
-    Result[k] := VarRecToVariant(aSourceArray[k]);
-  end;
+    arr[k] := VarRecToVariant(aSourceArray[k]);
+  Result := arr;
 end;
 
 end.
