@@ -32,6 +32,7 @@ type
     procedure TestSimpleSaveAndLoad;
     procedure TestEncryptedSaveAndLoad;
     procedure TestCursor;
+    procedure TestCursorMultipleLevels;
     procedure TestText;
   end;
 
@@ -92,7 +93,58 @@ begin
   finally
     FmXmlDocument.Free;
   end;
+end;
 
+procedure TestTmXmlDocument.TestCursorMultipleLevels;
+var
+  tempCursor : TmXmlElementCursor;
+  FmXmlDocument : TmXmlDocument;
+  TempFileName : string;
+  i, k : integer;
+  subElement : TmXmlElement;
+begin
+  FmXmlDocument := TmXmlDocument.Create;
+  try
+    FmXmlDocument.CreateRootElement('root');
+    for i := 0 to 9 do
+    begin
+      subElement := FmXmlDocument.RootElement.AddElement('subitem');
+      subElement.SetAttribute('key', IntToStr(i));
+      subElement.AddElement('subsubitem');
+    end;
+    {$IFDEF FPC}
+    TempFileName := SysUtils.GetTempFileName;
+    {$ELSE}
+    TempFileName := TPath.GetTempFileName;
+    {$ENDIF}
+    FmXMLDocument.SaveToFile(TempFileName);
+    {$IFNDEF FPC}
+    Status(TempFileName);
+    {$ENDIF}
+  finally
+    FmXmlDocument.Free;
+  end;
+  FmXmlDocument := TmXmlDocument.Create;
+  try
+    FmXmlDocument.LoadFromFile(TempFileName);
+    tempCursor := TmXmlElementCursor.Create(FmXmlDocument.RootElement, 'subitem');
+    try
+      CheckEquals(tempCursor.Count, 10);
+      for I := 0 to tempCursor.Count - 1 do
+      begin
+        CheckEquals(tempCursor.Elements[i].GetAttribute('key'), IntToStr(i));
+      end;
+    finally
+      tempCursor.Free;
+    end;
+
+    for i := 0 to 9 do
+    begin
+      FmXmlDocument.RootElement.AddElement('subitem').SetAttribute('key', IntToStr(i));
+    end;
+  finally
+    FmXmlDocument.Free;
+  end;
 end;
 
 procedure TestTmXmlDocument.TestText;
