@@ -26,6 +26,7 @@ type
   TImpl_fpxml_mXmlElement = class (TImpl_mXmlElement)
   strict private
     FFormatSettings : TFormatSettings;
+    FGarbage : TObjectList;
     procedure RaiseMissingAttributeException(const Name: TmXMLString);
     procedure RaiseWrongDateTimeAttributeException(const Name, Value: TmXMLString);
     procedure RaiseWrongDateAttributeException(const Name, Value: TmXMLString);
@@ -83,6 +84,7 @@ type
     FXMLDocument : TXMLDocument;
     FRoot : TDOMElement;
     FRootElement : TmXmlElement;
+    procedure CheckXMLDocument;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -205,6 +207,7 @@ end;
 constructor TImpl_fpxml_mXmlElement.Create;
 begin
   FNode := nil;
+  FGarbage := TObjectList.Create(true);
 
   FFormatSettings := DefaultFormatSettings;
   FFormatSettings.DecimalSeparator:= '.';
@@ -214,6 +217,7 @@ end;
 
 destructor TImpl_fpxml_mXmlElement.Destroy;
 begin
+  FGarbage.Free;
   inherited Destroy;
 end;
 
@@ -224,6 +228,7 @@ begin
   NewNode := FNode.OwnerDocument.CreateElement(aName);
   Self.FNode.AppendChild(NewNode);
   Result := TmXmlElement.Create(NewNode);
+  FGarbage.Add(Result);
 end;
 
 function TImpl_fpxml_mXmlElement._HasAttribute(const aName: TmXMLString): boolean;
@@ -575,9 +580,15 @@ end;
 
 { TImpl_fpxml_mXmlDocument }
 
+procedure TImpl_fpxml_mXmlDocument.CheckXMLDocument;
+begin
+  if not Assigned(FXMLDocument) then
+    FXMLDocument := TXMLDocument.Create;
+end;
+
 constructor TImpl_fpxml_mXmlDocument.Create;
 begin
-  FXMLDocument := TXMLDocument.Create;
+  FXMLDocument := nil;
   FRoot := nil;
   FRootElement := nil;
 end;
@@ -591,6 +602,7 @@ end;
 
 function TImpl_fpxml_mXmlDocument._RootElement: TmXmlElement;
 begin
+  CheckXMLDocument;
   if Assigned(FRoot) and (not Assigned(FRootElement)) then
     FRootElement := TmXmlElement.Create(FRoot);
   Result := FRootElement;
@@ -599,6 +611,7 @@ end;
 function TImpl_fpxml_mXmlDocument._CreateRootElement(const aName: string): TmXmlElement;
 begin
   assert (not Assigned(FRoot), 'XML RootElement already assigned!');
+  CheckXMLDocument;
   FRoot := FXMLDocument.CreateElement(aName);
   FXMLDocument.Appendchild(FRoot);
   Result := TmXmlElement.Create(FRoot);
@@ -607,8 +620,9 @@ end;
 
 procedure TImpl_fpxml_mXmlDocument._Clear;
 begin
-  if Assigned(FRoot) then
+  if Assigned(FRoot) and Assigned(FXMLDocument) then
     FXMLDocument.RemoveChild(FRoot);
+  FreeAndNil(FRootElement);
 end;
 
 procedure TImpl_fpxml_mXmlDocument._SaveToStream(aStream: TStream);
@@ -618,10 +632,9 @@ end;
 
 procedure TImpl_fpxml_mXmlDocument._LoadFromStream(aStream: TStream);
 begin
+  FreeAndNil(FXMLDocument);
+  FreeAndNil(FRootElement);
   ReadXMLFile(FXMLDocument, aStream);
-  if Assigned(FRootElement) then
-    FRootElement.Free;
-  FRootElement := nil;
   FRoot := FXMLDocument.DocumentElement;
 end;
 
@@ -632,11 +645,9 @@ end;
 
 procedure TImpl_fpxml_mXmlDocument._LoadFromFile(const aFileName: string);
 begin
+  FreeAndNil(FXMLDocument);
+  FreeAndNil(FRootElement);
   ReadXMLFile(FXMLDocument, aFileName);
-
-  if Assigned(FRootElement) then
-    FRootElement.Free;
-  FRootElement := nil;
   FRoot := FXMLDocument.DocumentElement;
 end;
 
@@ -679,6 +690,7 @@ var
   list : TStringList;
   i : integer;
 begin
+  FreeAndNil(FXMLDocument);
   stream := TStringStream.Create('', TEncoding.UTF8);
   fileStream := TFileStream.Create(aFilename, fmOpenRead);
   try
