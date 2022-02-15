@@ -49,7 +49,8 @@ begin
       EUCountries.Add('NL', EUCountries);
       EUCountries.Add('PL', EUCountries);
       EUCountries.Add('PT', EUCountries);
-      EUCountries.Add('GB', EUCountries);
+      if aDate < EncodeDate(2020, 1, 31) then
+        EUCountries.Add('GB', EUCountries);
       EUCountries.Add('CZ', EUCountries);
       EUCountries.Add('RO', EUCountries);
       EUCountries.Add('SK', EUCountries);
