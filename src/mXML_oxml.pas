@@ -17,8 +17,8 @@ unit mXML_oxml;
 interface
 
 uses
-  Classes, Contnrs, BlowFish, sysutils,
-  mXML, OXmlPDOM, mMathUtility, mUtility;
+  Classes, Contnrs, sysutils,
+  mXML, OXmlPDOM;
 
 resourcestring
  mXML_oxml_AttributeNotFound = 'XML attribute %s not found.';
@@ -108,14 +108,14 @@ type
     constructor Create; override;
     destructor Destroy; override;
     function _RootElement: TmXmlElement; override;
-    function _CreateRootElement(Name: string): TmXmlElement; override;
+    function _CreateRootElement(const aName: string): TmXmlElement; override;
     procedure _Clear; override;
-    procedure _SaveToStream(Stream: TStream); override;
-    procedure _LoadFromStream(Stream: TStream); override;
-    procedure _SaveToFile(FileName: string); override;
-    procedure _LoadFromFile(FileName: string); override;
-    procedure _SaveToFileEncrypted (FileName : string; Password : String); override;
-    procedure _LoadFromFileEncrypted (FileName : string; Password : String); override;
+    procedure _SaveToStream(aStream: TStream); override;
+    procedure _LoadFromStream(aStream: TStream); override;
+    procedure _SaveToFile(const aFileName: string); override;
+    procedure _LoadFromFile(const aFileName: string); override;
+    procedure _SaveToFileEncrypted (const aFileName : string; const aPassword : String); override;
+    procedure _LoadFromFileEncrypted (const aFileName : string; const aPassword : String); override;
   end;
 
   TImpl_oxml_mXmlElementCursor = class (TImpl_mXmlElementCursor)
@@ -131,10 +131,19 @@ type
     function _Count : integer; override;
   end;
 
+  TImpl_Factory_oxml = class (TImpl_Factory)
+  public
+    function GetTImpl_mXmlElement : TImpl_mXmlElement; override;
+    function GetTImpl_mXmlDocument : TImpl_mXmlDocument; override;
+    function GetTImpl_mXmlElementCursor : TImpl_mXmlElementCursor; override;
+  end;
+
+
 implementation
 
 uses
-  mISOTime;
+  BlowFish,
+  mISOTime, mUtility, mMathUtility;
 
 { TImpl_oxml_mXmlElement }
 
@@ -547,21 +556,21 @@ begin
   FXML.Clear(true);
 end;
 
-function TImpl_oxml_mXmlDocument._CreateRootElement(Name: string): TmXmlElement;
+function TImpl_oxml_mXmlDocument._CreateRootElement(const aName: string): TmXmlElement;
 var
   tmp : Tmxml_oxml_PointerShell;
 begin
   assert (not Assigned(FRoot), 'XML RootElement already assigned!');
-  FRoot := FXML.AddChild(Name);
+  FRoot := FXML.AddChild(aName);
   tmp := Tmxml_oxml_PointerShell.Create(FRoot);
   FGarbage.Add(tmp);
   Result := TmXmlElement.Create(tmp);
   FRootElement := Result;
 end;
 
-procedure TImpl_oxml_mXmlDocument._LoadFromFile(FileName: string);
+procedure TImpl_oxml_mXmlDocument._LoadFromFile(const aFileName: string);
 begin
-  if not FXML.LoadFromFile(FileName) then
+  if not FXML.LoadFromFile(aFileName) then
     FXML.GetParseError.RaiseException;
 
   if Assigned(FRootElement) then
@@ -570,7 +579,7 @@ begin
   FRoot := FXML.DocumentElement;
 end;
 
-procedure TImpl_oxml_mXmlDocument._SaveToFileEncrypted(FileName: string; Password: String);
+procedure TImpl_oxml_mXmlDocument._SaveToFileEncrypted(const aFileName: string; const aPassword: String);
 var
   stream : TMemoryStream;
   fileStream : TFileStream;
@@ -579,8 +588,8 @@ var
   bytesRead : integer;
 begin
   stream := TMemoryStream.Create;
-  fileStream := TFileStream.Create(Filename, fmCreate or fmOpenReadWrite);
-  en:= TBlowFishEncryptStream.Create(Password, fileStream);
+  fileStream := TFileStream.Create(aFilename, fmCreate or fmOpenReadWrite);
+  en:= TBlowFishEncryptStream.Create(aPassword, fileStream);
   try
     Self._SaveToStream(stream);
     stream.Position:= 0;
@@ -599,7 +608,7 @@ begin
   end;
 end;
 
-procedure TImpl_oxml_mXmlDocument._LoadFromFileEncrypted(FileName: string; Password: String);
+procedure TImpl_oxml_mXmlDocument._LoadFromFileEncrypted(const aFileName: string; const aPassword: String);
 var
   de: TBlowFishDeCryptStream;
   fileStream: TFileStream;
@@ -608,9 +617,9 @@ var
   bytesRead : integer;
 begin
   stream := TMemoryStream.Create;
-  fileStream := TFileStream.Create(Filename, fmOpenRead);
+  fileStream := TFileStream.Create(aFilename, fmOpenRead);
   try
-    de := TBlowFishDecryptStream.Create(Password, fileStream);
+    de := TBlowFishDecryptStream.Create(aPassword, fileStream);
     try
       stream.SetSize(fileStream.Size);
       SetLength(buf, 1000);
@@ -632,9 +641,9 @@ begin
 
 end;
 
-procedure TImpl_oxml_mXmlDocument._LoadFromStream(Stream: TStream);
+procedure TImpl_oxml_mXmlDocument._LoadFromStream(aStream: TStream);
 begin
-  FXML.LoadFromStream(Stream);
+  FXML.LoadFromStream(aStream);
   if Assigned(FRootElement) then
     FRootElement.Free;
   FRootElement := nil;
@@ -654,14 +663,14 @@ begin
   Result := FRootElement;
 end;
 
-procedure TImpl_oxml_mXmlDocument._SaveToFile(FileName: string);
+procedure TImpl_oxml_mXmlDocument._SaveToFile(const aFileName: string);
 begin
-  FXML.SaveToFile(Filename);
+  FXML.SaveToFile(aFilename);
 end;
 
-procedure TImpl_oxml_mXmlDocument._SaveToStream(Stream: TStream);
+procedure TImpl_oxml_mXmlDocument._SaveToStream(aStream: TStream);
 begin
-  FXML.SaveToStream(Stream);
+  FXML.SaveToStream(aStream);
 end;
 
 { Tmxml_oxml_PointerShell }
@@ -727,6 +736,23 @@ begin
       end;
     end;
   end;
+end;
+
+{ TImpl_Factory }
+
+function TImpl_Factory_oxml.GetTImpl_mXmlDocument: TImpl_mXmlDocument;
+begin
+  Result := TImpl_oxml_mXmlDocument.Create;
+end;
+
+function TImpl_Factory_oxml.GetTImpl_mXmlElement: TImpl_mXmlElement;
+begin
+  Result := TImpl_oxml_mXmlElement.Create;
+end;
+
+function TImpl_Factory_oxml.GetTImpl_mXmlElementCursor: TImpl_mXmlElementCursor;
+begin
+  Result := TImpl_oxml_mXmlElementCursor.Create;
 end;
 
 end.

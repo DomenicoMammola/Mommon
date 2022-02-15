@@ -132,7 +132,7 @@ type
     constructor Create; virtual; abstract;
   public
     function _AddElement(const aName: TmXMLString): TmXmlElement; virtual; abstract;
-    function _HasAttribute(const Name: TmXMLString): boolean; virtual; abstract;
+    function _HasAttribute(const aName: TmXMLString): boolean; virtual; abstract;
     procedure _DeleteAttribute(const aName: TmXMLString); virtual; abstract;
     procedure _SetAttribute(const aName, aValue: TmXmlString); virtual; abstract;
     function _GetAttribute(const aName: TmXmlString): TmXmlString; overload; virtual; abstract;
@@ -168,14 +168,14 @@ type
   public
     constructor Create; virtual; abstract;
     function _RootElement: TmXmlElement; virtual; abstract;
-    function _CreateRootElement(Name: string): TmXmlElement; virtual; abstract;
+    function _CreateRootElement(const aName: string): TmXmlElement; virtual; abstract;
     procedure _Clear; virtual; abstract;
-    procedure _SaveToStream(Stream: TStream); virtual; abstract;
-    procedure _LoadFromStream(Stream: TStream); virtual; abstract;
-    procedure _SaveToFile(FileName: string); virtual; abstract;
-    procedure _LoadFromFile(FileName: string); virtual; abstract;
-    procedure _SaveToFileEncrypted (FileName : string; Password : String); virtual; abstract;
-    procedure _LoadFromFileEncrypted (FileName : string; Password : String); virtual; abstract;
+    procedure _SaveToStream(aStream: TStream); virtual; abstract;
+    procedure _LoadFromStream(aStream: TStream); virtual; abstract;
+    procedure _SaveToFile(const aFileName: string); virtual; abstract;
+    procedure _LoadFromFile(const aFileName: string); virtual; abstract;
+    procedure _SaveToFileEncrypted (const aFileName : string; const aPassword : String); virtual; abstract;
+    procedure _LoadFromFileEncrypted (const aFileName : string; const aPassword : String); virtual; abstract;
   end;
 
   TImpl_mXmlElementCursor = class
@@ -187,20 +187,29 @@ type
     function _Count : integer; virtual; abstract;
   end;
 
-  TImpl_Factory = class
+  TImpl_Factory = class abstract
   public
-    function GetTImpl_mXmlElement : TImpl_mXmlElement;
-    function GetTImpl_mXmlDocument : TImpl_mXmlDocument;
-    function GetTImpl_mXmlElementCursor : TImpl_mXmlElementCursor;
+    function GetTImpl_mXmlElement : TImpl_mXmlElement; virtual; abstract;
+    function GetTImpl_mXmlDocument : TImpl_mXmlDocument; virtual; abstract;
+    function GetTImpl_mXmlElementCursor : TImpl_mXmlElementCursor; virtual; abstract;
   end;
+
+  TImpl_FactoryClass = class of TImpl_Factory;
+
+  procedure RegisterXMLImplFactory(aFactoryClass : TImpl_FactoryClass);
 
 implementation
 
 uses
-  mXML_oxml, mUtility;
+  mXML_oxml, {$IFDEF FPC}mXML_fpxml,{$ENDIF} mUtility;
 
 var
   InternalFactory : TImpl_Factory;
+
+procedure RegisterXMLImplFactory(aFactoryClass: TImpl_FactoryClass);
+begin
+  InternalFactory := aFactoryClass.Create;
+end;
 
 
 
@@ -571,23 +580,6 @@ begin
   FImpl._SaveToStream(Stream);
 end;
 
-{ TImpl_Factory }
-
-function TImpl_Factory.GetTImpl_mXmlDocument: TImpl_mXmlDocument;
-begin
-  Result := TImpl_oxml_mXmlDocument.Create;
-end;
-
-function TImpl_Factory.GetTImpl_mXmlElement: TImpl_mXmlElement;
-begin
-  Result := TImpl_oxml_mXmlElement.Create;
-end;
-
-function TImpl_Factory.GetTImpl_mXmlElementCursor: TImpl_mXmlElementCursor;
-begin
-  Result := TImpl_oxml_mXmlElementCursor.Create;
-end;
-
 { TmXmlElementCursor }
 
 constructor TmXmlElementCursor.Create(Element: TmXmlElement; Name: TmXmlString);
@@ -619,8 +611,8 @@ begin
 end;
 
 initialization
-  InternalFactory := TImpl_Factory.Create;
+  RegisterXMLImplFactory(TImpl_Factory_oxml);
 
 finalization
-  InternalFactory.Free;
+  FreeAndNil(InternalFactory);
 end.
