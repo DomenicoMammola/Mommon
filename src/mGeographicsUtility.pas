@@ -49,7 +49,9 @@ begin
       EUCountries.Add('NL', EUCountries);
       EUCountries.Add('PL', EUCountries);
       EUCountries.Add('PT', EUCountries);
-      if aDate < EncodeDate(2020, 1, 31) then
+      // Both the EU and UK Parliaments ratified the Withdrawal Agreement, which allowed the UK to leave the bloc at 11 pm GMT on 31 January 2020.
+      // https://en.wikipedia.org/wiki/United_Kingdom_membership_of_the_European_Union
+      if aDate <= EncodeDate(2020, 1, 31) then
         EUCountries.Add('GB', EUCountries);
       EUCountries.Add('CZ', EUCountries);
       EUCountries.Add('RO', EUCountries);
