@@ -292,7 +292,11 @@ begin
   if FIndex.Count = 0 then
   begin
     for i := 0 to FList.Count - 1 do
+    begin
+      if FIndex.Contains(Uppercase((FList.Items[i] as TmQueryParameter).Name)) then
+        raise Exception.Create('Duplicate parameter: ' + Uppercase((FList.Items[i] as TmQueryParameter).Name));
       FIndex.Add(Uppercase((FList.Items[i] as TmQueryParameter).Name), FList.Items[i] as TmQueryParameter);
+    end;
   end;
   Result := FIndex.Find(Uppercase(aName)) as TmQueryParameter;
 end;
