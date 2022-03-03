@@ -61,12 +61,15 @@ type
   function CtrlPressed: boolean;
   function ShiftPressed: boolean;
 
+  // https://github.com/Alexey-T/ATSynEdit/blob/master/atsynedit/atstringproc.pas
+  procedure CopyTextToClipboard(aText: string);
+
   function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
 
 implementation
 
 uses
-  SysUtils, Math
+  SysUtils, Math, Clipbrd
   {$IFDEF FPC}
     ,graphutil
   {$ELSE}
@@ -509,6 +512,36 @@ begin
   Blue := (Blue + GetBValue(ColorToRGB(Mix))) div 2;
   Result := RGB(Red, Green, Blue);
 end;
+
+// https://github.com/Alexey-T/ATSynEdit/blob/master/atsynedit/atstringproc.pas
+procedure CopyTextToClipboard(aText: string);
+begin
+  {$IFDEF FPC}
+    {$IFDEF LCLGTK2}
+    //Workaround for Lazarus bug #0021453. LCL adds trailing zero to clipboard in Clipboard.AsText.
+    if aText <> '' then
+    begin
+      Clipboard.AddFormat(PredefinedClipboardFormat(pcfText), aText[1], Length(aText));
+      Clipboard.AsText := aText;
+      {$IFNDEF WINDOWS}
+      PrimarySelection.AsText := aText;
+      if Clipboard.AsText <> aText then
+      begin
+        Clipboard.AsText := aText;
+        PrimarySelection.AsText := aText;
+      end;
+      {$ENDIF}
+    end else
+      Clipboard.AsText := '';
+
+    {$ELSE}
+    Clipboard.AsText := aText;
+    {$ENDIF}
+  {$ELSE}
+  Clipboard.AsText := aText;
+  {$ENDIF}
+end;
+
 
 
 {$IFNDEF GUI}

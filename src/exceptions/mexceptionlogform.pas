@@ -55,7 +55,7 @@ implementation
 {$R *.lfm}
 
 uses
-  mExceptionLog, mUtility;
+  mExceptionLog, mUtility, mGraphicsUtility;
 
 
 { TExceptionLogForm }
@@ -80,7 +80,7 @@ begin
   begin
     if ValidEmails(EditSendToMailAddresses.Text, s) then
     begin
-      Clipboard.AsText:= FReport;
+      CopyTextToClipboard(FReport);
       MessageDlg(SDoCtrlVTitle, SDoCtrlVMessage, mtWarning, [mbOk], 0);
       OpenURL('mailto:' + s + '?subject=Application trace log&body=Click CTRL-V');
     end
