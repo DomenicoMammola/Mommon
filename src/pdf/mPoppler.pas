@@ -45,7 +45,8 @@ type
     class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
     class function ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     class function ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 72) : boolean;
-    class function ExtractTextFromPdf(const aPdfFileName: string; out aText : String): boolean;
+    class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText : String): boolean; overload;
+    class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines : TStringList): boolean; overload;
     class function GetLastError : String;
   end;
 
@@ -270,7 +271,23 @@ begin
   end;
 end;
 
-class function TPopplerToolbox.ExtractTextFromPdf(const aPdfFileName: string; out aText: String): boolean;
+class function TPopplerToolbox.ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText: String): boolean;
+var
+  list : TStringList;
+begin
+  list := TStringList.Create;
+  try
+    Result := TPopplerToolbox.ExtractTextFromPdf(aPdfFileName, aPreserveLayout, list);
+    if Result then
+      aText := list.Text
+    else
+      aText := '';
+  finally
+    list.Free;
+  end;
+end;
+
+class function TPopplerToolbox.ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines: TStringList): boolean;
 var
   outputString : string;
   tempFile : string;
@@ -278,6 +295,7 @@ var
   cmd : string;
   {$ENDIF}
   list : TStringList;
+  ris : boolean;
 begin
   Result := false;
   if not CheckPoppler_pdftotext_ExePath then
@@ -291,20 +309,21 @@ begin
 
   tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
   {$IFDEF UNIX}
-  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftotext_ExePath, [aPdfFileName, tempFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  if aPreserveLayout then
+    ris := RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftotext_ExePath, [aPdfFileName, '-layout', tempFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit])
+  else
+    ris := RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftotext_ExePath, [aPdfFileName, tempFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]);
   {$ELSE}
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
-  cmd := AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"');
-  if RunCommand(Poppler_pdftotext_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  if aPreserveLayout then
+    cmd := '-layout ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"')
+  else
+    cmd := AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"');
+  ris := RunCommand(Poppler_pdftotext_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]);
   {$ENDIF}
+  if ris then
   begin
-    list := TStringList.Create;
-    try
-      list.LoadFromFile(tempFile);
-      aText := list.Text;
-    finally
-      list.Free;
-    end;
+    aLines.LoadFromFile(tempFile);
     if FileExists(tempFile) then
       DeleteFile(tempFile);
   end
