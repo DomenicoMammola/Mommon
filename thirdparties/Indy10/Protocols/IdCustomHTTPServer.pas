@@ -175,7 +175,7 @@ uses
 
 type
   // Enums
-  THTTPCommandType = (hcUnknown, hcHEAD, hcGET, hcPOST, hcDELETE, hcPUT, hcTRACE, hcOPTION);
+  THTTPCommandType = (hcUnknown, hcHEAD, hcGET, hcPOST, hcDELETE, hcPUT, hcTRACE, hcOPTION, hcPATCH);
 
 const
   Id_TId_HTTPServer_KeepAlive = false;
@@ -191,7 +191,7 @@ const
   GServerSoftware = gsIdProductName + '/' + gsIdVersion;    {Do not Localize}
   GContentType = 'text/html';    {Do not Localize}
   GSessionIDCookie = 'IDHTTPSESSIONID';    {Do not Localize}
-  HTTPRequestStrings: array[0..Ord(High(THTTPCommandType))] of string = ('UNKNOWN', 'HEAD','GET','POST','DELETE','PUT','TRACE', 'OPTIONS'); {do not localize}
+  HTTPRequestStrings: array[0..Ord(High(THTTPCommandType))] of string = ('UNKNOWN', 'HEAD','GET','POST','DELETE','PUT','TRACE', 'OPTIONS', 'PATCH'); {do not localize}
 
 type
   // Forwards
@@ -251,6 +251,7 @@ type
     FQueryParams: string;
     FFormParams: string;
     FCommandType: THTTPCommandType;
+    FAuthType: string;
     //
     procedure DecodeAndSetParams(const AValue: String); virtual;
   public
@@ -261,6 +262,7 @@ type
     property Session: TIdHTTPSession read FSession;
     //
     property AuthExists: Boolean read FAuthExists;
+    property AuthType: string read FAuthType;
     property AuthPassword: string read FAuthPassword;
     property AuthUsername: string read FAuthUsername;
     property Command: string read FCommand;
@@ -1118,6 +1120,8 @@ var
     LResponseText, LContentText, S: String;
   begin
     // let the user decide if the request headers are acceptable
+    // TODO pass the whole LRequestInfo object so the user has access
+    // to the request method, too...
     Result := DoHeadersAvailable(AContext, LRequestInfo.URI, LRequestInfo.RawHeaders);
     if not Result then begin
       DoHeadersBlocked(AContext, LRequestInfo.RawHeaders, LResponseNo, LResponseText, LContentText);
@@ -1126,6 +1130,7 @@ var
         LResponseInfo.ResponseText := LResponseText;
       end; 
       LResponseInfo.ContentText := LContentText;
+      LResponseInfo.CharSet := 'utf-8'; {Do not localize}
       LResponseInfo.CloseConnection := True;
       LResponseInfo.WriteHeader;
       if Length(LContentText) > 0 then begin
@@ -1268,15 +1273,13 @@ var
 
 var
   i: integer;
-  s, LInputLine, LRawHTTPCommand, LCmd, LContentType, LAuthType: String;
+  s, LInputLine, LRawHTTPCommand, LCmd, LContentType: String;
   LURI: TIdURI;
   LContinueProcessing, LCloseConnection: Boolean;
   LConn: TIdTCPConnection;
   LEncoding: IIdTextEncoding;
 begin
-  LContinueProcessing := True;
   Result := False;
-  LCloseConnection := not KeepAlive;
   try
     try
       LConn := AContext.Connection;
@@ -1286,6 +1289,7 @@ begin
         if i = 0 then begin
           raise EIdHTTPErrorParsingCommand.Create(RSHTTPErrorParsingCommand);
         end;
+        LCloseConnection := not KeepAlive;
         // TODO: don't recreate the Request and Response objects on each loop
         // iteration. Just create them once before entering the loop, and then
         // reset them as needed on each iteration...
@@ -1447,8 +1451,8 @@ begin
                 // Authentication
                 s := LRequestInfo.RawHeaders.Values['Authorization'];    {Do not Localize}
                 if Length(s) > 0 then begin
-                  LAuthType := Fetch(s, ' ');
-                  LRequestInfo.FAuthExists := DoParseAuthentication(AContext, LAuthType, s, LRequestInfo.FAuthUsername, LRequestInfo.FAuthPassword);
+                  LRequestInfo.FAuthType := Fetch(s, ' ');
+                  LRequestInfo.FAuthExists := DoParseAuthentication(AContext, LRequestInfo.FAuthType, s, LRequestInfo.FAuthUsername, LRequestInfo.FAuthPassword);
                   if not LRequestInfo.FAuthExists then begin
                     raise EIdHTTPUnsupportedAuthorisationScheme.Create(
                       RSHTTPUnsupportedAuthorisationScheme);
@@ -1456,6 +1460,7 @@ begin
                 end;
 
                 // Session management
+                LContinueProcessing := True;
                 GetSessionFromCookie(AContext, LRequestInfo, LResponseInfo, LContinueProcessing);
                 if LContinueProcessing then begin
                   // These essentially all "retrieve" so they are all "Get"s
@@ -1472,6 +1477,7 @@ begin
                 on E: EIdHTTPUnsupportedAuthorisationScheme do begin
                   LResponseInfo.ResponseNo := 401;
                   LResponseInfo.ContentText := E.Message;
+                  LResponseInfo.CharSet := 'utf-8'; {Do no localize}
                   LContinueProcessing := True;
                   for i := 0 to LResponseInfo.WWWAuthenticate.Count - 1 do begin
                     S := LResponseInfo.WWWAuthenticate[i];
@@ -1487,6 +1493,7 @@ begin
                 on E: Exception do begin
                   LResponseInfo.ResponseNo := 500;
                   LResponseInfo.ContentText := E.Message;
+                  LResponseInfo.CharSet := 'utf-8'; {Do not localize}
                   DoCommandError(AContext, LRequestInfo, LResponseInfo, E);
                 end;
               end;
@@ -1883,7 +1890,7 @@ end;
 procedure TIdHTTPRequestInfo.DecodeAndSetParams(const AValue: String);
 var
   i, j : Integer;
-  s: string;
+  s, LCharSet: string;
   LEncoding: IIdTextEncoding;
 begin
   // Convert special characters
@@ -1895,7 +1902,11 @@ begin
     // which charset to use for decoding query string parameters.  We
     // should not be using the 'Content-Type' charset for that.  For
     // 'application/x-www-form-urlencoded' forms, we should be, though...
-    LEncoding := CharsetToEncoding(CharSet);
+    LCharSet := FCharSet;
+    if LCharSet = '' then begin
+      LCharSet := 'utf-8';  {Do not localize}
+    end;
+    LEncoding := CharsetToEncoding(LCharSet);//IndyTextEncoding_UTF8;
     i := 1;
     while i <= Length(AValue) do
     begin
@@ -2213,6 +2224,7 @@ procedure TIdHTTPResponseInfo.WriteHeader;
 var
   i: Integer;
   LBufferingStarted: Boolean;
+  LCharSet: string;
 begin
   if HeaderHasBeenWritten then begin
     raise EIdHTTPHeaderAlreadyWritten.Create(RSHTTPHeaderAlreadyWritten);
@@ -2233,8 +2245,12 @@ begin
   // RLebeau 5/15/2012: for backwards compatibility. We really should
   // make the user set this every time instead...
   if ContentType = '' then begin
-    if (ContentText <> '') or (Assigned(ContentStream)) then begin
-      ContentType := 'text/html; charset=ISO-8859-1'; {Do not Localize}
+    if (ContentText <> '') or Assigned(ContentStream) then begin
+      LCharSet := FCharSet;
+      if LCharSet = '' then begin
+        LCharSet := {$IFDEF STRING_IS_UNICODE}'utf-8'{$ELSE}'ISO-8859-1'{$ENDIF}; {Do not Localize}
+      end;
+      ContentType := 'text/html; charset=' + LCharSet; {Do not Localize}
     end;
   end;
 
@@ -2509,7 +2525,7 @@ end;
 
 constructor TIdHTTPSessionCleanerThread.Create(SessionList: TIdHTTPCustomSessionList);
 begin
-  inherited Create(false);
+  inherited Create(False);
   // thread priority used to be set to tpIdle but this is not supported
   // under DotNet. How low do you want to go?
   IndySetThreadPriority(Self, tpLowest);

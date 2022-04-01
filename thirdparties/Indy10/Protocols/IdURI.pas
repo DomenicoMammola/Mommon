@@ -227,12 +227,19 @@ begin
   FIPVersion := Id_IPv4;
 
   LTokenPos := IndyPos('://', LURI);    {Do not Localize}
+  if (LTokenPos = 0) and TextStartsWith(LURI, '//') then begin {Do not Localize}
+    LTokenPos := 1;
+  end;
   if LTokenPos > 0 then begin
     // absolute URI
     // What to do when data don't match configuration ??    {Do not Localize}
     // Get the protocol
-    FProtocol := Copy(LURI, 1, LTokenPos  - 1);
-    Delete(LURI, 1, LTokenPos + 2);
+    if LURI[LTokenPos] = ':' then begin {Do not Localize}
+      FProtocol := Copy(LURI, 1, LTokenPos - 1);
+      Delete(LURI, 1, LTokenPos + 2);
+    end else begin
+      Delete(LURI, 1, LTokenPos + 1);
+    end;
     // separate the path from the parameters
     LTokenPos := IndyPos('?', LURI);    {Do not Localize}
     // RLebeau: this is BAD! It messes up JSP and similar URLs that use '=' characters in the document
@@ -383,12 +390,17 @@ begin
       end;
     end;
   end;
-  {$IFDEF STRING_IS_ANSI}
+  {$IFDEF STRING_IS_UNICODE}
+  Result := AByteEncoding.GetString(LBytes);
+  {$ELSE}
   EnsureEncoding(ADestEncoding, encOSDefault);
   CheckByteEncoding(LBytes, AByteEncoding, ADestEncoding);
   SetString(Result, PAnsiChar(LBytes), Length(LBytes));
-  {$ELSE}
-  Result := AByteEncoding.GetString(LBytes);
+    {$IFDEF HAS_SetCodePage}
+  // on compilers that support AnsiString codepages,
+  // set the string's codepage to match ADestEncoding...
+  SetCodePage(PRawByteString(@Result)^, GetEncodingCodePage(ADestEncoding), False);
+    {$ENDIF}
   {$ENDIF}
 end;
 

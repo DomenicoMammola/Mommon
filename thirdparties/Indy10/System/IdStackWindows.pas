@@ -274,7 +274,7 @@ type
       const ABufferLength, AFlags: Integer; const AIP: string; const APort: TIdPort; AIPVersion: TIdIPVersion = ID_DEFAULT_IP_VERSION); override;
 
     function WSSocket(AFamily : Integer; AStruct : TIdSocketType; AProtocol: Integer;
-      const AOverlapped: Boolean = False): TIdStackSocketHandle; override;
+      const ANonBlocking: Boolean = False): TIdStackSocketHandle; override;
     function WSTranslateSocketErrorMsg(const AErr: integer): string; override;
     function WSGetLastError: Integer; override;
     procedure WSSetLastError(const AErr : Integer); override;
@@ -313,13 +313,14 @@ type
 
 var
 //This is for the Win32-only package (SuperCore)
-  GWindowsStack : TIdStackWindows = nil;
+  GWindowsStack : TIdStackWindows = nil{$IFDEF HAS_DEPRECATED}{$IFDEF USE_SEMICOLON_BEFORE_DEPRECATED};{$ENDIF} deprecated{$IFDEF HAS_DEPRECATED_MSG} 'Use GStack or GBSDStack instead'{$ENDIF}{$ENDIF};
 
 implementation
 
 {$DEFINE USE_IPHLPAPI}
 
 {$IFDEF USE_IPHLPAPI}
+  // TODO: Move this to IdCompilerDefines.inc
   {$IFDEF VCL_XE2_OR_ABOVE}
     {$DEFINE HAS_UNIT_IpTypes}
     {$DEFINE HAS_UNIT_IpHlpApi}
@@ -330,10 +331,10 @@ uses
   IdIDN, IdResourceStrings, IdWship6
   {$IFDEF USE_IPHLPAPI}
     {$IFDEF HAS_UNIT_IpTypes}
-  , IpTypes
+  , Winapi.IpTypes
     {$ENDIF}
     {$IFDEF HAS_UNIT_IpHlpApi}
-  , IpHlpApi
+  , Winapi.IpHlpApi
     {$ENDIF}
   {$ENDIF}
   ;
@@ -720,12 +721,12 @@ var
   GetAdaptersAddresses: TGetAdaptersAddresses = nil;
   ConvertLengthToIpv4Mask: TConvertLengthToIpv4Mask = nil;
 
-function FixupIPHelperStub(const AName:{$IFDEF WINCE}TIdUnicodeString{$ELSE}string{$ENDIF}; DefImpl: Pointer): Pointer;
+function FixupIPHelperStub(const AName: TIdLibFuncName; DefImpl: Pointer): Pointer;
 {$IFDEF USE_INLINE}inline;{$ENDIF}
 begin
   Result := nil;
   if hIpHlpApi <> IdNilHandle then begin
-    Result := Windows.GetProcAddress(hIpHlpApi, {$IFDEF WINCE}PWideChar{$ELSE}PChar{$ENDIF}(AName));
+    Result := LoadLibFunction(hIpHlpApi, AName);
   end;
   if Result = nil then begin
     Result := DefImpl;
@@ -845,7 +846,9 @@ begin
     end;
     GStarted := True;
   end;
+  {$I IdSymbolDeprecatedOff.inc}
   GWindowsStack := Self;
+  {$I IdSymbolDeprecatedOn.inc}
 end;
 
 destructor TIdStackWindows.Destroy;
@@ -1128,10 +1131,23 @@ begin
 end;
 
 function TIdStackWindows.WSSocket(AFamily : Integer; AStruct : TIdSocketType; AProtocol: Integer;
-  const AOverlapped: Boolean = False): TIdStackSocketHandle;
+  const ANonBlocking: Boolean = False): TIdStackSocketHandle;
+{
+var
+  LValue: UInt32;
+}
 begin
-  if AOverlapped then begin
+  if ANonBlocking then begin
     Result := WSASocket(AFamily, AStruct, AProtocol, nil, 0, WSA_FLAG_OVERLAPPED);
+    // TODO: do this instead?
+    {
+    Result := IdWinsock2.socket(AFamily, AStruct, AProtocol);
+    if Result <> INVALID_SOCKET then begin
+      //SetBlocking(Result, False);
+      LValue := 1;
+      ioctlsocket(Result, FIONBIO, LValue);
+    end;
+    }
   end else begin
     Result := IdWinsock2.socket(AFamily, AStruct, AProtocol);
   end;
@@ -1162,7 +1178,9 @@ begin
     nil);
   if ps <> nil then begin
     Result := ntohs(ps^.s_port);
-  end else begin
+  end else
+  begin
+    // TODO: use TryStrToInt() instead...
     try
       LPort := IndyStrToInt(AServiceName);
     except
@@ -1270,6 +1288,10 @@ begin
   //end;
 end;
 
+type
+  TIdStackLocalAddressAccess = class(TIdStackLocalAddress)
+  end;
+
 procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressList);
 
   {$IFDEF USE_IPHLPAPI}
@@ -1345,6 +1367,7 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
     IPAddr: string;
     SubNetStr: String;
     SubNetMasks: TStringList;
+    LAddress: TIdStackLocalAddress;
   begin
     // assume True unless ERROR_NOT_SUPPORTED is reported...
     Result := True;
@@ -1362,7 +1385,7 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
       repeat
         // TODO: include GAA_FLAG_INCLUDE_PREFIX on XPSP1+?
         // TODO: include GAA_FLAG_INCLUDE_ALL_INTERFACES on Vista+?
-        Ret := GetAdaptersAddresses(PF_UNSPEC, GAA_FLAG_SKIP_ANYCAST or GAA_FLAG_SKIP_MULTICAST or GAA_FLAG_SKIP_DNS_SERVER or GAA_FLAG_SKIP_FRIENDLY_NAME, nil, Adapters, BufLen);
+        Ret := GetAdaptersAddresses(PF_UNSPEC, GAA_FLAG_SKIP_ANYCAST or GAA_FLAG_SKIP_MULTICAST or GAA_FLAG_SKIP_DNS_SERVER, nil, Adapters, BufLen);
         case Ret of
           ERROR_SUCCESS:
           begin
@@ -1406,11 +1429,15 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
                 begin
                   if UnicastAddr^.DadState = IpDadStatePreferred then
                   begin
+                    LAddress := nil;
                     case UnicastAddr^.Address.lpSockaddr.sin_family of
                       AF_INET: begin
                         IPAddr := TranslateTInAddrToString(PSockAddrIn(UnicastAddr^.Address.lpSockaddr)^.sin_addr, Id_IPv4);
-                        // The OnLinkPrefixLength member is only available on Windows Vista and later
+                        // TODO: use the UnicastAddr^.Length field to determine which version of
+                        // IP_ADAPTER_UNICAST_ADDRESS is being provided, rather than checking the
+                        // OS version number...
                         if IndyCheckWindowsVersion(6) then begin
+                          // The OnLinkPrefixLength member is only available on Windows Vista and later
                           SubNetStr := IPv4MaskLengthToString(UnicastAddr^.OnLinkPrefixLength);
                         end else
                         begin
@@ -1424,12 +1451,22 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
                           end;
                           SubNetStr := SubNetMasks.Values[IPAddr];
                         end;
-                        TIdStackLocalAddressIPv4.Create(AAddresses, IPAddr, SubNetStr);
+                        LAddress := TIdStackLocalAddressIPv4.Create(AAddresses, IPAddr, SubNetStr);
+                        TIdStackLocalAddressAccess(LAddress).FInterfaceIndex := Adapter^.Union.IfIndex;
                       end;
                       AF_INET6: begin
-                        TIdStackLocalAddressIPv6.Create(AAddresses,
+                        LAddress := TIdStackLocalAddressIPv6.Create(AAddresses,
                           TranslateTInAddrToString(PSockAddrIn6(UnicastAddr^.Address.lpSockaddr)^.sin6_addr, Id_IPv6));
+                        // The Ipv6IfIndex member is only available on Windows XP SP1 and later
+                        if IndyCheckWindowsVersion(5, 2) or (IndyCheckWindowsVersion(5, 1) {TODO: and SP1+}) then begin
+                          TIdStackLocalAddressAccess(LAddress).FInterfaceIndex := Adapter^.Ipv6IfIndex;
+                        end;
                       end;
+                    end;
+                    if LAddress <> nil then begin
+                      TIdStackLocalAddressAccess(LAddress).FDescription := String(Adapter^.Description);
+                      TIdStackLocalAddressAccess(LAddress).FFriendlyName := String(Adapter^.FriendlyName);
+                      TIdStackLocalAddressAccess(LAddress).FInterfaceName := String(Adapter^.AdapterName);
                     end;
                   end;
                   UnicastAddr := UnicastAddr^.Next;
@@ -1505,6 +1542,7 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
     Adapter, Adapters: PIP_ADAPTER_INFO;
     IPAddr: PIP_ADDR_STRING;
     IPStr, MaskStr: String;
+    LAddress: TIdStackLocalAddress;
   begin
     BufLen := 1024*15;
     GetMem(Adapters, BufLen);
@@ -1572,7 +1610,11 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
                   {$ELSE}
                   MaskStr := String(IPAddr^.IpMask.S);
                   {$ENDIF}
-                  TIdStackLocalAddressIPv4.Create(AAddresses, IPStr, MaskStr);
+                  LAddress := TIdStackLocalAddressIPv4.Create(AAddresses, IPStr, MaskStr);
+                  TIdStackLocalAddressAccess(LAddress).FDescription := String(Adapter^.Description);
+                  TIdStackLocalAddressAccess(LAddress).FFriendlyName := String(Adapter^.AdapterName);
+                  TIdStackLocalAddressAccess(LAddress).FInterfaceName := String(Adapter^.AdapterName);
+                  TIdStackLocalAddressAccess(LAddress).FInterfaceIndex := Adapter^.Index;
                 end;
                 IPAddr := IPAddr^.Next;
               until IPAddr = nil;
@@ -1606,6 +1648,7 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
     {$IFDEF STRING_UNICODE_MISMATCH}
     LTemp: TIdPlatformString;
     {$ENDIF}
+    //LAddress: TIdStackLocalAddress;
   begin
     LHostName := HostName;
 
@@ -1629,17 +1672,27 @@ procedure TIdStackWindows.GetLocalAddressList(AAddresses: TIdStackLocalAddressLi
       try
         LAddrInfo := LAddrList;
         repeat
+          //LAddress := nil;
           case LAddrInfo^.ai_addr^.sa_family of
             AF_INET: begin
-              TIdStackLocalAddressIPv4.Create(AAddresses,
+              {LAddress :=} TIdStackLocalAddressIPv4.Create(AAddresses,
                 TranslateTInAddrToString(PSockAddrIn(LAddrInfo^.ai_addr)^.sin_addr, Id_IPv4),
                 ''); // TODO: SubNet
             end;
             AF_INET6: begin
-              TIdStackLocalAddressIPv6.Create(AAddresses,
+              {LAddress :=} TIdStackLocalAddressIPv6.Create(AAddresses,
                 TranslateTInAddrToString(PSockAddrIn6(LAddrInfo^.ai_addr)^.sin6_addr, Id_IPv6));
             end;
           end;
+          // TODO: implement this...
+          {
+          if LAddress <> nil then begin
+            TIdStackLocalAddressAccess(LAddress).FDescription := ?;
+            TIdStackLocalAddressAccess(LAddress).FFriendlyName := ?;
+            TIdStackLocalAddressAccess(LAddress).FInterfaceName := ?;
+            TIdStackLocalAddressAccess(LAddress).FInterfaceIndex := ?;
+          end;
+          }
           LAddrInfo := LAddrInfo^.ai_next;
         until LAddrInfo = nil;
       finally
@@ -1752,7 +1805,6 @@ end;
 
 function TIdSocketListWindows.GetItem(AIndex: Integer): TIdStackSocketHandle;
 begin
-  Result := 0;
   Lock;
   try
     //We can't redefine AIndex to be a UInt32 because the libc Interface
@@ -1760,6 +1812,7 @@ begin
     if (AIndex >= 0) and (u_int(AIndex) < FFDSet.fd_count) then begin
       Result := FFDSet.fd_array[AIndex];
     end else begin
+      // TODO: just return 0/invalid, like most of the other Stack classes do?
       raise EIdStackSetSizeExceeded.Create(RSSetSizeExceeded);
     end;
   finally
@@ -2054,6 +2107,7 @@ end;
 procedure TIdStackWindows.Disconnect(ASocket: TIdStackSocketHandle);
 begin
   // Windows uses Id_SD_Send, Linux should use Id_SD_Both
+  // RLebeau: why Id_SD_Send and not Id_SD_Both on Windows? What if a blocking read is in progress?
   WSShutdown(ASocket, Id_SD_Send);
   // SO_LINGER is false - socket may take a little while to actually close after this
   WSCloseSocket(ASocket);
@@ -2492,7 +2546,7 @@ initialization
   // Check if we are running under windows NT
   {$IFNDEF WINCE}
   if IndyWindowsPlatform = VER_PLATFORM_WIN32_NT then begin
-    GetFileSizeEx := Windows.GetProcAddress(GetModuleHandle('Kernel32.dll'), 'GetFileSizeEx');
+    GetFileSizeEx := LoadLibFunction(GetModuleHandle('Kernel32.dll'), 'GetFileSizeEx');
     GServeFileProc := ServeFile;
   end;
   {$ENDIF}

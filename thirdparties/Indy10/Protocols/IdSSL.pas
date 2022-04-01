@@ -76,6 +76,7 @@ type
     fPassThrough: Boolean;
     fIsPeer : Boolean;
     FURIToCheck : String;
+    procedure InitComponent; override;
     function RecvEnc(var ABuffer: TIdBytes): Integer; virtual; abstract;
     function SendEnc(const ABuffer: TIdBytes; const AOffset, ALength: Integer): Integer; virtual; abstract;
     function ReadDataFromSource(var VBuffer: TIdBytes): Integer; override;
@@ -117,7 +118,7 @@ type
 
 Procedure RegisterSSL(const AProduct, AVendor, ACopyright,
   ADescription, AURL : String;
-  const AClientClass : TIdClientSSLClass; const AServerClass : TIdServerSSLClass);
+  const AClientClass : TIdClientSSLClass; const AServerClass : TIdServerSSLClass); {$IFDEF HAS_DEPRECATED}deprecated;{$ENDIF}
 
 type
   TIdSSLRegEntry = class(TCollectionItem)
@@ -137,7 +138,9 @@ type
     property URL : String read FURL write FURL;
     property ClientClass : TIdClientSSLClass read FClientClass write FClientClass;
     property ServerClass : TIdServerSSLClass read FServerClass write FServerClass;
-  end;
+  end {$IFDEF HAS_DEPRECATED}deprecated{$ENDIF};
+
+  {$I IdSymbolDeprecatedOff.inc}
 
   TIdSSLRegistry = class(TCollection)
   protected
@@ -148,20 +151,25 @@ type
     function Add: TIdSSLRegEntry;
     property Items [ Index: Integer ] : TIdSSLRegEntry read GetItem
       write SetItem; default;
-  end;
+  end {$IFDEF HAS_DEPRECATED}deprecated{$ENDIF};
 
 var
-  GSSLRegistry : TIdSSLRegistry;
+  GSSLRegistry : TIdSSLRegistry{$IFDEF HAS_DEPRECATED}{$IFDEF USE_SEMICOLON_BEFORE_DEPRECATED};{$ENDIF} deprecated{$ENDIF};
+
+  {$I IdSymbolDeprecatedOn.inc}
 
 implementation
 
 uses
   SysUtils;
 
+{$I IdSymbolDeprecatedOff.inc}
+
 Procedure RegisterSSL(const AProduct, AVendor, ACopyright,
   ADescription, AURL : String;
   const AClientClass : TIdClientSSLClass; const AServerClass : TIdServerSSLClass);
-var LR : TIdSSLRegEntry;
+var
+  LR : TIdSSLRegEntry;
 begin
   LR := GSSLRegistry.Add;
   LR.ProductName := AProduct;
@@ -173,7 +181,15 @@ begin
   LR.ServerClass := AServerClass;
 end;
 
+{$I IdSymbolDeprecatedOn.inc}
+
 { TIdSSLIOHandlerSocketBase }
+
+procedure TIdSSLIOHandlerSocketBase.InitComponent;
+begin
+  inherited;
+  fPassThrough := True;
+end;
 
 function TIdSSLIOHandlerSocketBase.ReadDataFromSource(var VBuffer: TIdBytes): Integer;
 begin
@@ -212,6 +228,8 @@ begin
 end;
 
 { TIdSSLRegistry }
+
+{$I IdSymbolDeprecatedOff.inc}
 
 function TIdSSLRegistry.Add: TIdSSLRegEntry;
 begin

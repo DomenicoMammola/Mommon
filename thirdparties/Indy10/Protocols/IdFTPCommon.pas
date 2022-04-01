@@ -176,7 +176,15 @@ uses
   Classes,
   IdGlobal,
   IdGlobalProtocols,
-  SysUtils;
+  SysUtils
+  // to facilite inlining
+  {$IFNDEF HAS_GetLocalTimeOffset}
+    {$IFDEF HAS_DateUtils_TTimeZone}
+  ,{$IFDEF VCL_XE2_OR_ABOVE}System.TimeSpan{$ELSE}TimeSpan{$ENDIF}
+  ,DateUtils
+    {$ENDIF}
+  {$ENDIF}
+  ;
 
 type
   TIdFTPTransferType = (ftASCII, ftBinary);
@@ -1219,7 +1227,7 @@ var
   LSecs : Int64;
 begin
   LSecs := IndyStrToInt(AData);
-  Result := Extended( ((LSecs)/ (24 * 60 * 60) ) + Int(BASE_DATE)) - IdGlobalProtocols.TimeZoneBias;
+  Result := UTCTimeToLocalTime( Extended( ((LSecs)/ (24 * 60 * 60) ) + Int(BASE_DATE)) );
 end;
 
 function EPLFDateToGMTDateTime(const AData: String): TDateTime;
@@ -1242,7 +1250,7 @@ end;
 function LocalDateTimeToEPLFDate(const ADateTime : TDateTime) : String;
   {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
-  Result := FloatToStr( Extended(ADateTime + IdGlobalProtocols.TimeZoneBias - Int(EPLF_BASE_DATE)) * 24 * 60 * 60);
+  Result := FloatToStr( Extended( LocalTimeToUTCTime(ADateTime) - Int(EPLF_BASE_DATE)) * 24 * 60 * 60);
 end;
 
 {Date routines}
@@ -1343,11 +1351,33 @@ begin
 end;
 
 function MinutesFromGMT : Integer;
+{$IFDEF HAS_GetLocalTimeOffset}
   {$IFDEF USE_INLINE} inline; {$ENDIF}
+{$ELSE}
+  {$IFDEF HAS_DateUtils_TTimeZone}
+    {$IFDEF USE_INLINE} inline; {$ENDIF}
+  {$ELSE}
 var
   LD : TDateTime;
   LHour, LMin, LSec, LMSec : Word;
+  {$ENDIF}
+{$ENDIF}
 begin
+  {$IFDEF HAS_GetLocalTimeOffset}
+  // RLebeau: Note that on Linux/Unix, this information may be inaccurate around
+  // the DST time changes (for optimization). In that case, the unix.ReReadLocalTime()
+  // function must be used to re-initialize the timezone information...
+
+  // RLebeau 1/15/2022: the value returned by MinutesFromGMT() is meant to be *subtracted*
+  // from a local time, and *added* to a UTC time.  However, the value returned by
+  // FPC's GetLocalTimeOffset() is the opposite - it is meant to be *added* to local time,
+  // and *subtracted* from UTC time.  So, we need to flip its sign here... 
+
+  Result := -1 * GetLocalTimeOffset();
+  {$ELSE}
+    {$IFDEF HAS_DateUtils_TTimeZone}
+  Result := {-1 *} Trunc(TTimeZone.Local.UtcOffset.TotalMinutes);
+    {$ELSE}
   LD := OffsetFromUTC;
   DecodeTime(LD, LHour, LMin, LSec, LMSec);
   if LD < 0.0 then begin
@@ -1355,6 +1385,8 @@ begin
   end else begin
     Result := LHour * 60 + LMin;
   end;
+    {$ENDIF}
+  {$ENDIF}
 end;
 
 function FTPDateTimeToMDTMD(const ATimeStamp : TDateTime; const AIncludeMSecs : Boolean=True; const AIncludeGMTOffset : Boolean=True): String;
@@ -1363,6 +1395,7 @@ var
   LYear, LMonth, LDay,
   LHour, LMin, LSec, LMSec : Word;
   LOfs : Integer;
+  LFmt : string;
 begin
   DecodeDate(ATimeStamp, LYear, LMonth, LDay);
   DecodeTime(ATimeStamp, LHour, LMin, LSec, LMSec);
@@ -1373,10 +1406,11 @@ begin
   if AIncludeGMTOffset then begin
     LOfs := MinutesFromGMT;
     if LOfs < 0 then begin
-      Result := Result + IntToStr(LOfs);
+      LFmt := '%d'; {do not localize}
     end else begin
-      Result := Result + '+' + IntToStr(LOfs);
+      LFmt := '+%d'; {do not localize}
     end;
+    Result := Result + IndyFormat(LFmt, [LOfs]);
   end;
   Result := ReplaceAll(Result, ' ', '0');
 end;
@@ -1415,7 +1449,7 @@ begin
       Result := EncodeDate(LYear, LMonth, LDay);
       Result := Result + EncodeTime(LHour, LMin, LSec, LMSec);
       if LOffset = '' then begin
-        Result := Result - OffsetFromUTC;
+        Result := LocalTimeToUTCTime(Result);
       end else begin
         Result := Result - MDTMOffset(LOffset);
       end;

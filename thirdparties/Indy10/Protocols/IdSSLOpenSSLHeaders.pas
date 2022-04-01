@@ -809,8 +809,15 @@ my $default_depflags = " -DOPENSSL_NO_CAMELLIA -DOPENSSL_NO_CAPIENG -DOPENSSL_NO
 (*$HPPEMIT '	struct X509_NAME;'*)
 (*$HPPEMIT '	typedef X509_NAME* PX509_NAME;'*)
 (*$HPPEMIT '}'*)
+// RLebeau: why are the following types not being placed in
+// the Idsslopensslheaders namespace with the types above?
 (*$HPPEMIT 'struct RSA;'*)
 (*$HPPEMIT 'typedef RSA* PRSA;'*)
+(*$HPPEMIT 'struct DSA;'*)
+(*$HPPEMIT 'typedef DSA* PDSA;'*)
+(*$HPPEMIT 'struct DH;'*)
+(*$HPPEMIT 'typedef DH* PDH;'*)
+(*$HPPEMIT 'typedef void* PEC_KEY;'*)
 
 uses
   IdException,
@@ -16942,7 +16949,7 @@ var
   {$EXTERNALSYM EVP_PKEY_free}
   EVP_PKEY_free : procedure(pkey: PEVP_PKEY) cdecl = nil;
   {$EXTERNALSYM EVP_PKEY_assign}
-  EVP_PKEY_assign : function(pkey: PEVP_PKEY; _type: TIdC_INT; key: PIdAnsiChar): TIdC_INT cdecl = nil;
+  EVP_PKEY_assign : function(pkey: PEVP_PKEY; _type: TIdC_INT; key: Pointer): TIdC_INT cdecl = nil;
   {$EXTERNALSYM EVP_get_cipherbyname}
   EVP_get_cipherbyname : function(const name : PIdAnsiChar): PEVP_CIPHER cdecl = nil;
   {$EXTERNALSYM EVP_get_digestbyname}
@@ -17058,7 +17065,7 @@ var
   {$EXTERNALSYM d2i_X509_bio}
   d2i_X509_bio : function(bp: PBIO; x: PPx509): PX509 cdecl = nil;
   {$EXTERNALSYM i2d_X509_REQ_bio}
-  i2d_X509_REQ_bio : function(x: PX509_REQ; bp: PBIO): TIdC_INT cdecl = nil;
+  i2d_X509_REQ_bio : function(bp: PBIO; x: PX509_REQ): TIdC_INT cdecl = nil;
   {$EXTERNALSYM i2d_X509_bio}
   i2d_X509_bio : function(bp: PBIO; x: PX509): TIdC_INT cdecl = nil;
   {$EXTERNALSYM i2d_PrivateKey_bio}
@@ -18205,9 +18212,11 @@ function Load: Boolean;
 procedure Unload;
 {$IFNDEF STATICLOAD_OPENSSL}
 function WhichFailedToLoad: String;
+function GetSSLLibHandle : TIdLibHandle;
 function GetCryptLibHandle : TIdLibHandle;
 procedure IdOpenSSLSetLibPath(const APath: String);
   {$IFDEF UNIX}
+procedure IdOpenSSLSetCanLoadSymLinks(ACanLoad: Boolean);
 procedure IdOpenSSLSetLoadSymLinksFirst(ALoadFirst: Boolean);
   {$ENDIF}
 {$ENDIF}
@@ -18647,22 +18656,22 @@ procedure CRYPTO_SetMemCheck(const aEnabled: Boolean);
 
 {$IFNDEF OPENSSL_NO_RSA}
  {$EXTERNALSYM EVP_PKEY_assign_RSA} 
-function EVP_PKEY_assign_RSA(pkey: PEVP_PKEY; rsa: PIdAnsiChar): TIdC_INT;
+function EVP_PKEY_assign_RSA(pkey: PEVP_PKEY; rsa: PRSA): TIdC_INT;
 {$ENDIF}
 
 {$IFNDEF OPENSSL_NO_DSA}
  {$EXTERNALSYM EVP_PKEY_assign_DSA}
-function EVP_PKEY_assign_DSA(pkey : PEVP_PKEY; dsa : PIdAnsiChar) : TIdC_INT;
+function EVP_PKEY_assign_DSA(pkey : PEVP_PKEY; dsa : PDSA) : TIdC_INT;
 {$ENDIF}
 
 {$IFNDEF OPENSSL_NO_DH}
  {$EXTERNALSYM EVP_PKEY_assign_DH} 
-function EVP_PKEY_assign_DH(pkey : PEVP_PKEY; dh : PIdAnsiChar) : TIdC_INT;
+function EVP_PKEY_assign_DH(pkey : PEVP_PKEY; dh : PDH) : TIdC_INT;
 {$ENDIF}
 
 {$IFNDEF OPENSSL_NO_EC}
  {$EXTERNALSYM EVP_PKEY_assign_EC_KEY}
-function EVP_PKEY_assign_EC_KEY(pkey : PEVP_PKEY; eckey : PIdAnsiChar) : TIdC_INT;
+function EVP_PKEY_assign_EC_KEY(pkey : PEVP_PKEY; eckey : PEC_KEY) : TIdC_INT;
 {$ENDIF}
 
 //* Add some extra combinations */
@@ -18902,6 +18911,7 @@ function IsOpenSSL_TLSv1_1_Available : Boolean;
 function IsOpenSSL_TLSv1_2_Available : Boolean;
 function IsOpenSSL_DTLSv1_Available : Boolean;
 
+// RLebeau: should these be declared as EXTERNALSYM?
 procedure RAND_cleanup;
 function RAND_bytes(buf : PIdAnsiChar; num : integer) : integer;
 function RAND_pseudo_bytes(buf : PIdAnsiChar; num : integer) : integer;
@@ -18923,7 +18933,9 @@ uses
   IdResourceStringsOpenSSL,
   IdStack
   {$IFDEF FPC}
-    , DynLibs  // better add DynLibs only for fpc
+    {$IFNDEF WINDOWS}
+      , DynLibs  // needed for FreeLibrary
+    {$ENDIF}
   {$ENDIF};
 
 {$IFNDEF OPENSSL_NO_HMAC}
@@ -19513,6 +19525,8 @@ begin
       {Note that if LErrQueue returns 0 and ARetCode = -1, there probably
       is an error in the underlying socket so you should raise a socket error}
       if ARetCode = -1 then begin
+        // TODO: catch the socket exception and re-raise it as the InnerException
+        // for an EIdOpenSSLAPISSLError exception...
         GStack.RaiseLastSocketError;
       end;
     end;
@@ -19549,7 +19563,17 @@ const
   where the symbolic link libbsl.so and libcrypto.so do not exist}
   SSL_DLL_name         = 'libssl'; {Do not localize}
   SSLCLIB_DLL_name     = 'libcrypto'; {Do not localize}
-  SSLDLLVers : array [0..7] of string = ('.10','.1.0.2','.1.0.1','.1.0.0','.0.9.9','.0.9.8','.0.9.7','.0.9.6');
+  SSLDLLVers : array [0..10] of string = (
+    '.10',
+    '.1.0.2','.1.0.1',
+    // TODO: IFDEF the following for OSX only?
+    '.44',              // MacOS LibreSSL forked from which OpenSSL version? Sometimes found ...
+    '.43',              // MacOS LibreSSL forked from which OpenSSL version? Sometimes found ...
+                        // TODO: Add '.41' as well?
+    '.35',              // MacOS LibreSSL forked from OpenSSL version 1.0.1, almost always found
+    //
+    '.1.0.0','.0.9.9','.0.9.8','.0.9.7','.0.9.6'
+  );
   SSLDLLVersChar : array [0..26] of string = ('','a','b','c','d','e','f','g','h','i',
                                                  'j','k','l','m','n','o','p','q','r',
                                                  's','t','u','v','w','x','y','z');
@@ -19588,6 +19612,11 @@ var
   {$ENDIF}
 
 {$IFNDEF STATICLOAD_OPENSSL}
+function GetSSLLibHandle : TIdLibHandle;
+begin
+  Result := hIdSSL;
+end;
+
 function GetCryptLibHandle : TIdLibHandle;
 begin
   Result := hIdCrypto;
@@ -22525,27 +22554,48 @@ them in case we use them later.}
   {$ENDIF}
 
 
-{ IMPORTANT!!!
-
-WindowsCE only has a Unicode (WideChar) version of GetProcAddress.  We could use
-a version of GetProcAddress in the FreePascal dynlibs unit but that does a
-conversion from ASCII to Unicode which might not be necessary since most calls
-pass a constant anyway.
-}
-function LoadFunction(const FceName: {$IFDEF WINCE}TIdUnicodeString{$ELSE}string{$ENDIF}; const ACritical : Boolean = True): Pointer;
+function LoadFunction(const FceName: TIdLibFuncName; const ACritical : Boolean = True): Pointer;
+{$IFDEF WINDOWS}
+var
+  Err: DWORD;
+{$ENDIF}
 begin
-  Result := {$IFDEF WINDOWS}Windows.{$ENDIF}GetProcAddress(hIdSSL, {$IFDEF WINCE}PWideChar{$ELSE}PChar{$ENDIF}(FceName));
-  if (Result = nil) and ACritical then begin
-    FFailedLoadList.Add(FceName); {do not localize}
+  Result := LoadLibFunction(hIdSSL, FceName);
+  if (Result <> nil) or (not ACritical) then begin
+    Exit;
   end;
+  {$IFDEF WINDOWS}
+  Err := GetLastError();
+  if Err <> ERROR_PROC_NOT_FOUND then begin
+    FFailedLoadList.Add(IndyFormat(RSOSSMissingExport_WithErrCode, [FceName, Err]));
+    Exit;
+  end;
+  {$ELSE}
+  // TODO: add error code to message...
+  {$ENDIF}
+  FFailedLoadList.Add(FceName);
 end;
 
-function LoadFunctionCLib(const FceName: {$IFDEF WINCE}TIdUnicodeString{$ELSE}string{$ENDIF}; const ACritical : Boolean = True): Pointer;
+function LoadFunctionCLib(const FceName: TIdLibFuncName; const ACritical : Boolean = True): Pointer;
+{$IFDEF WINDOWS}
+var
+  Err: DWORD;
+{$ENDIF}
 begin
-  Result := {$IFDEF WINDOWS}Windows.{$ENDIF}GetProcAddress(hIdCrypto, {$IFDEF WINCE}PWideChar{$ELSE}PChar{$ENDIF}(FceName));
-  if (Result = nil) and ACritical then begin
-    FFailedLoadList.Add(FceName); {do not localize}
+  Result := LoadLibFunction(hIdCrypto, FceName);
+  if (Result <> nil) or (not ACritical) then begin
+    Exit;
   end;
+  {$IFDEF WINDOWS}
+  Err := GetLastError();
+  if Err <> ERROR_PROC_NOT_FOUND then begin
+    FFailedLoadList.Add(IndyFormat(RSOSSMissingExport_WithErrCode, [FceName, Err]));
+    Exit;
+  end;
+  {$ELSE}
+  // TODO: add error code to message...
+  {$ENDIF}
+  FFailedLoadList.Add(FceName);
 end;
 
 // Id_ossl_old_des_set_odd_parity
@@ -22557,15 +22607,39 @@ The OpenSSL developers changed that interface to a new "des_*" API.  They have s
  "_ossl_old_des_*" for backwards compatability with the old functions
  which are defined in des_old.h. 
 }
-function LoadOldCLib(const AOldName, ANewName : {$IFDEF WINCE}TIdUnicodeString{$ELSE}String{$ENDIF}; const ACritical : Boolean = True): Pointer;
+function LoadOldCLib(const AOldName, ANewName : TIdLibFuncName; const ACritical : Boolean = True): Pointer;
+{$IFDEF WINDOWS}
+var
+  Err: DWORD;
+{$ENDIF}
 begin
-  Result := {$IFDEF WINDOWS}Windows.{$ENDIF}GetProcAddress(hIdCrypto, {$IFDEF WINCE}PWideChar{$ELSE}PChar{$ENDIF}(AOldName));
-  if Result = nil then begin
-    Result := {$IFDEF WINDOWS}Windows.{$ENDIF}GetProcAddress(hIdCrypto, {$IFDEF WINCE}PWideChar{$ELSE}PChar{$ENDIF}(ANewName));
-    if (Result = nil) and ACritical then begin
-      FFailedLoadList.Add(AOldName);
+  Result := LoadLibFunction(hIdCrypto, AOldName);
+  if Result <> nil then begin
+    Exit;
+  end;
+  {$IFDEF WINDOWS}
+  if ACritical then begin
+    Err := GetLastError();
+    if Err <> ERROR_PROC_NOT_FOUND then begin
+      FFailedLoadList.Add(IndyFormat(RSOSSMissingExport_WithErrCode, [AOldName, Err]));
+      Exit;
     end;
   end;
+  {$ENDIF}
+  Result := LoadLibFunction(hIdCrypto, ANewName);
+  if (Result <> nil) or (not ACritical) then begin
+    Exit;
+  end;
+  {$IFDEF WINDOWS}
+  Err := GetLastError();
+  if Err <> ERROR_PROC_NOT_FOUND then begin
+    FFailedLoadList.Add(IndyFormat(RSOSSMissingExport_WithErrCode, [ANewName, Err]));
+    Exit;
+  end;
+  {$ELSE}
+  // TODO: add error code to message...
+  {$ENDIF}
+  FFailedLoadList.Add(AOldName);
 end;
 
 {$ENDIF} // STATICLOAD_OPENSSL
@@ -22598,6 +22672,7 @@ begin
 end;
 
 {$IFNDEF STATICLOAD_OPENSSL}
+
 {$UNDEF USE_BASEUNIX_OR_VCL_POSIX}
 {$IFDEF USE_BASEUNIX}
   {$DEFINE USE_BASEUNIX_OR_VCL_POSIX}
@@ -22628,7 +22703,13 @@ end;
 
   {$IFDEF UNIX}
 var
+  GIdCanLoadSymLinks: Boolean = True;
   GIdLoadSymLinksFirst: Boolean = True;
+
+procedure IdOpenSSLSetCanLoadSymLinks(ACanLoad: Boolean);
+begin
+  GIdCanLoadSymLinks := ACanLoad;
+end;
 
 procedure IdOpenSSLSetLoadSymLinksFirst(ALoadFirst: Boolean);
 begin
@@ -22637,11 +22718,15 @@ end;
   {$ENDIF}
 
 function LoadSSLCryptoLibrary: TIdLibHandle;
-{$IFNDEF WINDOWS}
+{$IFDEF WINDOWS}
+var
+  Err: DWORD;
+{$ELSE}
   {$IFDEF USE_BASEUNIX_OR_VCL_POSIX_OR_KYLIXCOMPAT} // TODO: use {$IF DEFINED(UNIX)} instead?
 var
   i, j: Integer;
   LLibVersions: array [0..26] of string;
+  LCanLoadSymLinks, LLoadSymLinksFirst: Boolean;
   {$ENDIF}
 {$ENDIF}
 begin
@@ -22649,39 +22734,62 @@ begin
   //On Windows, you should use SafeLoadLibrary because
   //the LoadLibrary API call messes with the FPU control word.
   Result := SafeLoadLibrary(GIdOpenSSLPath + SSLCLIB_DLL_name);
+  if Result <> IdNilHandle then begin
+    Exit;
+  end;
   {$ELSE}
     {$IFDEF USE_BASEUNIX_OR_VCL_POSIX_OR_KYLIXCOMPAT} // TODO: use {$IF DEFINED(UNIX)} instead?
   // Workaround that is required under Linux (changed RTLD_GLOBAL with RTLD_LAZY Note: also work with LoadLibrary())
   Result := IdNilHandle;
-  if GIdLoadSymLinksFirst then begin
+  LCanLoadSymLinks := GIdCanLoadSymLinks;
+  LLoadSymLinksFirst := GIdLoadSymLinksFirst;
+  if LCanLoadSymLinks and LLoadSymLinksFirst then begin
     Result := HackLoad(GIdOpenSSLPath + SSLCLIB_DLL_name, []);
-  end;
-  if Result = IdNilHandle then begin
-    for i := Low(SSLDLLVers) to High(SSLDLLVers) do begin
-      for j := Low(SSLDLLVersChar) to High(SSLDLLVersChar) do begin
-        LLibVersions[j] := SSLDLLVers[i] + SSLDLLVersChar[j];
-      end;
-      Result := HackLoad(GIdOpenSSLPath + SSLCLIB_DLL_name, LLibVersions);
-      if Result <> IdNilHandle then begin
-        Break;
-      end;
+    if Result <> IdNilHandle then begin
+      Exit;
     end;
+    // TODO: exit here if the error is anything other than the file not being found...
   end;
-  if (Result = IdNilHandle) and (not GIdLoadSymLinksFirst) then begin
+  for i := Low(SSLDLLVers) to High(SSLDLLVers) do begin
+    for j := Low(SSLDLLVersChar) to High(SSLDLLVersChar) do begin
+      LLibVersions[j] := SSLDLLVers[i] + SSLDLLVersChar[j];
+    end;
+    Result := HackLoad(GIdOpenSSLPath + SSLCLIB_DLL_name, LLibVersions);
+    if Result <> IdNilHandle then begin
+      Exit;
+    end;
+    // TODO: exit here if the error is anything other than the file not being found...
+  end;
+  if LCanLoadSymLinks and (not LLoadSymLinksFirst) then begin
     Result := HackLoad(GIdOpenSSLPath + SSLCLIB_DLL_name, []);
+    if Result <> IdNilHandle then begin
+      Exit;
+    end;
+    // TODO: exit here if the error is anything other than the file not being found...
   end;
     {$ELSE}
   Result := IdNilHandle;
     {$ENDIF}
   {$ENDIF}
+  {$IFDEF WINDOWS}
+  Err := GetLastError;
+  FFailedLoadList.Add(IndyFormat(RSOSSFailedToLoad_WithErrCode, [GIdOpenSSLPath + SSLCLIB_DLL_name, Err]));
+  {$ELSE}
+  // TODO: add error code to message...
+  FFailedLoadList.Add(IndyFormat(RSOSSFailedToLoad, [GIdOpenSSLPath + SSLCLIB_DLL_name {$IFDEF UNIX}+ LIBEXT{$ENDIF}]));
+  {$ENDIF}
 end;
 
 function LoadSSLLibrary: TIdLibHandle;
-{$IFNDEF WINDOWS}
+{$IFDEF WINDOWS}
+var
+  Err: DWORD;
+{$ELSE}
   {$IFDEF USE_BASEUNIX_OR_VCL_POSIX_OR_KYLIXCOMPAT} // TODO: use {$IF DEFINED(UNIX)} instead?
 var
   i, j: Integer;
   LLibVersions: array [0..26] of string;
+  LCanLoadSymLinks, LLoadSymLinksFirst: Boolean;
   {$ENDIF}
 {$ENDIF}
 begin
@@ -22689,35 +22797,56 @@ begin
   //On Windows, you should use SafeLoadLibrary because
   //the LoadLibrary API call messes with the FPU control word.
   Result := SafeLoadLibrary(GIdOpenSSLPath + SSL_DLL_name);
+  if Result <> IdNilHandle then begin
+    Exit;
+  end;
+  // TODO: exit here if the error is anything other than the file not being found...
   //This is a workaround for mingw32-compiled SSL .DLL which
   //might be named 'libssl32.dll'.
-  if Result = IdNilHandle then begin
-    Result := SafeLoadLibrary(GIdOpenSSLPath + SSL_DLL_name_alt);
+  Result := SafeLoadLibrary(GIdOpenSSLPath + SSL_DLL_name_alt);
+  if Result <> IdNilHandle then begin
+    Exit;
   end;
   {$ELSE}
     {$IFDEF USE_BASEUNIX_OR_VCL_POSIX_OR_KYLIXCOMPAT} // TODO: use {$IF DEFINED(UNIX)} instead?
   // Workaround that is required under Linux (changed RTLD_GLOBAL with RTLD_LAZY Note: also work with LoadLibrary())
   Result := IdNilHandle;
-  if GIdLoadSymLinksFirst then begin
+  LCanLoadSymLinks := GIdCanLoadSymLinks;
+  LLoadSymLinksFirst := GIdLoadSymLinksFirst;
+  if LCanLoadSymLinks and LLoadSymLinksFirst then begin
     Result := HackLoad(GIdOpenSSLPath + SSL_DLL_name, []);
-  end;
-  if Result = IdNilHandle then begin
-    for i := Low(SSLDLLVers) to High(SSLDLLVers) do begin
-      for j := Low(SSLDLLVersChar) to High(SSLDLLVersChar) do begin
-        LLibVersions[j] := SSLDLLVers[i] + SSLDLLVersChar[j];
-      end;
-      Result := HackLoad(GIdOpenSSLPath + SSL_DLL_name, LLibVersions);
-      if Result <> IdNilHandle then begin
-        Break;
-      end;
+    if Result <> IdNilHandle then begin
+      Exit;
     end;
+    // TODO: exit here if the error is anything other than the file not being found...
   end;
-  if (Result = IdNilHandle) and (not GIdLoadSymLinksFirst) then begin
+  for i := Low(SSLDLLVers) to High(SSLDLLVers) do begin
+    for j := Low(SSLDLLVersChar) to High(SSLDLLVersChar) do begin
+      LLibVersions[j] := SSLDLLVers[i] + SSLDLLVersChar[j];
+    end;
+    Result := HackLoad(GIdOpenSSLPath + SSL_DLL_name, LLibVersions);
+    if Result <> IdNilHandle then begin
+      Exit;
+    end;
+    // TODO: exit here if the error is anything other than the file not being found...
+  end;
+  if LCanLoadSymLinks and (not LLoadSymLinksFirst) then begin
     Result := HackLoad(GIdOpenSSLPath + SSL_DLL_name, []);
+    if Result <> IdNilHandle then begin
+      Exit;
+    end;
+    // TODO: exit here if the error is anything other than the file not being found...
   end;
     {$ELSE}
   Result := IdNilHandle;
     {$ENDIF}
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+  Err := GetLastError;
+  FFailedLoadList.Add(IndyFormat(RSOSSFailedToLoad_WithErrCode, [GIdOpenSSLPath + SSL_DLL_name, Err]));
+  {$ELSE}
+  // TODO: add error code to message...
+  FFailedLoadList.Add(IndyFormat(RSOSSFailedToLoad, [GIdOpenSSLPath + SSL_DLL_name {$IFDEF UNIX}+ LIBEXT{$ENDIF}]));
   {$ENDIF}
 end;
 
@@ -22761,15 +22890,21 @@ begin
 end;
 {$ENDIF}
 
-function Load: Boolean;
-begin
 {$IFDEF STATICLOAD_OPENSSL}
 
+function Load: Boolean;
+begin
   bIsLoaded := True;
   Result := True;
+end;
 
 {$ELSE}
 
+function Load: Boolean;
+var
+  LVersion, LMajor, LMinor: TIdC_ULONG;
+  LVersionStr: string;
+begin
   Result := False;
   Assert(FFailedLoadList<>nil);
 
@@ -22783,7 +22918,6 @@ begin
   if hIdCrypto = IdNilHandle then begin
     hIdCrypto := LoadSSLCryptoLibrary;
     if hIdCrypto = IdNilHandle then begin
-      FFailedLoadList.Add(IndyFormat(RSOSSFailedToLoad, [GIdOpenSSLPath + SSLCLIB_DLL_name {$IFDEF UNIX}+ LIBEXT{$ENDIF}]));
       Exit;
     end;
   end;
@@ -22791,9 +22925,56 @@ begin
   if hIdSSL = IdNilHandle then begin
     hIdSSL := LoadSSLLibrary;
     if hIdSSL = IdNilHandle then begin
-      FFailedLoadList.Add(IndyFormat(RSOSSFailedToLoad, [GIdOpenSSLPath + SSL_DLL_name {$IFDEF UNIX}+ LIBEXT{$ENDIF}]));
       Exit;
     end;
+  end;
+
+  // RLebeau 6/8/2021: verify the type of library is supported...
+
+  @_SSLeay_version := LoadOldCLib(fn_SSLeay_version, 'OpenSSL_version'); {Do not localize} //Used by Indy 
+  @SSLeay := LoadOldCLib(fn_SSLeay, 'OpenSSL_version_num'); {Do not localize} //Used by Indy 
+
+  if Assigned(_SSLeay_version) then begin
+    LVersionStr := String(_SSLeay_version(SSLEAY_VERSION));
+  end;
+
+  if TextStartsWith(LVersionStr, 'LibreSSL') then {do not localize}
+  begin
+    {
+    According to the LibreSSL Portable GitHub repo:
+    https://github.com/libressl-portable/portable
+
+    LibreSSL is API compatible with OpenSSL 1.0.1, but does not yet include all new APIs from OpenSSL 1.0.2 and later.
+    LibreSSL also includes APIs not yet present in OpenSSL. The current common API subset is OpenSSL 1.0.1.
+
+    LibreSSL is not ABI compatible with any release of OpenSSL, or necessarily earlier releases of LibreSSL.
+    You will need to relink your programs to LibreSSL in order to use it, just as in moving between major versions
+    of OpenSSL. LibreSSL's installed library version numbers are incremented to account for ABI and API changes.
+    }
+    // TODO: add version checking?
+  end
+  else if TextStartsWith(LVersionStr, 'OpenSSL') or (LVersionStr = '') then {do not localize}
+  begin
+    // RLebeau 2/2/2021: verify the version is OpenSSL 1.0.2 or earlier, as OpenSSL 1.1.0 made MAJOR changes that we do not support yet...
+    if Assigned(SSLeay) then
+    begin
+      LVersion := SSLeay;
+      LMajor := (LVersion and $F0000000) shr 28;
+      LMinor := (LVersion and $0FF00000) shr 20;
+      if (LMajor = 0) and (LMinor = 0) then begin // < 0.9.3
+        LMajor := (LVersion and $F000) shr 12;
+        LMinor := (LVersion and $0F00) shr 8;
+      end;
+      if (LMajor > 1) or ((LMajor = 1) and (LMinor > 0)) then // OpenSSL 1.1.0 or higher
+      begin
+        FFailedLoadList.Add(IndyFormat(RSOSSUnsupportedVersion, [LVersion]));
+        Exit;
+      end;
+    end;
+  end else 
+  begin
+    FFailedLoadList.Add(IndyFormat(RSOSSUnsupportedLibrary, [LVersionStr]));
+    Exit;
   end;
 
   // TODO: stop loading non-critical functions here.  We should use per-function
@@ -22890,8 +23071,6 @@ begin
   end;
   {$ENDIF}
    // CRYPTO LIB
-  @_SSLeay_version := LoadFunctionCLib(fn_SSLeay_version); //Used by Indy
-  @SSLeay := LoadFunctionCLib(fn_SSLeay);    //Used by Indy
   @d2i_X509_NAME := LoadFunctionCLib(fn_d2i_X509_NAME);
   @i2d_X509_NAME := LoadFunctionCLib(fn_i2d_X509_NAME);
   @X509_NAME_oneline := LoadFunctionCLib(fn_X509_NAME_oneline);//Used by Indy
@@ -22912,10 +23091,6 @@ begin
   @X509_STORE_CTX_get_current_cert := LoadFunctionCLib(fn_X509_STORE_CTX_get_current_cert);  //Used by Indy
   @X509_STORE_add_lookup := LoadFunctionCLib(fn_X509_STORE_add_lookup);  //Used by Indy
   @X509_STORE_load_locations := LoadFunctionCLib(fn_X509_STORE_load_locations);  //Used by Indy
-  @i2d_DSAPrivateKey := LoadFunctionCLib(fn_i2d_DSAPrivateKey); //Used by Indy
-  @d2i_DSAPrivateKey := LoadFunctionCLib(fn_d2i_DSAPrivateKey); //Used by Indy
-  @d2i_PrivateKey := LoadFunctionCLib(fn_d2i_PrivateKey);  //Used by Indy
-  @d2i_PrivateKey_bio := LoadFunctionCLib(fn_d2i_PrivateKey_bio);  //Used by Indy
   @X509_sign := LoadFunctionCLib(fn_X509_sign,False);
   @X509_REQ_sign := LoadFunctionCLib(fn_X509_REQ_sign,False);
   @X509_REQ_add_extensions := LoadFunctionCLib(fn_X509_REQ_add_extensions,False);
@@ -23066,15 +23241,18 @@ we have to handle both cases.
   @d2i_RSAPublicKey := LoadFunctionCLib(fn_d2i_RSAPublicKey,False);
   @i2d_PrivateKey := LoadFunctionCLib(fn_i2d_PrivateKey,False);
   @d2i_PrivateKey := LoadFunctionCLib(fn_d2i_PrivateKey);  //Used by Indy
+  @d2i_PrivateKey_bio := LoadFunctionCLib(fn_d2i_PrivateKey_bio);  //Used by Indy
 
+  @i2d_DSAPrivateKey := LoadFunctionCLib(fn_i2d_DSAPrivateKey); //Used by Indy
+  @d2i_DSAPrivateKey := LoadFunctionCLib(fn_d2i_DSAPrivateKey); //Used by Indy
   @i2d_DSAparams := LoadFunctionCLib(fn_i2d_DSAparams,False);
   @d2i_DSAparams := LoadFunctionCLib(fn_d2i_DSAparams,False);
   @i2d_DHparams := LoadFunctionCLib(fn_i2d_DHparams,False);
   @d2i_DHparams := LoadFunctionCLib(fn_d2i_DHparams);  //Used by Indy
   @i2d_NETSCAPE_CERT_SEQUENCE := LoadFunctionCLib(fn_i2d_NETSCAPE_CERT_SEQUENCE,False);
-  @d2i_NETSCAPE_CERT_SEQUENCE := LoadFunctionCLib(fn_i2d_NETSCAPE_CERT_SEQUENCE);  //Indy by Indy
+  @d2i_NETSCAPE_CERT_SEQUENCE := LoadFunctionCLib(fn_d2i_NETSCAPE_CERT_SEQUENCE);  //Indy by Indy
   @i2d_PUBKEY := LoadFunctionCLib(fn_i2d_PUBKEY,False);
-  @d2i_PUBKEY := LoadFunctionCLib(fn_i2d_PUBKEY,False);
+  @d2i_PUBKEY := LoadFunctionCLib(fn_d2i_PUBKEY,False);
 
   //X509
   @X509_get_default_cert_file := LoadFunctionCLib(fn_X509_get_default_cert_file); //Used by Indy
@@ -23185,7 +23363,7 @@ we have to handle both cases.
  // @EVP_des_ede_cfb1 := LoadFunctionCLib(fn_EVP_des_ede_cfb1,False);
  // @EVP_des_ede_cfb8 := LoadFunctionCLib(fn_EVP_des_ede_cfb8,False);
   //#endif
-  @EVP_des_ede3_cfb64 := LoadFunctionCLib(fn_EVP_des_cfb64);
+  @EVP_des_ede3_cfb64 := LoadFunctionCLib(fn_EVP_des_ede3_cfb64,False);
   @EVP_des_ede3_cfb1 := LoadFunctionCLib(fn_EVP_des_ede3_cfb1,False);
   @EVP_des_ede3_cfb8 := LoadFunctionCLib(fn_EVP_des_ede3_cfb8,False);
   @EVP_des_ofb := LoadFunctionCLib(fn_EVP_des_ofb,False);
@@ -23379,7 +23557,6 @@ we have to handle both cases.
   @BIO_set_cipher :=LoadFunctionCLib(fn_BIO_set_cipher,False);
 {$endif}
 
-  @EVP_PKEY_type := LoadFunctionCLib(fn_EVP_PKEY_type);
   @EVP_PKEY_new := LoadFunctionCLib(fn_EVP_PKEY_new);
   @EVP_PKEY_free := LoadFunctionCLib(fn_EVP_PKEY_free);  //USED in Indy
   @EVP_PKEY_assign := LoadFunctionCLib(fn_EVP_PKEY_assign);
@@ -23612,9 +23789,9 @@ we have to handle both cases.
   }
 
   Result := (FFailedLoadList.Count = 0);
-
-{$ENDIF}
 end;
+
+{$ENDIF} // STATICLOAD_OPENSSL
 
 procedure InitializeFuncPointers;
 begin
@@ -24466,6 +24643,7 @@ begin
   SetString(time_str, UCTtime^.data, UCTtime^.length);
     {$ELSE}
   SetString(LTemp, UCTtime^.data, UCTtime^.length);
+  // TODO: do we need to use SetCodePage() here?
   time_str := String(LTemp); // explicit convert to Unicode
     {$ENDIF}
   {$ENDIF}
@@ -24563,6 +24741,7 @@ end;
 function X509_STORE_CTX_get_app_data(ctx: PX509_STORE_CTX):Pointer;
 {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
+  // TODO: use SSL_get_ex_data_X509_STORE_CTX_idx() instead of 0 to get the true index of the SSL pointer
   Result := X509_STORE_CTX_get_ex_data(ctx, 0);
 end;
 
@@ -26057,7 +26236,7 @@ begin
 end;
 
 {$IFNDEF OPENSSL_NO_RSA}
-function EVP_PKEY_assign_RSA(pkey: PEVP_PKEY; rsa: PIdAnsiChar): TIdC_INT;
+function EVP_PKEY_assign_RSA(pkey: PEVP_PKEY; rsa: PRSA): TIdC_INT;
 {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
   Result := EVP_PKEY_assign(pkey, EVP_PKEY_RSA, rsa);
@@ -26065,25 +26244,25 @@ end;
 {$ENDIF}
 
 {$IFNDEF OPENSSL_NO_DSA}
-function EVP_PKEY_assign_DSA(pkey : PEVP_PKEY; dsa : PIdAnsiChar) : TIdC_INT;
+function EVP_PKEY_assign_DSA(pkey : PEVP_PKEY; dsa : PDSA) : TIdC_INT;
 {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
-  Result := EVP_PKEY_assign(pkey,EVP_PKEY_DSA,	dsa);
+  Result := EVP_PKEY_assign(pkey, EVP_PKEY_DSA, dsa);
 end;
 {$ENDIF}
 
 {$IFNDEF OPENSSL_NO_DH}
-function EVP_PKEY_assign_DH(pkey : PEVP_PKEY; dh : PIdAnsiChar) : TIdC_INT;
+function EVP_PKEY_assign_DH(pkey : PEVP_PKEY; dh : PDH) : TIdC_INT;
 begin
-  Result := EVP_PKEY_assign(pkey,EVP_PKEY_DH,dh);
+  Result := EVP_PKEY_assign(pkey, EVP_PKEY_DH, dh);
 end;
 {$ENDIF}
 
 {$IFNDEF OPENSSL_NO_EC}
-function EVP_PKEY_assign_EC_KEY(pkey : PEVP_PKEY; eckey : PIdAnsiChar) : TIdC_INT;
+function EVP_PKEY_assign_EC_KEY(pkey : PEVP_PKEY; eckey : PEC_KEY) : TIdC_INT;
 {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
-  Result := EVP_PKEY_assign(pkey,EVP_PKEY_EC,eckey);
+  Result := EVP_PKEY_assign(pkey, EVP_PKEY_EC, eckey);
 end;
 {$ENDIF}
 

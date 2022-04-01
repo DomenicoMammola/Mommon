@@ -369,6 +369,8 @@ end;
 
 function TIdMultiPartFormDataStream.GenerateUniqueBoundary: string;
 begin
+  // TODO: add a way for a user-defined prefix to be placed in between
+  // the dashes and the random data, such as 'WebKitFormBoundary'...
   Result := '--------' + FormatDateTime('mmddyyhhnnsszzz', Now);  {do not localize}
 end;
 
@@ -859,7 +861,7 @@ begin
   // text may still be assumed in the absence of a MIME-Version or the
   // presence of an syntactically invalid Content-Type header field, but
   // the sender's intent might have been otherwise.
-  if (LCharSet = '') and IsHeaderMediaType(FContentType, 'text') then begin {do not localize}
+  if (LCharSet = '') and (FCharSet = '') and IsHeaderMediaType(FContentType, 'text') then begin {do not localize}
     LCharSet := 'us-ascii'; {do not localize}
   end;
   {RLebeau: override the current CharSet only if the header specifies a new value}
