@@ -19,13 +19,13 @@ interface
 function PostJSONData (const aURI, aJSONMessage : String; out aResponseBody, aResponseText : String; out aErrorMessage : string) : boolean;
 function PostJSONDataWithBasicAuthentication (const aURI, aJSONMessage : String; const aUsername, aPassword:  String; out aResponseBody, aResponseText : String; out aErrorMessage : string) : boolean;
 
-function GetHTMLPage (const aURI : STring; out aResponseBody: String; out aErrorMessage: String): boolean;
+function GetHTMLPage (const aURI : String; out aResponseBody: String; out aErrorMessage: String): boolean;
 
 implementation
 
 uses
-  Classes, sysutils,
-  IdHTTP, IdGlobal;
+  Classes, sysutils, {$IFDEF LINUX}FileUtil,{$ENDIF}
+  IdHTTP, IdGlobal, IdSSLOpenSSLHeaders;
 
 function PostJSONData(const aURI, aJSONMessage: String; out aResponseBody, aResponseText: String; out aErrorMessage: string): boolean;
 begin
@@ -78,7 +78,7 @@ begin
   end;
 end;
 
-function GetHTMLPage(const aURI: STring; out aResponseBody: String; out aErrorMessage: String) : boolean;
+function GetHTMLPage(const aURI: String; out aResponseBody: String; out aErrorMessage: String) : boolean;
 var
   HTTP: TIdHTTP;
 begin
@@ -87,16 +87,21 @@ begin
   HTTP := TIdHTTP.Create;
   try
     try
+      {$IFDEF LINUX}
+      // https://synaptica.info/2021/01/12/delphi-10-4-1-indy-ssl-on-ubuntu-20-04/
+      IdOpenSSLSetLibPath(ProgramDirectory);
+      {$ENDIF}
+
       aResponseBody := HTTP.Get(aURI, IndyTextEncoding(encUTF8));
     except
       on E: EIdHTTPProtocolException do
       begin
-        aErrorMessage:= E.Message + sLineBreak + E.ErrorMessage;
+        aErrorMessage:= aURI + sLineBreak + E.Message + sLineBreak + E.ErrorMessage;
         Result := false;
       end;
       on E: Exception do
       begin
-        aErrorMessage:= E.Message;
+        aErrorMessage:= aURI + sLineBreak + E.Message + sLineBreak + 'OpenSSL error:' + WhichFailedToLoad;
         Result := false;
       end;
     end;
@@ -104,6 +109,5 @@ begin
     HTTP.Free;
   end;
 end;
-
 
 end.

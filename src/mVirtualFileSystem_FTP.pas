@@ -83,7 +83,9 @@ type
 implementation
 
 uses
-  IdTCPClient, IdFTPCommon, IdReplyRFC, IdReplyFTP, IdExplicitTLSClientServerBase;
+  IdTCPClient, IdFTPCommon, IdReplyRFC, IdReplyFTP, IdExplicitTLSClientServerBase
+  {$IFDEF LINUX},FileUtil, IdSSLOpenSSLHeaders{$ENDIF}
+  ;
 
 { TFTPFoldersListFileSystem }
 
@@ -273,6 +275,10 @@ end;
 function TFTPFileSystemManager.CreateConnection: TIdFTP;
 begin
   Result := TIdFTP.Create(nil);
+  {$IFDEF LINUX}
+  // https://synaptica.info/2021/01/12/delphi-10-4-1-indy-ssl-on-ubuntu-20-04/
+  IdOpenSSLSetLibPath(ProgramDirectory);
+  {$ENDIF}
   Result.Host:= FHost;
   Result.Username:= FUsername;
   Result.Password:= FPassword;
@@ -281,7 +287,7 @@ begin
     // https://stackoverflow.com/questions/14855728/how-can-i-make-my-delphi-application-use-ftps-instead-of-ftp-indy
     if not Assigned(FSSLIoHandler) then
     begin
-      FSSLIoHandler := TIdSSLIOHandlerSocketOpenSSL .Create(nil);
+      FSSLIoHandler := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
       // https://en.delphipraxis.net/topic/5727-exception-message-error-connecting-with-ssl-eof-was-observed-that-violates-the-protocol/
       FSSLIoHandler.SSLOptions.Method := sslvTLSv1_2;
     end;
