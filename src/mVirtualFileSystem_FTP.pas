@@ -20,7 +20,7 @@ interface
 uses
   Classes, SysUtils, {$IFDEF GUI}Controls, Forms, {$ENDIF}
 
-  IdTCPClient, IdFTP, IdFTPCommon, IdReplyRFC, IdReplyFTP,
+  IdFTP, IdSSLOpenSSL,
 
   mVirtualFileSystem, mUtility;
 
@@ -36,10 +36,13 @@ type
     FUsername : string;
     FPassword : string;
     FFileMask : string;
+    FUseFTPS : boolean;
+    FSSLIoHandler: TIdSSLIOHandlerSocketOpenSSL;
     function ExtractTypeAndName (const aSourceString : string; out aFileType : TFTPFileType; out aFileName : string) : boolean;
     procedure InternalCreateSubFolders(aFTPClient : TIdFTP; const aPath: string);
     function GetFTPParentPath(const aPath : String): String;
     function GetFTPLastFolderInPath(const aPath : String): String;
+    function CreateConnection : TIdFTP;
   public
     const PATH_DELIMITER = '/';
   public
@@ -59,6 +62,7 @@ type
     property Username : string read FUsername write FUsername;
     property Password : string read FPassword write FPassword;
     property FileMask : string read FFileMask write FFileMask;
+    property UseFTPS : boolean read FUseFTPS write FUseFTPS;
   end;
 
   { TFTPFoldersListFileSystem }
@@ -77,6 +81,9 @@ type
   function IncludeTrailingPathFTPDelimiter (const aPath : String): String;
 
 implementation
+
+uses
+  IdTCPClient, IdFTPCommon, IdReplyRFC, IdReplyFTP, IdExplicitTLSClientServerBase;
 
 { TFTPFoldersListFileSystem }
 
@@ -263,6 +270,27 @@ begin
   end;
 end;
 
+function TFTPFileSystemManager.CreateConnection: TIdFTP;
+begin
+  Result := TIdFTP.Create(nil);
+  Result.Host:= FHost;
+  Result.Username:= FUsername;
+  Result.Password:= FPassword;
+  if FUseFTPS then
+  begin
+    // https://stackoverflow.com/questions/14855728/how-can-i-make-my-delphi-application-use-ftps-instead-of-ftp-indy
+    if not Assigned(FSSLIoHandler) then
+    begin
+      FSSLIoHandler := TIdSSLIOHandlerSocketOpenSSL .Create(nil);
+      // https://en.delphipraxis.net/topic/5727-exception-message-error-connecting-with-ssl-eof-was-observed-that-violates-the-protocol/
+      FSSLIoHandler.SSLOptions.Method := sslvTLSv1_2;
+    end;
+    Result.IOHandler:= FSSLIoHandler;
+    Result.UseTLS := utUseExplicitTLS;
+    Result.DataPortProtection := ftpdpsPrivate;
+  end;
+end;
+
 constructor TFTPFileSystemManager.Create;
 begin
   inherited Create;
@@ -270,10 +298,13 @@ begin
   FHost:='';
   FPassword:='';
   FUsername:='';
+  FSSLIoHandler:= nil;
+  FUseFTPS:= false;
 end;
 
 destructor TFTPFileSystemManager.Destroy;
 begin
+  FreeAndNil(FSSLIoHandler);
   inherited Destroy;
 end;
 
@@ -282,11 +313,8 @@ procedure TFTPFileSystemManager.ReadStream(const aFileName, aFileFolder : String
 var
   FTPClient : TIdFTP;
 begin
-  FTPClient := TIdFTP.Create(nil);
+  FTPClient := CreateConnection;
   try
-    FTPClient.Host:= FHost;
-    FTPClient.Username:= FUsername;
-    FTPClient.Password:= FPassword;
     FTPClient.Connect;
     if FTPClient.Connected then
     begin
@@ -306,11 +334,8 @@ procedure TFTPFileSystemManager.WriteStream(const aFileName, aFileFolder : Strin
 var
   FTPClient : TIdFTP;
 begin
-  FTPClient := TIdFTP.Create(nil);
+  FTPClient := CreateConnection;
   try
-    FTPClient.Host:= FHost;
-    FTPClient.Username:= FUsername;
-    FTPClient.Password:= FPassword;
     FTPClient.Connect;
     if FTPClient.Connected then
     begin
@@ -342,11 +367,8 @@ var
   i : integer;
   curFolder : String;
 begin
-  FTPClient := TIdFTP.Create(nil);
+  FTPClient := CreateConnection;
   try
-    FTPClient.Host:= FHost;
-    FTPClient.Username:= FUsername;
-    FTPClient.Password:= FPassword;
     FTPClient.Connect;
     if FTPClient.Connected then
     begin
@@ -393,11 +415,8 @@ procedure TFTPFileSystemManager.DeleteFile(const aFileName, aFileFolder: String)
 var
   FTPClient : TIdFTP;
 begin
-  FTPClient := TIdFTP.Create(nil);
+  FTPClient := CreateConnection;
   try
-    FTPClient.Host:= FHost;
-    FTPClient.Username:= FUsername;
-    FTPClient.Password:= FPassword;
     FTPClient.Connect;
     if FTPClient.Connected then
     begin
@@ -420,11 +439,8 @@ var
 begin
   Result := false;
   l := TStringList.Create;
-  FTPClient := TIdFTP.Create(nil);
+  FTPClient := CreateConnection;
   try
-    FTPClient.Host:= FHost;
-    FTPClient.Username:= FUsername;
-    FTPClient.Password:= FPassword;
     FTPClient.Connect;
     if FTPClient.Connected then
     begin
