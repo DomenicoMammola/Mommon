@@ -87,7 +87,7 @@ uses
   StrUtils,
   IdTCPClient, IdFTPCommon, IdReplyRFC, IdReplyFTP, IdExplicitTLSClientServerBase
   {$IFDEF LINUX},FileUtil, IdSSLOpenSSLHeaders{$ENDIF}
-  ,mLog
+  ,mLog, mMathUtility
   ;
 
 var
@@ -117,11 +117,8 @@ var
   tmpFileName : string;
 begin
   aRoots.Clear;
-  FTPClient := TIdFTP.Create(nil);
+  FTPClient := CreateConnection;
   try
-    FTPClient.Host:= FHost;
-    FTPClient.Username:= FUsername;
-    FTPClient.Password:= FPassword;
     try
       FTPClient.Connect;
     except
@@ -166,7 +163,7 @@ end;
 
 { TFTPFileSystemManager }
 
-function TFTPFileSystemManager.ExtractTypeAndName(const aSourceString: string; out aFileType: TFTPFileType; out aFileName: string) : boolean;
+function FileZillaExtractTypeAndName(const aSourceString: string; out aFileType: TFTPFileType; out aFileName: string) : boolean;
 var
   tmp : TStringList;
 begin
@@ -197,6 +194,72 @@ begin
   finally
     tmp.Free;
   end;
+end;
+
+function VsftdExtractTypeAndName(const aSourceString: string; out aFileType: TFTPFileType; out aFileName: string) : boolean;
+var
+  tmp : TStringList;
+  i, tmpInt : integer;
+  sep : String;
+begin
+  Result := false;
+
+  tmp := TStringList.Create;
+  try
+    ExtractStrings([' '], [], PChar(aSourceString), tmp, false);
+
+    if tmp.Count > 0 then
+    begin
+      if AnsiContainsText(tmp.Strings[0], 'r') then
+      begin
+        i := 1;
+        while (i <= (tmp.Count-1)) and (trim(tmp.Strings[i]) = '') do
+          inc(i);
+
+        if TryToConvertToInteger(tmp.Strings[i], tmpInt) then
+        begin
+          if tmpInt = 1 then
+            aFileType := ftFile
+          else if tmpInt = 2 then
+            aFileType := ftDir
+          else
+            exit;
+        end
+        else
+          exit;
+
+        i := tmp.Count - 1;
+        while (i >= 0) and (Length(tmp.Strings[i]) <> 5) and (Pos(':', tmp.Strings[i]) <> 3) and (not IsNumeric(LeftStr(tmp.Strings[i], 2), false, false)) and
+          (not IsNumeric(RightStr(tmp.Strings[i], 2), false, false)) do
+          dec(i);
+        inc (i);
+        if i < tmp.Count then
+        begin
+          aFileName := '';
+          sep := '';
+          while i <= tmp.Count -1 do
+          begin
+            aFileName := aFileName + sep + trim(tmp.Strings[i]);
+            sep := ' ';
+            inc (i);
+          end;
+          Result := true;
+        end;
+      end;
+    end;
+  finally
+    tmp.Free;
+  end;
+end;
+
+function TFTPFileSystemManager.ExtractTypeAndName(const aSourceString: string; out aFileType: TFTPFileType; out aFileName: string) : boolean;
+begin
+  Result := FileZillaExtractTypeAndName(aSourceString, aFileType, aFileName);
+
+  if Result then
+    exit;
+
+  Result := VsftdExtractTypeAndName(aSourceString, aFileType, aFileName);
 end;
 
 function TFTPFileSystemManager.ExistsFolder (aFTPClient : TIdFTP; const aPath: string) : boolean;
