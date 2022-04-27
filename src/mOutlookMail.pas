@@ -33,6 +33,7 @@ type
     FAttachments : TStringList;
     FBody : TStringList;
     FHTMLBody : TStringList;
+    procedure UpdateRecipients(const aValue : String; aRecipients : TStringList);
   public
     constructor Create;
     destructor Destroy; override;
@@ -53,13 +54,37 @@ type
 implementation
 
 uses
+  StrUtils, SysUtils
 {$ifdef windows}
-  comobj;
-{$else}
-  SysUtils;
+  ,comobj
 {$endif}
+  ;
 
 { TmOutlookMailFactory }
+
+procedure TmOutlookMailFactory.UpdateRecipients(const aValue: String; aRecipients: TStringList);
+var
+  tmpList : TStringList;
+  i : integer;
+begin
+  if ContainsStr(aValue, ';') then
+  begin
+    tmpList := TStringList.Create;
+    try
+      tmpList.Delimiter:=';';
+      tmpList.DelimitedText:=aValue;
+      for i := 0 to tmpList.Count - 1 do
+      begin
+        if trim(tmpList.Strings[i]) <> '' then
+          aRecipients.Add(tmpList.Strings[i]);
+      end;
+    finally
+       tmpList.Free;
+    end;
+  end
+  else
+    aRecipients.Add(aValue);
+end;
 
 constructor TmOutlookMailFactory.Create;
 begin
@@ -89,7 +114,7 @@ const
   olMailItem = $00000000;
 var
   Outlook: OLEVariant;
-  MailItem, MailInspector: Variant;
+  MailItem, MailInspector, MailRecipient: Variant;
   i : integer;
   s : WideString;
   tmp, sep : String;
@@ -107,14 +132,15 @@ begin
     for i := 0 to FRecipients.Count - 1 do
     begin
       s := UTF8Decode(FRecipients.Strings[i]);
-      MailItem.Recipients.Add(s);
+      MailRecipient := MailItem.Recipients.Add(s);
+      MailRecipient.Resolve;
     end;
     tmp := '';
     sep := '';
     for i := 0 to FCCRecipients.Count -  1 do
     begin
       tmp := tmp + sep + FCCRecipients.Strings[i];
-      sep := '; ';
+      sep := ';';
     end;
     if tmp <> '' then
     begin
@@ -126,7 +152,7 @@ begin
     for i := 0 to FBCCRecipients.Count -  1 do
     begin
       tmp := tmp + sep + FBCCRecipients.Strings[i];
-      sep := '; ';
+      sep := ';';
     end;
     if tmp <> '' then
     begin
@@ -148,6 +174,7 @@ begin
       s := UTF8Decode(FHTMLBody.Text);
       MailItem.HTMLBody := s;
     end;
+    MailItem.Recipients.ResolveAll;
     MailInspector := MailItem.GetInspector;
     MailInspector.display(aShowModal); //true means modal
  finally
@@ -168,19 +195,19 @@ end;
 
 function TmOutlookMailFactory.AddRecipient(const aValue: String): TmOutlookMailFactory;
 begin
-  FRecipients.Add(aValue);
+  UpdateRecipients(aValue, FRecipients);
   Result := Self;
 end;
 
 function TmOutlookMailFactory.AddCCRecipient(const aValue: String): TmOutlookMailFactory;
 begin
- FCCRecipients.Add(aValue);
+ UpdateRecipients(aValue, FCCRecipients);
  Result := Self;
 end;
 
 function TmOutlookMailFactory.AddBCCRecipient(const aValue: String): TmOutlookMailFactory;
 begin
- FBCCRecipients.Add(aValue);
+ UpdateRecipients(aValue, FBCCRecipients);
  Result := Self;
 end;
 
