@@ -20,8 +20,8 @@ interface
 {$I mDefines.inc}
 
 uses
-  Classes, contnrs, syncobjs, SysUtils,
-  {$ifdef gui}Forms, Controls, {$endif}
+  Classes, contnrs, syncobjs, SysUtils, CustApp,
+  {$IFDEF GUI}Forms, Controls, {$ENDIF}
   mUtility, mProgress, mThreadsBaseClasses;
 
 type
@@ -74,6 +74,7 @@ type
     FDescription : String;
     FTrapExceptions : boolean;
     FData : TObject;
+    FApplication : TCustomApplication;
   private
     FJobId : integer;
   public
@@ -84,6 +85,7 @@ type
     property Description : String read FDescription write FDescription;
     property TrapExceptions : boolean read FTrapExceptions write FTrapExceptions;
     property Data : TObject read FData write FData;
+    property Application : TCustomApplication read FApplication write FApplication;
   end;
 
   { TmBatchExecutor }
@@ -199,6 +201,7 @@ end;
 constructor TmJob.Create;
 begin
   FData := nil;
+  FApplication := nil;
 end;
 
 { TJobResults }
@@ -426,6 +429,7 @@ begin
   FCanDieEvent := nil;
   FCanStartEvent := TSimpleEvent.Create;
   FJob := aJob;
+  FApplication := aJob.Application;
   FJobResult := aJobResult;
   Self.Priority:= tpNormal;
 end;

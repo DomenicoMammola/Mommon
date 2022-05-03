@@ -16,7 +16,7 @@ interface
 {$I mDefines.inc}
 
 uses
-  Classes, sysutils;
+  Classes, sysutils, CustApp;
 
 type
 
@@ -26,6 +26,7 @@ type
   protected
     FExceptionCallStack : TStringList;
     FLastException : Exception;
+    FApplication : TCustomApplication;
     procedure DumpExceptionBackTrace;
     procedure ReRaiseLastException;
   public
@@ -59,17 +60,31 @@ begin
 end;
 
 procedure TmThread.ReRaiseLastException;
+var
+  app : TCustomApplication;
 begin
   if Assigned(FLastException) then
   begin
+    app := nil;
     {$IFDEF GUI}
-    if Assigned(Application.OnException) then
-      Application.OnException(Self, FLastException)
+    if Assigned(FApplication) then
+      app := FApplication
     else
-      Application.ShowException(FLastException);
+      app := Forms.Application;
     {$ELSE}
-    Sysutils.ShowException(FLastException,ExceptAddr);
+    if Assigned(FApplication) then
+      app := FApplication;
     {$ENDIF}
+
+    if Assigned(app) then
+    begin
+      if Assigned(app.OnException) then
+        app.OnException(Self, FLastException)
+      else
+        app.ShowException(FLastException);
+    end
+    else
+      Sysutils.ShowException(FLastException,ExceptAddr);
   end;
 end;
 
