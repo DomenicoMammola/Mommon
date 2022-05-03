@@ -99,7 +99,8 @@ uses
   IdIOHandlerSocket, IdIOHandlerStack, IdSSL, IdSSLOpenSSL, IdSASLLogin,
   IdSASL_CRAM_SHA1, IdSASL, IdSASLUserPass, IdSASL_CRAMBase, IdSASL_CRAM_MD5,
   IdSASLSKey, IdSASLPlain, IdSASLOTP, IdSASLExternal, IdSASLDigest,
-  IdSASLAnonymous, IdUserPassProvider;
+  IdSASLAnonymous, IdUserPassProvider,
+  mLog;
 
 
 type
@@ -114,7 +115,8 @@ type
     Data : TStream;
   end;
 
-
+var
+  logger : TmLog;
 
 { TSendMail }
 
@@ -427,12 +429,17 @@ begin
     htmlMessageBuilder.HtmlCharSet:= 'utf-8';
     tmpMessage.From.Name:= FSenderName;
     tmpMessage.From.Address:= FSenderMailAddress;
+    logger.Debug('Name: ' + tmpMessage.From.Name + ' Sender mail address: ' + tmpMessage.From.Address);
     tmpMessage.Recipients.EMailAddresses:= FRecipients;
     if FCCRecipients <> '' then
       tmpMessage.CCList.EMailAddresses:= FCCRecipients;
     if FBCCRecipients <> '' then
       tmpMessage.BccList.EMailAddresses:= FBCCRecipients;
     tmpMessage.Subject:= FSubject;
+
+    logger.Debug('To: ' + tmpMessage.Recipients.EMailAddresses);
+    logger.Debug('CC: ' + tmpMessage.CCList.EMailAddresses);
+    logger.Debug('BCC: ' + tmpMessage.BccList.EMailAddresses);
 
     if FHTML.Count > 0 then
       htmlMessageBuilder.Html.AddStrings(FHTML);
@@ -502,14 +509,18 @@ begin
 
       error:= false;
       try
+        logger.Debug('Connecting...');
         tmpSMTP.Connect;
+        logger.Debug('Sending message...');
         tmpSMTP.Send(tmpMessage);
+        logger.Debug('Disconnecting...');
         tmpSMTP.Disconnect(true);
       except
         on e:Exception do
         begin
           aErrorMessage := e.Message;
           error := true;
+          logger.Error(e.Message);
         end;
       end;
 
@@ -523,6 +534,7 @@ begin
           begin
             aErrorMessage:= e.Message;
             error := true;
+            logger.Error(e.Message);
           end;
         end;
       end;
@@ -538,5 +550,8 @@ begin
 
   Result := not error;
 end;
+
+initialization
+  logger := logManager.AddLog('mSendMail');
 
 end.
