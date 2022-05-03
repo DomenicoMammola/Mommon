@@ -19,7 +19,7 @@ interface
 {$I mDefines.inc}
 
 uses
-  DB, Classes, {$ifdef gui}Forms,{$endif}
+  DB, Classes, CustApp, {$IFDEF GUI}Forms,{$ENDIF}
   mDatabaseConnection, mDatabaseConnectionClasses,
   mProgress, mThreads, mPerformedOperationResults,
   mDataPumpConfiguration;
@@ -37,11 +37,12 @@ type
   TReplicaEngine = class
   strict private
     FCanTerminate : boolean;
+    FApplication : TCustomApplication;
 
     procedure InternalReplicaTable (aProgress: ImProgress; aData : TObject; aJobResult : TJobResult);
     procedure DoTerminate(const aJobsResult : TJobResults);
   public
-    function ProcessTables ({$ifdef gui}aParentForm : TForm;{$endif} const aTables : TDataReplicaTables; const aResults : IPerformedOperationResults = nil; const aMaxConcurrentThreads : integer = -1) : boolean;
+    function ProcessTables ({$ifdef gui}aParentForm : TForm;{$endif} aApplication : TCustomApplication; const aTables : TDataReplicaTables; const aResults : IPerformedOperationResults = nil; const aMaxConcurrentThreads : integer = -1) : boolean;
   end;
 
   function DoReplicaTable (const aTable : TDataReplicaTableToTable; aProgress: ImProgress; aResults : IPerformedOperationResults) : boolean;
@@ -602,7 +603,7 @@ begin
   FCanTerminate:= true;
 end;
 
-function TReplicaEngine.ProcessTables({$ifdef gui}aParentForm : TForm;{$endif} const aTables: TDataReplicaTables; const aResults : IPerformedOperationResults; const aMaxConcurrentThreads: integer): boolean;
+function TReplicaEngine.ProcessTables({$ifdef gui}aParentForm : TForm;{$endif} aApplication : TCustomApplication; const aTables: TDataReplicaTables; const aResults : IPerformedOperationResults; const aMaxConcurrentThreads: integer): boolean;
 var
   batchexec : TmBatchExecutor;
   newjob : TmJob;
@@ -629,6 +630,7 @@ begin
     begin
       newjob := batchexec.QueueJob;
       newjob.Description:= aTables.Get(i).DestinationTableName;
+      newjob.Application:= aApplication;
       newjob.DoJobProcedure := InternalReplicaTable;
       tmpJobData := TJobData.Create;
       jobDataList.Add(tmpJobData);
