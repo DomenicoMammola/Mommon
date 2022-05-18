@@ -25,7 +25,7 @@ implementation
 
 uses
   Classes, Contnrs, SysUtils, Variants,
-  mDataProviderFieldDefs, mUtility;
+  mDataProviderFieldDefs, mUtility, mDataProviderSerializerClasses;
 
 //https://restfulapi.net/json-data-types/
 
@@ -34,55 +34,12 @@ const
   ISO8601FormatExtendedUTC_Date='yyyy"-"mm"-"dd"Z"';
   ISO8601FormatExtendedUTC_Time='"T"hh":"mm":"ss"Z"';
 
-type
-  TJsonField = class
-  public
-    JsonFieldName: String;
-    OriginalFieldName : String;
-    DataType : TmVirtualFieldDefType;
-  end;
-
-  { TJsonFields }
-
-  TJsonFields = class
-  strict private
-    FList : TObjectList;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    function Count : integer;
-    function Get (const aIndex : integer): TJsonField;
-    function Add : TJsonField;
-  end;
-
-
-procedure GetJsonFields (const aDataProvider : IVDDataProvider; aFields : TJsonFields; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention);
-var
-  virtualFieldDefs : TmVirtualFieldDefs;
-  i : integer;
-  newField : TJsonField;
-begin
-  virtualFieldDefs := TmVirtualFieldDefs.Create;
-  try
-    aDataProvider.FillVirtualFieldDefs(virtualFieldDefs, '');
-    for i := 0 to virtualFieldDefs.Count - 1 do
-    begin
-      newField := aFields.Add;
-      newField.OriginalFieldName:= virtualFieldDefs.VirtualFieldDefs[i].Name;
-      newField.JsonFieldName:= ConvertNamingConvention(newField.OriginalFieldName, aSourceNamingConvention, aDestinationNamingConvention);
-      newField.DataType:= virtualFieldDefs.VirtualFieldDefs[i].DataType;
-    end;
-
-  finally
-    virtualFieldDefs.Free;
-  end;
-end;
 
 function SerializeDataProviderToJson(const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention): String;
 var
   i, k : integer;
   curDatum : IVDDatum;
-  fields : TJsonFields;
+  fields : TSerializedFields;
   value : Variant;
 begin
   Result := '[';
@@ -91,9 +48,9 @@ begin
     Result := Result + ' ]'
   else
   begin
-    fields := TJsonFields.Create;
+    fields := TSerializedFields.Create;
     try
-      GetJsonFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention);
+      GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention);
 
       for i := 0 to aDataProvider.Count - 1 do
       begin
@@ -107,7 +64,7 @@ begin
           if k > 0 then
             Result := Result + ',';
 
-          Result := Result + '"' + fields.Get(k).JsonFieldName + '":';
+          Result := Result + '"' + fields.Get(k).SerializedFieldName + '":';
           value := curDatum.GetPropertyByFieldName(fields.Get(k).OriginalFieldName);
           if VarIsNull(value) then
             Result := Result + 'null'
@@ -123,7 +80,6 @@ begin
             else
               Result := Result + '"' + EscapeStringValue(VarToStr(value), 'json') + '"';
             end;
-
           end;
         end;
         Result := Result + '}';
@@ -136,33 +92,5 @@ begin
   end;
 end;
 
-{ TJsonFields }
-
-constructor TJsonFields.Create;
-begin
-  FList := TObjectList.Create(true);
-end;
-
-destructor TJsonFields.Destroy;
-begin
-  FList.Free;
-  inherited Destroy;
-end;
-
-function TJsonFields.Count: integer;
-begin
-  Result := FList.Count;
-end;
-
-function TJsonFields.Get(const aIndex: integer): TJsonField;
-begin
-  Result := FList.Items[aIndex] as TJsonField;
-end;
-
-function TJsonFields.Add: TJsonField;
-begin
-  Result := TJsonField.Create;
-  FList.Add(Result);
-end;
 
 end.
