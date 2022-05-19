@@ -1,20 +1,11 @@
 {$IFDEF FPC}
-  {$IFDEF WINDOWS}
-    {$IFDEF LCL}
-      {$DEFINE GRAPHICS_AVAILABLE}
-    {$ENDIF}
-    {$IFDEF CONSOLE}
-      {$DEFINE NOGUI}
-    {$ELSE}
-      {$DEFINE GUI}
-    {$ENDIF}
+  {$IFDEF LCL}
+    {$DEFINE GRAPHICS_AVAILABLE}
+  {$ENDIF}
+  {$IFDEF CONSOLE}
+    {$DEFINE NOGUI}
   {$ELSE}
-    {$IFDEF LCL}
-      {$DEFINE GUI}
-      {$DEFINE GRAPHICS_AVAILABLE}
-    {$ELSE}
-      {$DEFINE NOGUI}
-    {$ENDIF}
+    {$DEFINE GUI}
   {$ENDIF}
 {$ELSE}
   {$DEFINE DELPHI}
