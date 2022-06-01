@@ -12,10 +12,10 @@ unit TestmXML;
 interface
 
 uses
-  Classes, SysUtils, mXML, mUtility, mFloatsManagement
+  Classes, SysUtils, mXML, mUtility, mFloatsManagement, mXMLFormatter, mXMLFormatterAsTxt
   {$IFNDEF FPC}, IOUtils, TestFramework
   {$ELSE}
-  ,fpcunit, testutils, testregistry
+  ,fpcunit, testutils, testregistry, FileUtil
   {$ENDIF};
 
 type
@@ -36,7 +36,97 @@ type
     procedure TestText;
   end;
 
+  { TestTXmlFormatterAsText }
+
+  TestTXmlFormatterAsText = class (TTestCase)
+  strict private
+    FSamplesFolder : String;
+    FOutputFolder : String;
+  public
+    procedure SetUp; override;
+    procedure TearDown; override;
+    procedure Test (const aFileName : String);
+  published
+    procedure TestSimple;
+    procedure TestComments;
+    procedure TestCarriageReturns;
+    procedure TestNoProlog;
+    procedure TestProcessingInstructions;
+    procedure TestSelfClosed;
+    procedure TestCDATA;
+    procedure TestCDATA2;
+  end;
+
 implementation
+
+{ TestTXmlFormatterAsText }
+
+procedure TestTXmlFormatterAsText.SetUp;
+begin
+  FSamplesFolder:= IncludeTrailingPathDelimiter(GetCurrentDir) + 'samples';
+  FOutputFolder:= IncludeTrailingPathDelimiter(GetCurrentDir) + 'xml_output';
+  if not DirectoryExists(FOutputFolder) then
+    CreateDir(FOutputFolder);
+end;
+
+procedure TestTXmlFormatterAsText.TearDown;
+begin
+  inherited TearDown;
+end;
+
+procedure TestTXmlFormatterAsText.Test(const aFileName: String);
+var
+  list : TStringList;
+  error : String;
+begin
+  list := TStringList.Create;
+  try
+    list.LoadFromFile(IncludeTrailingPathDelimiter(FSamplesFolder) + aFileName + '.xml');
+    CheckTrue(TXmlFormatterAsText.XMLToTxtFile(list.Text, IncludeTrailingPathDelimiter(FOutputFolder) + aFileName + '.txt', error), error);
+  finally
+    list.Free;
+  end;
+end;
+
+procedure TestTXmlFormatterAsText.TestSimple;
+begin
+  Test('test_simple');
+end;
+
+procedure TestTXmlFormatterAsText.TestComments;
+begin
+  Test('test_comments');
+end;
+
+procedure TestTXmlFormatterAsText.TestCarriageReturns;
+begin
+  Test('test_cr');
+end;
+
+procedure TestTXmlFormatterAsText.TestNoProlog;
+begin
+  Test('test_no_prolog');
+end;
+
+procedure TestTXmlFormatterAsText.TestProcessingInstructions;
+begin
+  Test('test_pi');
+end;
+
+procedure TestTXmlFormatterAsText.TestSelfClosed;
+begin
+  Test('test_self_closed');
+end;
+
+procedure TestTXmlFormatterAsText.TestCDATA;
+begin
+  Test('test_cdata');
+end;
+
+procedure TestTXmlFormatterAsText.TestCDATA2;
+begin
+  Test('test_cdata_2');
+end;
 
 procedure TestTmXmlDocument.SetUp;
 begin
@@ -264,8 +354,10 @@ initialization
   // Register any test cases with the test runner
   {$IFDEF FPC}
   RegisterTest(TestTmXmlDocument);
+  RegisterTest(TestTXmlFormatterAsText);
   {$ELSE}
   RegisterTest(TestTmXmlDocument.Suite);
+  RegisterTest(TestTXmlFormatterAsText.Suite);
   {$ENDIF}
 end.
 

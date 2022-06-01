@@ -1,0 +1,21 @@
+<HTML-Doc>
+<tag>
+<tname>B</tname>
+<description>Bold</description>
+<demo><![CDATA[
+<B>Bold the letters in the content <EM>Next</EM>part.</B>
+]]></demo>
+</tag>
+<tagtwo>
+<tname>Element</tname>
+<description>Doc Type Element</description>
+<demo><![CDATA[
+<HTML>
+<HEAD><h1>Sample XML Code</h1></HEAD>
+<BODY>
+<i>Make a paragraph change</i>
+</BODY>/HTML>
+]]></demo>
+</tagtwo>
+<!--more tags to follow...-->
+</HTML-Doc>
