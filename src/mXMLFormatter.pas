@@ -644,6 +644,8 @@ begin
       WriteValue(lexResult.Value)
     else if lexResult.Token = txComment then
     begin
+      if curIndent < 0 then
+        inc(curIndent);
       WriteComment('<!-- ' + lexResult.Comment + ' -->', curIndent);
       sameLine := false;
     end

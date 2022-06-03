@@ -16,9 +16,9 @@ unit mXMLFormatterAsTxt;
 
 interface
 
-  uses
-    Classes,
-    mXMLFormatter;
+uses
+  Classes,
+  mXMLFormatter;
 
 type
   { TXmlFormatterAsText }
