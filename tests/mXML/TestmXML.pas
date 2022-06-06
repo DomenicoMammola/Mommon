@@ -70,6 +70,7 @@ type
     procedure Test (const aFileName : String);
   published
     procedure TestSimple;
+    procedure TestSimple2;
     procedure TestComments;
     procedure TestCarriageReturns;
     procedure TestNoProlog;
@@ -122,6 +123,11 @@ end;
 procedure TestTXmlFormatterAsPdf.TestSimple;
 begin
   Test('test_simple');
+end;
+
+procedure TestTXmlFormatterAsPdf.TestSimple2;
+begin
+  Test('test_simple_2');
 end;
 
 procedure TestTXmlFormatterAsPdf.TestComments;

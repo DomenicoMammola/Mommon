@@ -611,7 +611,7 @@ begin
     end;
   end;
 
-  while not lexState.IsEof do
+  while lexResult.Token <> txEOF do
   begin
     if lexResult.Token = txProcessingInstruction then
     begin
@@ -656,14 +656,11 @@ begin
       dec(curIndent);
       sameLine := false;
     end;
-    if not lexState.IsEof then
+    lexResult.Clear;
+    if not yylex(lexState, lexResult) then
     begin
-      lexResult.Clear;
-      if not yylex(lexState, lexResult) then
-      begin
-        aError := lexResult.Error;
-        exit;
-      end;
+      aError := lexResult.Error;
+      exit;
     end;
   end;
   Result := true;
