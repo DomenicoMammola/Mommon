@@ -7,6 +7,9 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+//
+// based on:
+// https://www.freepascal.org/~michael/articles/lazpdf/lazpdf.pdf
 
 unit mXMLFormatterAsPdf;
 
@@ -35,18 +38,23 @@ type
     FFontId : integer;
     FFontName : String;
     FFontSize : integer;
-    FFontBoldId : integer;
-    FFontBoldName : String;
-    FFontBoldSize : integer;
     FCurrentRow : integer;
-    FIndentationExtend : integer;
+    FRowHeight : TPDFFloat;
+    FSingleIndentationWidth : TPDFFloat;
+    FHorizontalBorder, FVerticalBorder : TPDFFloat;
 
-    FHorizontalBorder, FVerticalBorder : integer;
-    function WritePdfFile(const aXMLData : String; const aFileName : String; const aTitle, aAuthor, aProducer : String; const aFontFile, aFontName, aFontBoldFile, aFontBoldName : String; out aError : String) : boolean;
+    function WritePdfFile(const aXMLData : String; const aFileName : String; const aTitle, aAuthor, aProducer : String; const aFontFile, aFontName : String; out aError : String) : boolean;
     function GetY : TPDFFloat;
     function GetTextWidth (const aText : String): TPDFFloat;
+    function GetTextHeight (const aText : String): TPDFFloat;
     procedure AddPage;
-    procedure WriteText(const aText : String; const aIndentation : integer; const aColor : TARGBColor);
+    procedure Init;
+    procedure WriteText(const aText : String; const aIndentation : integer; const aAppend: boolean; const aColor : TARGBColor);
+  private
+    const DEFAULT_HORIZONTAL_BORDER = 5;
+    const DEFAULT_VERTICAL_BORDER = 5;
+    const DEFAULT_FONT_SIZE = 8;
+    const DEFAULT_SINGLE_INDENTATION_WIDTH = 3;
   protected
     procedure WriteTag(const aText : String; const aIndentation : integer); override;
     procedure WriteClosingTag(const aText : String; const aIndentation : integer); overload; override;
@@ -60,7 +68,19 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    class function XMLToPdfFile(const aXMLData : String; const aFileName : String; const aTitle, aAuthor, aProducer : String; const aFontFile, aFontName, aFontBoldFile, aFontBoldName : String; out aError : String) : boolean;
+    class function XMLToPdfFile(const aXMLData : String; const aFileName : String; const aTitle, aAuthor, aProducer : String; const aFontFile, aFontName : String;
+      aFontSize : integer;
+      aHorizontalBorder, aVerticalBorder : TPDFFloat;
+      aSingleIndentationWidth : TPDFFloat;
+      out aError : String) : boolean; overload;
+    class function XMLToPdfFile(const aXMLData : String; const aFileName : String; const aTitle, aAuthor, aProducer : String; const aFontFile, aFontName : String;
+      out aError : String) : boolean; overload;
+
+    property HorizontalBorder: TPDFFloat read FHorizontalBorder write FHorizontalBorder;
+    property VerticalBorder : TPDFFloat read FVerticalBorder write FVerticalBorder;
+    property FontSize : integer read FFontSize write FFontSize;
+    property SingleIndentationWidth : TPDFFloat read FSingleIndentationWidth write FSingleIndentationWidth;
+
   end;
 
 
@@ -69,20 +89,13 @@ type
 implementation
 
 uses
-  SysUtils,
+  SysUtils, Math,
   fpreadjpeg, fpTTF, fpparsettf;
 
 { TXmlFormatterAsPdf }
 
-function TXmlFormatterAsPdf.WritePdfFile(const aXMLData: String; const aFileName: String; const aTitle, aAuthor, aProducer : String; const aFontFile, aFontName, aFontBoldFile, aFontBoldName : String; out aError: String): boolean;
+function TXmlFormatterAsPdf.WritePdfFile(const aXMLData: String; const aFileName: String; const aTitle, aAuthor, aProducer : String; const aFontFile, aFontName : String; out aError: String): boolean;
 begin
-  FHorizontalBorder:= 5;
-  FVerticalBorder:= 5;
-  FCurrentRow:= 0;
-  FFontSize := 8;
-  FFontBoldSize:= 8;
-  FIndentationExtend := 3;
-
   FDocument := TPDFDocument.Create(Nil);
   try
     FDocument.Infos.Title:= aTitle;
@@ -95,9 +108,8 @@ begin
 
     FFontId := FDocument.AddFont(aFontFile, aFontName);
     FFontName := aFontName;
-    FFontBoldId := FDocument.AddFont(aFontBoldFile, aFontBoldName);
-    FFontBoldName:= aFontBoldName;
 
+    Self.Init;
     Self.AddPage;
 
     Result := FormatXML(aXMLData, aError);
@@ -111,7 +123,7 @@ end;
 
 function TXmlFormatterAsPdf.GetY: TPDFFloat;
 begin
-  Result := FPageHeight - FVerticalBorder - (FCurrentRow * 4);
+  Result := FPageHeight - FVerticalBorder - (FCurrentRow * FRowHeight);
 end;
 
 function TXmlFormatterAsPdf.GetTextWidth(const aText: String): TPDFFloat;
@@ -128,6 +140,21 @@ begin
     Result := (940 * Length(aText) * FFontSize) / 1540;
 end;
 
+function TXmlFormatterAsPdf.GetTextHeight(const aText: String): TPDFFloat;
+var
+  lFC: TFPFontCacheItem;
+  des : Single;
+begin
+  lFC := gTTFontCache.FindFont(FFontName);
+  if Assigned(lFC) then
+  begin
+    Result := lFC.TextHeight(aText, FFontSize, des);
+    Result := (Result * 25.4)/gTTFontCache.DPI;
+  end
+  else
+    Result := (0.70 * FFontSize);
+end;
+
 procedure TXmlFormatterAsPdf.AddPage;
 begin
   FCurrentPage := FDocument.Pages.AddPage;
@@ -137,23 +164,30 @@ begin
   FPageWidth := PDFTomm(round(FCurrentPage.Paper.Printable.R - FCurrentPage.Paper.Printable.L));
   FPageHeight := PDFTomm(round(FCurrentPage.Paper.Printable.B - FCurrentPage.Paper.Printable.T));
   FSection.AddPage(FCurrentPage);
-  Fx := FHorizontalBorder;
   FCurrentPage.SetFont(FFontId, FFontSize);
 end;
 
-procedure TXmlFormatterAsPdf.WriteText(const aText: String; const aIndentation: integer; const aColor : TARGBColor);
+procedure TXmlFormatterAsPdf.Init;
+var
+  h : TPDFFloat;
+begin
+  Fx := FHorizontalBorder;
+  h := GetTextHeight('W');
+  FRowHeight:= h* 1.3; // Max(h * 1.3, h + 0.1) ;
+end;
+
+procedure TXmlFormatterAsPdf.WriteText(const aText: String; const aIndentation: integer; const aAppend: boolean; const aColor : TARGBColor);
 var
   curRow : String;
   cutAt, len, i : integer;
   lastExtend : TPDFFloat;
   rows : TStringList;
 begin
-  FCurrentPage.SetColor(aColor, false);
+  if (not aAppend) or (Fx = 0) then
+    Fx := FHorizontalBorder + (aIndentation * FSingleIndentationWidth);
 
-  Fx := FHorizontalBorder + (aIndentation * FIndentationExtend);
-  if Fx > FPageWidth - FIndentationExtend then
-    Fx := FPageWidth - FIndentationExtend;
-  FCurrentPage.SetFont(FFontId, FFontSize);
+  if Fx > FPageWidth - FSingleIndentationWidth then
+    Fx := FPageWidth - FSingleIndentationWidth;
 
   rows := TStringList.Create;
   try
@@ -191,8 +225,12 @@ begin
         cutAt := Length(curRow);
         while (cutAt > 1) and (GetTextWidth(Copy(curRow, 1, cutAt)) + Fx > FPageWidth) do
           dec(cutAt);
-        if GetY > FPageHeight - FVerticalBorder then
+        if GetY < FVerticalBorder then
+        begin
           AddPage;
+          FCurrentRow:= 0;
+        end;
+        FCurrentPage.SetColor(aColor, false);
         FCurrentPage.WriteText(Fx, GetY, LeftStr(curRow, cutAt));
         curRow := Copy(curRow, cutAt + 1, Length(curRow));
         if curRow <> '' then
@@ -215,18 +253,18 @@ end;
 procedure TXmlFormatterAsPdf.WriteTag(const aText: String; const aIndentation: integer);
 begin
   inc (FCurrentRow);
-  WriteText(aText, aIndentation, clPurple);
+  WriteText(aText, aIndentation,false, clPurple);
 end;
 
 procedure TXmlFormatterAsPdf.WriteClosingTag(const aText: String; const aIndentation: integer);
 begin
   inc (FCurrentRow);
-  WriteText(aText, aIndentation, clPurple);
+  WriteText(aText, aIndentation, false, clPurple);
 end;
 
 procedure TXmlFormatterAsPdf.WriteClosingTag(const aText: String);
 begin
-  WriteText(aText, 0, clPurple);
+  WriteText(aText, 0, true, clPurple);
 //  FCurrentPage.SetColor(clPurple, false);
 //  FCurrentPage.SetFont(FFontId, FFontSize);
 //  FCurrentPage.WriteText(Fx, GetY, aText);
@@ -234,7 +272,7 @@ end;
 
 procedure TXmlFormatterAsPdf.WriteValue(const aText: String);
 begin
-  WriteText(aText, 0, clBlack);
+  WriteText(aText, 0, true, clBlack);
 //  FCurrentPage.SetColor(clBlack, false);
 //  FCurrentPage.SetFont(FFontId, FFontSize);
 //  FCurrentPage.WriteText(Fx, GetY, aText);
@@ -244,7 +282,7 @@ end;
 procedure TXmlFormatterAsPdf.WriteProlog(const aText: String);
 begin
   inc (FCurrentRow);
-  WriteText(aText, 0, clOlive);
+  WriteText(aText, 0, false, clOlive);
 //  FCurrentPage.SetColor(clOlive, false);
 //  FCurrentPage.SetFont(FFontId, FFontSize);
 //  inc (FCurrentRow);
@@ -256,7 +294,7 @@ procedure TXmlFormatterAsPdf.WriteProcessingInstruction(const aText: String);
 begin
   Fx := FHorizontalBorder;
   inc (FCurrentRow);
-  WriteText(aText, 0, clOlive);
+  WriteText(aText, 0, false, clOlive);
 //  FCurrentPage.SetColor(clOlive, false);
 //  FCurrentPage.SetFont(FFontId, FFontSize);
 //  Fx := FHorizontalBorder;
@@ -266,13 +304,13 @@ end;
 procedure TXmlFormatterAsPdf.WriteComment(const aText: String; const aIndentation: integer);
 begin
   inc (FCurrentRow);
-  WriteText(aText, aIndentation, clGreen);
+  WriteText(aText, aIndentation, false, clGreen);
 end;
 
 procedure TXmlFormatterAsPdf.WriteCDATA(const aText: String; const aIndentation: integer);
 begin
   inc (FCurrentRow);
-  WriteText(aText, aIndentation, clDkGray);
+  WriteText(aText, aIndentation, false, clDkGray);
 //  FCurrentPage.SetColor(clBlack, false);
 //  FCurrentPage.SetFont(FFontId, FFontSize);
 //  Fx := FHorizontalBorder + (aIndentation * FIndentationExtend);
@@ -281,7 +319,12 @@ end;
 
 constructor TXmlFormatterAsPdf.Create;
 begin
-
+  FHorizontalBorder:= DEFAULT_HORIZONTAL_BORDER;
+  FVerticalBorder:= DEFAULT_VERTICAL_BORDER;
+  FCurrentRow:= -1;
+  FFontSize := DEFAULT_FONT_SIZE;
+  FSingleIndentationWidth := DEFAULT_SINGLE_INDENTATION_WIDTH;
+  FRowHeight := 0;
 end;
 
 destructor TXmlFormatterAsPdf.Destroy;
@@ -289,7 +332,7 @@ begin
   inherited Destroy;
 end;
 
-class function TXmlFormatterAsPdf.XMLToPdfFile(const aXMLData: String; const aFileName: String; const aTitle, aAuthor, aProducer: String; const aFontFile, aFontName, aFontBoldFile, aFontBoldName : String;out aError: String): boolean;
+class function TXmlFormatterAsPdf.XMLToPdfFile(const aXMLData: String; const aFileName: String; const aTitle, aAuthor, aProducer: String; const aFontFile, aFontName: String; aFontSize: integer; aHorizontalBorder, aVerticalBorder: TPDFFloat; aSingleIndentationWidth: TPDFFloat; out aError: String): boolean;
 var
   s : TXmlFormatterAsPdf;
 begin
@@ -300,10 +343,23 @@ begin
 
   s := TXmlFormatterAsPdf.Create;
   try
-    Result := s.WritePdfFile(aXMLData, aFileName, aTitle, aAuthor, aProducer, aFontFile, aFontName, aFontBoldFile, aFontBoldName, aError);
+    s.VerticalBorder:= aVerticalBorder;
+    s.HorizontalBorder:= aHorizontalBorder;
+    s.FontSize:= aFontSize;
+    s.FFontName:= aFontName;
+    s.FSingleIndentationWidth:= aSingleIndentationWidth;
+    s.Init;
+    Result := s.WritePdfFile(aXMLData, aFileName, aTitle, aAuthor, aProducer, aFontFile, aFontName, aError);
   finally
     s.Free;
   end;
+
+end;
+
+class function TXmlFormatterAsPdf.XMLToPdfFile(const aXMLData: String; const aFileName: String; const aTitle, aAuthor, aProducer: String; const aFontFile, aFontName : String;out aError: String): boolean;
+begin
+  Result := TXmlFormatterAsPdf.XMLToPdfFile(aXMLData, aFileName, aTitle, aAuthor, aProducer, aFontFile, aFontName,
+    DEFAULT_FONT_SIZE, DEFAULT_HORIZONTAL_BORDER, DEFAULT_VERTICAL_BORDER, DEFAULT_SINGLE_INDENTATION_WIDTH, aError);
 end;
 
 
