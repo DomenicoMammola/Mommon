@@ -110,7 +110,7 @@ begin
     //  IncludeTrailingPathDelimiter(FFontsFolder) + 'LiberationMono-MW1v.ttf', 'Liberation Mono', error), error);
 
     // https://www.fontsquirrel.com/fonts/Bitstream-Vera-Sans-Mono
-    CheckTrue(TXmlFormatterAsPdf.XMLToPdfFile(list.Text, IncludeTrailingPathDelimiter(FOutputFolder) + aFileName + '.pdf', ExtractFileName(aFileName), 'Test suite', 'mXMLFormatter',
+    CheckTrue(TXmlFormatterAsPdf.XMLToPdf(list.Text, IncludeTrailingPathDelimiter(FOutputFolder) + aFileName + '.pdf', ExtractFileName(aFileName), 'Test suite', 'mXMLFormatter',
       IncludeTrailingPathDelimiter(FFontsFolder) + 'VeraMono.ttf', 'Bitstream Vera Sans Mono',
       (*IncludeTrailingPathDelimiter(FFontsFolder) + 'VeraMono-Bold.ttf', 'Bitstream Vera Sans Mono Bold',*)
       8, 5, 5, 3,
