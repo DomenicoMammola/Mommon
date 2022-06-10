@@ -611,7 +611,11 @@ begin
 end;
 
 initialization
+  {$IFDEF FPC}
+  RegisterXMLImplFactory(TImpl_Factory_fpxml);
+  {$ELSE}
   RegisterXMLImplFactory(TImpl_Factory_oxml);
+  {$ENDIF}
 
 finalization
   FreeAndNil(InternalFactory);
