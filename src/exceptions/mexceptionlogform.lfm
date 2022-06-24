@@ -10,7 +10,7 @@ object ExceptionLogForm: TExceptionLogForm
   OnHide = FormHide
   OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '2.0.2.0'
+  LCLVersion = '2.2.0.4'
   object PanelBottom: TPanel
     Left = 0
     Height = 82
@@ -33,9 +33,9 @@ object ExceptionLogForm: TExceptionLogForm
     end
     object CBSendByMail: TCheckBox
       Left = 10
-      Height = 19
+      Height = 21
       Top = 10
-      Width = 154
+      Width = 163
       Caption = 'Send trace log by mail to:'
       OnChange = CBSendByMailChange
       TabOrder = 1
@@ -51,10 +51,10 @@ object ExceptionLogForm: TExceptionLogForm
       TabOrder = 2
     end
     object EditSendToMailAddresses: TEdit
-      Left = 168
-      Height = 23
+      Left = 184
+      Height = 27
       Top = 6
-      Width = 320
+      Width = 304
       TabOrder = 3
     end
   end
