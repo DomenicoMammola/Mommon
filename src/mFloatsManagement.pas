@@ -15,6 +15,9 @@ interface
 function DoublesAreEqual(const aValue1, aValue2 : double; const aFloatingPointDigits : integer): boolean; overload;
 function DoublesAreEqual(const aValue1, aValue2 : double): boolean; overload;
 
+function DoublesAreNotEqual(const aValue1, aValue2 : double; const aFloatingPointDigits : integer): boolean; overload;
+function DoublesAreNotEqual(const aValue1, aValue2 : double): boolean; overload;
+
 function DoubleIsLessThan(const aValue1, aValue2 : double) : boolean; overload;
 function DoubleIsLessThan(const aValue1, aValue2 : double; const aFloatingPointDigits : integer): boolean; overload;
 
@@ -63,6 +66,16 @@ end;
 function RoundDoubleToStandardPrecision(const aValue: double): double;
 begin
   Result := RoundTo(aValue, -1 * DefaultDecimalNumbers);
+end;
+
+function DoublesAreNotEqual(const aValue1, aValue2: double; const aFloatingPointDigits: integer): boolean;
+begin
+  Result := not DoublesAreEqual(aValue1, aValue2, aFloatingPointDigits);
+end;
+
+function DoublesAreNotEqual(const aValue1, aValue2: double): boolean;
+begin
+  Result := not DoublesAreEqual(aValue1, aValue2);
 end;
 
 function DoubleIsLessThan(const aValue1, aValue2: double): boolean;
