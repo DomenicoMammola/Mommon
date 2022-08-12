@@ -78,7 +78,18 @@ begin
     end;
   end
   else
-    Result := GeneratePNGThumbnailOfImage(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight, aError)
+  begin
+    try
+      Result := GeneratePNGThumbnailOfImage(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight, aError);
+    except
+      on e: Exception do
+      begin
+        Result := false;
+        aError := e.Message;
+        exit;
+      end;
+    end;
+  end;
 end;
 
 function GeneratePNGThumbnail(const aSourceFileName, aThumbnailsFolder: String; const aSourceData: TStream; const aMaxWidth, aMaxHeight: word; out aThumbnailData: TMemoryStream; out aError: String): boolean;
