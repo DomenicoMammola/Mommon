@@ -20,6 +20,7 @@ uses
   mDataProviderInterfaces, mNamingConventions;
 
 function SerializeDataProviderToCsv (const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention;
+  const aFractionPartDigits : byte;
   const aQuoteChar : string = '"'; const aDelimiter : Char = ','): String;
 
 
@@ -30,6 +31,7 @@ uses
   mCSV, mDataProviderSerializerClasses, mDataProviderFieldDefs, mUtility;
 
 function SerializeDataProviderToCsv (const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention;
+  const aFractionPartDigits : byte;
   const aQuoteChar : string = '"'; const aDelimiter : Char = ','): String;
 var
   CSVBuilder : TmCSVBuilder;
@@ -38,6 +40,7 @@ var
   stream : TStringStream;
   curDatum : IVDDatum;
   value : Variant;
+  formatString : String;
 begin
   Result := '';
   stream := TStringStream.Create;
@@ -55,6 +58,16 @@ begin
       CSVBuilder.AppendCellRFC4180(fields.Get(i).SerializedFieldName);
     CSVBuilder.AppendRow;
 
+    formatString := '#';
+
+    for i := 1 to aFractionPartDigits do
+    begin
+      if i = 1 then
+        formatString := formatString + '.#'
+      else
+        formatString := formatString + '#';
+    end;
+
     for i := 0 to aDataProvider.Count - 1 do
     begin
       curDatum := aDataProvider.GetDatum(i);
@@ -65,7 +78,7 @@ begin
         case fields.Get(k).DataType of
           vftInteger : if VarIsNull (value) then CSVBuilder.AppendCellRFC4180('') else CSVBuilder.AppendCellRFC4180(IntToStr(value));
           vftBoolean : if VarIsNull (value) then CSVBuilder.AppendCellRFC4180('') else begin if value then CSVBuilder.AppendCellRFC4180('true') else CSVBuilder.AppendCellRFC4180('false'); end;
-          vftFloat, vftCurrency : if VarIsNull(value) then CSVBuilder.AppendCellRFC4180('') else CSVBuilder.AppendCellRFC4180(FormatFloat('#.#', value));
+          vftFloat, vftCurrency : if VarIsNull(value) then CSVBuilder.AppendCellRFC4180('') else CSVBuilder.AppendCellRFC4180(FormatFloat(formatString, value));
           vftDate : if VarIsNull(value) then CSVBuilder.AppendCellRFC4180('') else CSVBuilder.AppendCellRFC4180(FormatDateTime('yyyy"-"mm"-"dd', value));
           vftTime : if VarIsNull(value) then CSVBuilder.AppendCellRFC4180('') else CSVBuilder.AppendCellRFC4180(FormatDateTime('hh":"mm":"ss', value));
           vftDateTime, vftTimeStamp : if VarIsNull(value) then CSVBuilder.AppendCellRFC4180('') else CSVBuilder.AppendCellRFC4180(FormatDateTime('yyyy"-"mm"-"dd" "hh":"mm":"ss', value));
