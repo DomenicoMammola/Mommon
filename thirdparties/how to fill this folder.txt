@@ -29,6 +29,8 @@ Indy10\Protocols\IdCompilerDefines.inc
 Indy10\SuperCore\IdCompilerDefines.inc
 Indy10\System\IdCompilerDefines.inc
 
+NOTE: to enable the XOAUTH 2.0 login method that Microsoft is going to force to everybody for outlook.com connections, you must switch to the sasl-oauth branch.
+
 -----------------------------------------------------------
 
 StrHasMap unit was taken from:
