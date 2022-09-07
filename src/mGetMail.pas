@@ -12,11 +12,14 @@ unit mGetMail;
 interface
 
 {$DEFINE MLOG_AVAILABLE}
+{.$DEFINE OUTLOOK_OAUTH2_AVAILABLE}
 
 uses
   Classes, contnrs;
 
 type
+
+  TPop3Authentication = (paBasicAuthentication, paOutlookOAuth2);
 
   { TReceivedMailAttachment }
 
@@ -82,7 +85,11 @@ type
     FSSLConnection : boolean;
     FTLSConnection : boolean;
     FReceivedMails : TObjectList;
+    FAuthentication : TPop3Authentication;
     function AddReceivedMail : TReceivedMail;
+    {$IFDEF OUTLOOK_OAUTH2_AVAILABLE}
+    procedure IdSASLXOAuth21GetAccessToken(Sender: TObject; var AccessToken: string);
+    {$ENDIF}
   public
     constructor Create;
     destructor Destroy; override;
@@ -95,11 +102,14 @@ type
     function SetPort(const aPortNumber: integer): TGetMailPop3;
     function SetUserName(const aUserName: String): TGetMailPop3;
     function SetPassword(const aPassword: String): TGetMailPop3;
+    function SetAuthentication(const aAuthentication: TPop3Authentication) : TGetMailPop3;
     function SetSSLConnection : TGetMailPop3;
     function SetTLSConnection : TGetMailPop3;
     function SetAcceptOnlyMailFromSpecificDomain : TGetMailPop3;
     function SetAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
   end;
+
+  // https://github.com/IndySockets/Indy/issues/192
 
 implementation
 
@@ -113,6 +123,7 @@ uses
   IdSASL_CRAM_SHA1, IdSASL, IdSASLUserPass, IdSASL_CRAM_MD5,
   IdSASLSKey, IdSASLPlain, IdSASLOTP, IdSASLExternal,
   IdSASLAnonymous, IdUserPassProvider,
+  IdSASLCollection, {$IFDEF OUTLOOK_OAUTH2_AVAILABLE}IdSASLOAuth,{$ENDIF}
   mUtility{$IFDEF MLOG_AVAILABLE}, mLog{$ENDIF};
 
 {$IFDEF MLOG_AVAILABLE}
@@ -506,6 +517,13 @@ begin
   FReceivedMails.Add(Result);
 end;
 
+{$IFDEF OUTLOOK_OAUTH2_AVAILABLE}
+procedure TGetMailPop3.IdSASLXOAuth21GetAccessToken(Sender: TObject; var AccessToken: string);
+begin
+  //AccessToken := FOAuth2_Enhanced.AccessToken;
+end;
+{$ENDIF}
+
 constructor TGetMailPop3.Create;
 begin
   FHost:= '127.0.0.1';
@@ -515,6 +533,7 @@ begin
   FSSLConnection:= false;
   FTLSConnection:= false;
   FReceivedMails := TObjectList.Create(true);
+  FAuthentication:= paBasicAuthentication;
 end;
 
 destructor TGetMailPop3.Destroy;
@@ -529,6 +548,9 @@ var
   error : boolean;
   i, numMessages : integer;
   msg : TIdMessage;
+  {$IFDEF OUTLOOK_OAUTH2_AVAILABLE}
+  xoauthSASL : TIdSASLListEntry;
+  {$ENDIF}
 begin
   Result := false;
   error := false;
@@ -558,17 +580,43 @@ begin
 
     tmpPop3.ConnectTimeout:= 5000;
 
-    tmpPop3.AuthType := patUserPass;
-    if FUserName <> '' then
-      tmpPop3.Username:= FUserName;
-    if FPassword <> '' then
-      tmpPop3.Password:= FPassword;
-//      InitSASL(tmpPop3, FUserName, FPassword);
-//      tmpPop3.AuthType:= patSASL;
+    if FAuthentication = paOutlookOAuth2 then
+    begin
+      // https://github.com/IndySockets/Indy/issues/192
+      {$IFDEF OUTLOOK_OAUTH2_AVAILABLE}
+      tmpPop3.AutoLogin := false;
+      tmpPop3.IOHandler := TidSSLioHandlerSocketOpenSSL.create;
+      xoauthSASL := tmpPop3.SASLMechanisms.Add;
+      xoauthSASL.SASL := TIdSASLXOAuth2.Create(nil);
+      TIdSASLXOAuth2(xoauthSASL.SASL).OnGetAccessToken := @IdSASLXOAuth21GetAccessToken;
+      TIdSASLXOAuth2(xoauthSASL.SASL).UserPassProvider := TIdUserPassProvider.Create();
+      TIdSASLXOAuth2(xoauthSASL.SASL).UserPassProvider.Username := FUserName;
+      tmpPop3.SASLCanAttemptInitialResponse := false;
+
+      tmpPop3.AuthType := patSASL;
+      {$ELSE}
+      raise Exception.Create('paOutlookOAuth2 not available');
+      {$ENDIF}
+    end
+    else
+    begin
+      tmpPop3.AuthType := patUserPass;
+      if FUserName <> '' then
+        tmpPop3.Username:= FUserName;
+      if FPassword <> '' then
+        tmpPop3.Password:= FPassword;
+    end;
 
     error:= false;
     try
       tmpPop3.Connect;
+      {$IFDEF OUTLOOK_OAUTH2_AVAILABLE}
+      if FAuthentication = paOutlookOAuth2 then
+      begin
+        tmpPop3.CAPA;
+        tmpPop3.Login;
+      end;
+      {$ENDIF}
       try
         numMessages := tmpPop3.CheckMessages;
         For i := 1 to numMessages do
@@ -635,6 +683,12 @@ end;
 function TGetMailPop3.SetPassword(const aPassword: String): TGetMailPop3;
 begin
   FPassword:= aPassword;
+  Result := Self;
+end;
+
+function TGetMailPop3.SetAuthentication(const aAuthentication: TPop3Authentication): TGetMailPop3;
+begin
+  FAuthentication:= aAuthentication;
   Result := Self;
 end;
 
