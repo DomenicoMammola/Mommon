@@ -81,7 +81,7 @@ type
     FUserName: String;
     FPassword: String;
     FAcceptOnlyMailFromSpecificDomain : boolean;
-    FAllowedSenderDomain : String;
+    FAllowedSenderDomains : TStringList;
     FSSLConnection : boolean;
     FTLSConnection : boolean;
     FReceivedMails : TObjectList;
@@ -106,7 +106,7 @@ type
     function SetSSLConnection : TGetMailPop3;
     function SetTLSConnection : TGetMailPop3;
     function SetAcceptOnlyMailFromSpecificDomain : TGetMailPop3;
-    function SetAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
+    function AddAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
   end;
 
   // https://github.com/IndySockets/Indy/issues/192
@@ -534,11 +534,13 @@ begin
   FTLSConnection:= false;
   FReceivedMails := TObjectList.Create(true);
   FAuthentication:= paBasicAuthentication;
+  FAllowedSenderDomains := TStringList.Create;
 end;
 
 destructor TGetMailPop3.Destroy;
 begin
   FReceivedMails.Free;
+  FAllowedSenderDomains.Free;
   inherited Destroy;
 end;
 
@@ -624,7 +626,7 @@ begin
           msg := TIdMessage.Create;
           try
             tmpPop3.Retrieve(i, msg);
-            if (not FAcceptOnlyMailFromSpecificDomain) or (CompareText(msg.From.Domain, FAllowedSenderDomain) = 0) then
+            if (not FAcceptOnlyMailFromSpecificDomain) or (FAllowedSenderDomains.IndexOf(LowerCase(msg.From.Domain)) >= 0) then
               ImportMessage(msg, AddReceivedMail)
               {$IFDEF MLOG_AVAILABLE}
             else
@@ -710,9 +712,9 @@ begin
   Result := Self;
 end;
 
-function TGetMailPop3.SetAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
+function TGetMailPop3.AddAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
 begin
-  FAllowedSenderDomain:= aAllowedSenderDomain;
+  FAllowedSenderDomains.Add(LowerCase(aAllowedSenderDomain));
   Result := Self;
 end;
 
