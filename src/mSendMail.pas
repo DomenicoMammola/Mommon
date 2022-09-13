@@ -48,6 +48,7 @@ type
   strict private
     procedure AddSSLHandler(aSMTP : TIdSMTP);
     procedure InitSASL(aSMTP : TIdSMTP; const aUserName, aPassword : String);
+    function ExtractDomain(const aMailAddress: String): String;
   public
     constructor Create;
     destructor Destroy; override;
@@ -100,7 +101,7 @@ uses
   IdSASL_CRAM_SHA1, IdSASL, IdSASLUserPass, IdSASL_CRAMBase, IdSASL_CRAM_MD5,
   IdSASLSKey, IdSASLPlain, IdSASLOTP, IdSASLExternal, IdSASLDigest,
   IdSASLAnonymous, IdUserPassProvider,
-  mLog;
+  mLog, mUtility;
 
 
 type
@@ -185,6 +186,16 @@ begin
   aSMTP.SASLMechanisms.Add.SASL := IdSASLExternal;
   aSMTP.SASLMechanisms.Add.SASL := IdSASLLogin;
   aSMTP.SASLMechanisms.Add.SASL := IdSASLPlain;
+end;
+
+function TSendMail.ExtractDomain(const aMailAddress: String): String;
+var
+  i : integer;
+begin
+  Result := '';
+  i := Pos('@', aMailAddress);
+  if i > 0 then
+    Result := Copy(aMailAddress, i - 1, MaxInt);
 end;
 
 constructor TSendMail.Create;
@@ -436,6 +447,8 @@ begin
     if FBCCRecipients <> '' then
       tmpMessage.BccList.EMailAddresses:= FBCCRecipients;
     tmpMessage.Subject:= FSubject;
+    tmpMessage.MsgId:= '<' + GenerateRandomIdString(30) + '@' + ExtractDomain(FSenderMailAddress) + '>';
+    tmpMessage.UID:= GenerateRandomIdString(30);
 
     logger.Debug('To: ' + tmpMessage.Recipients.EMailAddresses);
     logger.Debug('CC: ' + tmpMessage.CCList.EMailAddresses);
