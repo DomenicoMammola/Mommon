@@ -23,29 +23,33 @@ type
 
 implementation
 
-procedure TTestCase1.TestStringSimilarity;
+function CheckStrings(const aString1, aString2 : String; const aIgnorePunctuation : boolean): double;
 var
-  tmp : Double;
+  s : String;
 begin
-  CheckEquals(1, CompareStrings('pippo', 'pippo', true));
-  tmp := CompareStrings('pippo', 'pipppo', true);
-  WriteLn(FloatToStr(tmp));
-  CheckTrue(tmp >= 0.8);
-  tmp := CompareStrings('pippo', 'pippi', true);
-  WriteLn(FloatToStr(tmp));
-  CheckTrue(tmp >= 0.8);
-  tmp := CompareStrings('poppi', 'pipppo', true);
-  WriteLn(FloatToStr(tmp));
-  CheckTrue(tmp >= 0.5);
-  tmp := CompareStrings('ei fu siccome immobile', 'ei fu immobile siccome', true);
-  WriteLn(FloatToStr(tmp));
-  CheckTrue(tmp >= 0.5);
-  tmp := CompareStrings('ei fu siccome immobile', 'ei fu', true);
-  WriteLn(FloatToStr(tmp));
-  CheckTrue(tmp < 0.3);
-  tmp := CompareStrings('mldnasdkl asdkksjdf hkj dlfjksah', 'fjkjsàqòr we wioe skdfkajsdjk jldsfa k', true);
-  WriteLn(FloatToStr(tmp));
-  CheckTrue(tmp < 0.3);
+  Result := CompareStrings(aString1, aString2, aIgnorePunctuation);
+  s := '"' + aString1 + '" compared to "' + aString2 + '"';
+  if aIgnorePunctuation then
+    s := s + ' (no punctuation)';
+  WriteLn(s + ' = ' + FloatToStr(Result));
+end;
+
+procedure TTestCase1.TestStringSimilarity;
+begin
+  CheckEquals(1, CheckStrings('pippo', 'pippo', false));
+  CheckTrue(CheckStrings('pippo', 'pipppo', false) >= 0.8);
+  CheckTrue(CheckStrings('pippo', 'pippi', false) >= 0.8);
+  CheckTrue(CheckStrings('poppi', 'pipppo', false) >= 0.5);
+  CheckTrue(CheckStrings('ei fu siccome immobile', 'ei fu immobile siccome', false) >= 0.5);
+  CheckTrue(CheckStrings('ei fu siccome immobile', 'ei fu', false) < 0.3);
+  CheckTrue(CheckStrings('mldnasdkl asdkksjdf hkj dlfjksah', 'fjkjsàqòr we wioe skdfkajsdjk jldsfa k', false) < 0.3);
+  CheckTrue(CheckStrings('Paul', 'Paula', false) >= 0.7);
+  CheckTrue(CheckStrings('Orange is the new black', 'Black is the new orange', false) >= 0.5);
+  CheckTrue(CheckStrings('The, same, thing;', 'The same thing', true) = 1);
+  CheckTrue(CheckStrings('The, same, thing;', 'The same thing', false) >= 0.5);
+  CheckTrue(CheckStrings('missing some char', 'misin som chr', false) >= 0.5);
+  CheckTrue(CheckStrings('change correct order 1 2 3', 'change correct order 3 2 1', false) >= 0.75);
+  CheckTrue(CheckStrings('Boooooohhhh!', 'Booohhh!', false) >= 0.55);
 end;
 
 
