@@ -20,7 +20,7 @@ interface
 implementation
 
 uses
-  Classes,
+  Classes, SysUtils,
   BGRABitmap, BGRABitmapTypes, BGRAGraphics;
 
 function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word; out aError: String): boolean;
@@ -30,25 +30,33 @@ var
   r : TRect;
 begin
   Result := false;
-  sourcePicture := TBGRABitmap.Create(aSourceFile);
   try
-    rateWidth := aMaxWidth / sourcePicture.Width;
-    rateHeight := aMaxHeight / sourcePicture.Height;
-    if rateWidth > rateHeight then
-      rateWidth := rateHeight;
-    thumbnail := TBGRABitmap.Create(round(sourcePicture.Width * rateWidth), round(sourcePicture.Height * rateHeight), BGRAWhite);
+    sourcePicture := TBGRABitmap.Create(aSourceFile);
     try
-      r := Rect(0, 0, thumbnail.Width, thumbnail.Height);
-      thumbnail.CanvasBGRA.FillRect(r);
-      thumbnail.CanvasBGRA.AntialiasingMode := amON;
-      thumbnail.CanvasBGRA.StretchDraw(r, sourcePicture);
-      thumbnail.SaveToFile(aThumbnailFile);
+      rateWidth := aMaxWidth / sourcePicture.Width;
+      rateHeight := aMaxHeight / sourcePicture.Height;
+      if rateWidth > rateHeight then
+        rateWidth := rateHeight;
+      thumbnail := TBGRABitmap.Create(round(sourcePicture.Width * rateWidth), round(sourcePicture.Height * rateHeight), BGRAWhite);
+      try
+        r := Rect(0, 0, thumbnail.Width, thumbnail.Height);
+        thumbnail.CanvasBGRA.FillRect(r);
+        thumbnail.CanvasBGRA.AntialiasingMode := amON;
+        thumbnail.CanvasBGRA.StretchDraw(r, sourcePicture);
+        thumbnail.SaveToFile(aThumbnailFile);
+      finally
+        thumbnail.Free;
+      end;
+      Result := true;
     finally
-      thumbnail.Free;
+      sourcePicture.Free;
     end;
-    Result := true;
-  finally
-    sourcePicture.Free;
+  except
+    on e: Exception do
+    begin
+      aError := e.Message;
+      Result := false;
+    end;
   end;
 end;
 
