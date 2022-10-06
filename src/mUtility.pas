@@ -40,6 +40,8 @@ function IsUniqueIdentifier (const aUI : String): boolean;
 function CreateHumanReadableUniqueIdentier (const aLanguageCode : String): String; // a random unique identifier which is easy to be remembered, inspired by https://github.com/PerWiklander/IdentifierSentence
 {$ENDIF}
 
+function GetUniqueTemporaryFolder: string;
+
 procedure WordwrapStringByRows(const aSourceString : String; const aNumOfRows : integer; aRows : TStringList);
 
 function AddZerosFront (const aValue : integer; const aLength : integer) : String; overload;
@@ -195,6 +197,14 @@ var
 {$IFDEF LINUX}
 function sysconf(i:cint):clong;cdecl;external name 'sysconf';
 {$ENDIF}
+
+function GetUniqueTemporaryFolder: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString;
+  if not DirectoryExists(Result) then
+     if not ForceDirectories(Result) then
+         raise Exception.Create('Unable to create temporary folder: ' + Result);
+end;
 
 procedure WordwrapStringByRows(const aSourceString: String; const aNumOfRows: integer; aRows: TStringList);
 var
