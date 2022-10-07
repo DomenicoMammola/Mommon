@@ -29,10 +29,10 @@ uses
 
 //https://restfulapi.net/json-data-types/
 
-const
-  ISO8601FormatExtendedUTC='yyyy"-"mm"-"dd"T"hh":"mm":"ss"Z"';
-  ISO8601FormatExtendedUTC_Date='yyyy"-"mm"-"dd"Z"';
-  ISO8601FormatExtendedUTC_Time='"T"hh":"mm":"ss"Z"';
+//const
+//  ISO8601FormatExtendedUTC='yyyy"-"mm"-"dd"T"hh":"mm":"ss"Z"';
+//  ISO8601FormatExtendedUTC_Date='yyyy"-"mm"-"dd"Z"';
+//  ISO8601FormatExtendedUTC_Time='"T"hh":"mm":"ss"Z"';
 
 
 function SerializeDataProviderToJson(const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention): String;
@@ -74,9 +74,9 @@ begin
               vftInteger : Result := Result + IntToStr(value);
               vftBoolean : if value then Result := Result + 'true' else Result := Result + 'false';
               vftFloat, vftCurrency : Result := Result + FormatFloat('#.#', value);
-              vftDate : Result := Result + '"' + FormatDateTime(ISO8601FormatExtendedUTC_Date, value) + '"';
-              vftTime : Result := Result + '"' + FormatDateTime(ISO8601FormatExtendedUTC_Time, value) + '"';
-              vftDateTime, vftTimeStamp : Result := Result + '"' + FormatDateTime(ISO8601FormatExtendedUTC, value) + '"';
+              vftDate : Result := Result + '"' + DateToJsonString(VarToDateTime(value)) + '"';
+              vftTime : Result := Result + '"' + TimeToJsonString(VarToDateTime(value)) + '"';
+              vftDateTime, vftTimeStamp : Result := Result + '"' + DateTimeToJsonString(VarToDateTime(value)) + '"';
             else
               Result := Result + '"' + EscapeStringValue(VarToStr(value), 'json') + '"';
             end;
