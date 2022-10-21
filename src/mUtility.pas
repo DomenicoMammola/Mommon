@@ -21,9 +21,6 @@ interface
 uses
   Classes, SysUtils, Variants, {$IFDEF WINDOWS}Windows, {$IFDEF FPC}{$IFDEF GRAPHICS_AVAILABLE}InterfaceBase,{$ENDIF}{$ENDIF} {$ENDIF}
   {$IFDEF GRAPHICS_AVAILABLE}Graphics,{$ENDIF}
-  {$IFDEF GUI}
-  Forms,
-  {$ENDIF}
   mIntList, mDoubleList;
 
 const
@@ -123,9 +120,6 @@ function GetCPUCores : integer;
 function GetApplicationLocalDataFolder (const aApplicationSubDir : string) : String;
 function GetApplicationDataFolder (const aApplicationSubDir : string) : String;
 function GetOSUser : string;
-{$IFDEF GUI}
-procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
-{$ENDIF}
 // http://forum.codecall.net/topic/69184-solved-file-association-and-the-registry/
 function RegisterDefaultApplication(const aFullPathExe : string; const aFileExtension : string; var aError : string): boolean;
 
@@ -1541,18 +1535,6 @@ begin
 end;
 
 {$IFDEF GUI}
-procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
-begin
-  {$IFDEF WINDOWS}
-  {$IFDEF FPC}{$push}{$warnings off}{$ENDIF}
-  begin
-  // http://forum.lazarus.freepascal.org/index.php?topic=33574.0
-  If aFlashEvenIfActive or (not Application.Active) Then
-    FlashWindow({$IFDEF FPC}WidgetSet.AppHandle{$ELSE}Application.Handle{$ENDIF}, True);
-  end;
-  {$IFDEF FPC}{$pop}{$ENDIF}
-  {$ENDIF}
-end;
 {$ENDIF}
 
 function RegisterDefaultApplication(const aFullPathExe: string; const aFileExtension: string; var aError : string) : boolean;
