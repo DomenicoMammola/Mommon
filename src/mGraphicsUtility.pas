@@ -66,6 +66,9 @@ type
 
   function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
 
+  procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
+
+
 implementation
 
 uses
@@ -542,6 +545,18 @@ begin
   {$ENDIF}
 end;
 
+procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
+begin
+  {$IFDEF WINDOWS}
+  {$IFDEF FPC}{$push}{$warnings off}{$ENDIF}
+  begin
+  // http://forum.lazarus.freepascal.org/index.php?topic=33574.0
+  If aFlashEvenIfActive or (not Application.Active) Then
+    FlashWindow({$IFDEF FPC}WidgetSet.AppHandle{$ELSE}Application.Handle{$ENDIF}, True);
+  end;
+  {$IFDEF FPC}{$pop}{$ENDIF}
+  {$ENDIF}
+end;
 
 
 {$IFNDEF GUI}
