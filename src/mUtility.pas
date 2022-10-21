@@ -65,11 +65,11 @@ function TryToUnderstandBooleanString(const aInputString : String; out aValue : 
 function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string): TDateTime;
 
 function DateToJsonString(const aValue : TDate): String;
-function TimeToJsonString(const aValue : TTime): String;
+function TimeToJsonString(const aValue : {$IFDEF UNIX}TDateTime{$ELSE}TTime{$ENDIF}): String;
 function DateTimeToJsonString(const aValue : TDateTime): String;
 
 function TryToUnderstandJsonDateString(const aInputString: string; out aValue: TDate): boolean;
-function TryToUnderstandJsonTimeString(const aInputString: string; out aValue: TTime): boolean;
+function TryToUnderstandJsonTimeString(const aInputString: string; out aValue: {$IFDEF UNIX}TDateTime{$ELSE}TTime{$ENDIF}): boolean;
 function TryToUnderstandJsonDateTimeString(const aInputString: string; out aValue: TDateTime): boolean;
 
 // https://code.google.com/p/theunknownones/
@@ -960,7 +960,7 @@ begin
   Result := FormatDateTime('yyyy"-"mm"-"dd"Z"', aValue);
 end;
 
-function TimeToJsonString(const aValue: TTime): String;
+function TimeToJsonString(const aValue: {$IFDEF UNIX}TDateTime{$ELSE}TTime{$ENDIF}): String;
 begin
   Result := FormatDateTime('"T"hh":"mm":"ss"Z"', aValue);
 end;
@@ -977,7 +977,7 @@ begin
   Result := (aValue > 0);
 end;
 
-function TryToUnderstandJsonTimeString(const aInputString: string; out aValue: TTime): boolean;
+function TryToUnderstandJsonTimeString(const aInputString: string; out aValue: {$IFDEF UNIX}TDateTime{$ELSE}TTime{$ENDIF}): boolean;
 begin
   Result := false;
   aValue := DateTimeStrEval('Thh:mm:ssZ', aInputString);
@@ -989,8 +989,6 @@ begin
 end;
 
 function TryToUnderstandJsonDateTimeString(const aInputString: string; out aValue: TDateTime): boolean;
-var
-  v : TDateTime;
 begin
   Result := false;
   aValue := DateTimeStrEval('yyyy-mm-ddThh:mm:ssZ', aInputString);
