@@ -482,7 +482,7 @@ type
 implementation
 
 uses
-  sysutils, dateutils {$IFDEF FPC}, LazUtf8{$ENDIF}
+  sysutils, dateutils
   , mISOTime;
 
 { TNullableJsonHelper }
