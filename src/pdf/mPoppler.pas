@@ -60,7 +60,12 @@ implementation
 
 uses
   Process, LazUTF8,
-  mUtility, mGraphicsUtility;
+  mUtility,
+  {$IFDEF NOGUI}
+  mGraphicsUtilityNoGUI
+  {$ELSE}
+  mGraphicsUtility
+  {$ENDIF};
 
 var
   FLastError : String;
