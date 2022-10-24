@@ -72,6 +72,8 @@ type
     property Sender : String read FSender write FSender;
   end;
 
+  TProcessMailMessage = procedure (aMailMessage : TReceivedMail; out aCanDeleteMailFromServer : boolean) of object;
+
   { TGetMailPop3 }
 
   TGetMailPop3 = class
@@ -94,7 +96,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function CheckMail(out aErrorMessage: String) : boolean;
+    function CheckMail(out aErrorMessage: String; const aProcessMessage: TProcessMailMessage) : boolean;
     function MailsCount : integer;
     function GetMail (const aIndex : integer): TReceivedMail;
 
@@ -544,12 +546,14 @@ begin
   inherited Destroy;
 end;
 
-function TGetMailPop3.CheckMail(out aErrorMessage: String): boolean;
+function TGetMailPop3.CheckMail(out aErrorMessage: String; const aProcessMessage: TProcessMailMessage): boolean;
 var
   tmpPop3 : TIdPOP3;
   error : boolean;
   i, numMessages : integer;
   msg : TIdMessage;
+  doDelete : boolean;
+  curMailMessage : TReceivedMail;
   {$IFDEF OUTLOOK_OAUTH2_AVAILABLE}
   xoauthSASL : TIdSASLListEntry;
   {$ENDIF}
@@ -627,13 +631,22 @@ begin
           try
             tmpPop3.Retrieve(i, msg);
             if (not FAcceptOnlyMailFromSpecificDomain) or (FAllowedSenderDomains.IndexOf(LowerCase(msg.From.Domain)) >= 0) then
-              ImportMessage(msg, AddReceivedMail)
-              {$IFDEF MLOG_AVAILABLE}
+            begin
+              curMailMessage := AddReceivedMail;
+              ImportMessage(msg, curMailMessage);
+              doDelete:= false;
+              aProcessMessage(curMailMessage, doDelete);
+              if doDelete then
+                tmpPop3.Delete(i);
+            end
             else
-              logger.Info('Discarded mail from ' + msg.From.Address)
+            begin
+              {$IFDEF MLOG_AVAILABLE}
+              logger.Info('Discarded mail from ' + msg.From.Address);
               {$ENDIF}
-            ;
-            tmpPop3.Delete(i);
+              tmpPop3.Delete(i);
+            end;
+
           finally
             msg.Free;
           end;
