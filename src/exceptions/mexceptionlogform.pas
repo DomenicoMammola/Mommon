@@ -55,7 +55,8 @@ implementation
 {$R *.lfm}
 
 uses
-  mExceptionLog, mUtility;
+  mExceptionLog, mUtility,
+  mGraphicsUtility;
 
 
 { TExceptionLogForm }
