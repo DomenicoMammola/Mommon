@@ -50,7 +50,7 @@ function DateTimeToSeconds(const aDateTime : TDateTime; const aTheDayWhenTimeSta
 function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted): TDateTime;
 
 // try to convert the input text from the user as a date value, if it fails it returns false
-// user can edit date as ddmmyy or ddmmyyyy or dmyy or with separators like '/', '\', '-', ....
+// user can edit date as ddmmyy or ddmmyyyy or dmyy or with separators like '/', '\', '-', ' ' or '12 Jan 2022' or '27 September 2021' or '15 Maggio 2023'....
 function TryToUnderstandDateString(const aInputString : String; out aValue : TDateTime) : boolean;
 // try to convert the input text from the user as a time value, if it fails it returns false
 // user can edit time as hhmm or hhmmss or with separators like ':', '.', ....
@@ -403,6 +403,21 @@ begin
 end;
 
 function TryToUnderstandDateString(const aInputString : String; out aValue : TDateTime) : boolean;
+
+  function DecodeMonthName (const aValue : String; aMonthNames : TMonthNameArray): integer;
+  var
+    z : integer;
+  begin
+    Result := 0;
+    for z := Low(aMonthNames) to High(aMonthNames) do
+    begin
+      if CompareText(aMonthNames[z], aValue) = 0 then
+      begin
+        Result := z;
+        exit;
+      end;
+    end;
+  end;
 var
   l, idx, i : integer;
   tmp,  sep : string;
@@ -435,6 +450,11 @@ begin
   if idx = 0 then
   begin
     sep := '.';
+    idx := Pos(sep, tmp);
+  end;
+  if idx = 0 then
+  begin
+    sep := ' ';
     idx := Pos(sep, tmp);
   end;
 
@@ -510,6 +530,45 @@ begin
           begin
             Result := TryEncodeDate(year, month, day, aValue);
             exit;
+          end;
+        end;
+      end;
+    end
+    else if IsNumeric(dString, false, false) and IsNumeric(yString, false, false) then
+    begin
+      month := DecodeMonthName(mString, DefaultFormatSettings.ShortMonthNames);
+      if month = 0 then
+        month := DecodeMonthName(mString, DefaultFormatSettings.LongMonthNames);
+      if month = 0 then
+        month := DecodeMonthName(mString, FormatSettings.ShortMonthNames);
+      if month = 0 then
+        month := DecodeMonthName(mString, FormatSettings.LongMonthNames);
+
+      if month > 0 then
+      begin
+        for i := 1 to 2 do
+        begin
+          if i = 1 then
+          begin
+            day := StrToInt(dString);
+            year := StrToInt(yString);
+          end
+          else
+          begin
+            // yyyy ABC dd
+            day := StrToInt(yString);
+            year := StrToInt(dString);
+          end;
+
+          if (year >= 0) and (day >= 1) and (day <= 31) then
+          begin
+            if year < 100 then
+              year := 2000 + year;
+            if day <= DaysInAMonth(year, month) then
+            begin
+              Result := TryEncodeDate(year, month, day, aValue);
+              exit;
+            end;
           end;
         end;
       end;
