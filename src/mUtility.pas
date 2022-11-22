@@ -145,6 +145,8 @@ function EncodeSVGString(const aSrc : String): String;
 function EscapeStringValue(const aSrc: String; const aType: String): String;
 function RevertEscapedStringValue(const aSrc: String; const aType: String): String;
 
+function TBytesToString (const aSrc : TBytes): String;
+
 // https://docs.microsoft.com/it-it/windows/desktop/FileIO/naming-a-file#basic_naming_conventions
 function SanitizeFileName(const aSrc: String) : String;
 function SanitizeSubstringForFileName(const aSubString : String): String;
@@ -2417,6 +2419,15 @@ begin
     if curStr <> '' then
       AddStr(Result, curStr);
   end;
+end;
+
+function TBytesToString(const aSrc: TBytes): String;
+var
+  i : integer;
+begin
+  Result := '';
+  for i := Low(aSrc) to High(aSrc) do
+    Result := Result + HexStr(aSrc[i],2)
 end;
 
 (*
