@@ -29,6 +29,7 @@ type
   public
     constructor Create; override;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; override;
+    function GetSQLForConditionOperator (const aOperator: TmFilterOperator) : string; override;
   end;
 
 
@@ -360,6 +361,14 @@ begin
         end;
     end;
   end;
+end;
+
+function TSQLDialectExpertImplMySQL.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
+begin
+  if (aOperator = foNotEq) then  // null-safe equality operator, see https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_equal-to
+    Result := '<=>'
+  else
+    Result:=inherited GetSQLForConditionOperator(aOperator);
 end;
 
 initialization

@@ -373,11 +373,14 @@ end;
 
 function TSQLDialectExpertImplPostgreSQL.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
 begin
-  Result:=inherited GetSQLForConditionOperator(aOperator);
   // ILIKE is used instead of LIKE to perform a case-unsensitive like condition check
   // and to get it working like in SQL Server or MySQL
   if (aOperator = foLike) or (aOperator = foStartWith) or (aOperator = foEndWith) then
-    Result := 'ILIKE';
+    Result := 'ILIKE'
+  else if (aOperator = foNotEq) then   // null-safe equality operator, see https://wiki.postgresql.org/wiki/Is_distinct_from
+    Result := 'IS DISTINCT FROM'
+  else
+    Result:=inherited GetSQLForConditionOperator(aOperator);
 end;
 
 initialization

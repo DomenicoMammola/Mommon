@@ -29,6 +29,7 @@ type
   public
     constructor Create; override;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; override;
+    function GetSQLForConditionOperator (const aOperator: TmFilterOperator) : string; override;
   end;
 
 
@@ -357,6 +358,14 @@ begin
         end;
     end;
   end;
+end;
+
+function TSQLDialectExpertImplSQLServer.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
+begin
+  if (aOperator = foNotEq) then  // null-safe equality operator, see https://learn.microsoft.com/en-us/sql/t-sql/queries/is-distinct-from-transact-sql?view=sql-server-ver16
+    Result := 'IS DISTINCT FROM'
+  else
+    Result:=inherited GetSQLForConditionOperator(aOperator);
 end;
 
 initialization
