@@ -16,13 +16,18 @@ unit mImageToPdf;
 
 interface
 
+uses
+  fppdf;
+
 type
   TConvertedPdfOrientation = (cpoPortrait, cpoLandscape, cpoAdapt);
 
 function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean; overload;
 function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean): boolean; overload;
 
-procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPortraitOrientation : boolean = true);
+procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aWidth, aHeight : integer); overload;
+procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPaperType : TPDFPaperType; const aPortraitOrientation : boolean); overload;
+
 
 implementation
 
@@ -30,7 +35,6 @@ implementation
 uses
   sysutils,
   fpreadjpeg,
-  fppdf,
   fpparsettf;
 
 function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean;
@@ -125,11 +129,12 @@ begin
   Result := ConvertImageToPdf(aSourceImageFile, aDestinationPdfFile, aEnlargeToPage, aIgnoreBorders, cpoPortrait, tmpOrientation);
 end;
 
-procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPortraitOrientation : boolean = true);
+procedure _CreateSinglePageEmpyPdf(const aPdfFile: String; const aPaperType : TPDFPaperType; const aPortraitOrientation : boolean; const aWidth : integer = 0; const aHeight : integer = 0);
 var
   doc : TPDFDocument;
   page : TPDFPage;
   sec : TPDFSection;
+  PP: TPDFPaper;
 begin
   doc := TPDFDocument.Create(Nil);
   try
@@ -139,12 +144,27 @@ begin
     sec := doc.Sections.AddSection; // we always need at least one section
 
     page := doc.Pages.AddPage;
-    page.PaperType:= ptA4;
     page.UnitOfMeasure:= uomPixels;
-    if aPortraitOrientation then
-      page.Orientation:= ppoPortrait
+
+    if (aWidth = 0) then
+    begin
+      page.PaperType:= aPaperType;
+      if aPortraitOrientation then
+        page.Orientation:= ppoPortrait
+      else
+        page.Orientation:= ppoLandscape;
+    end
     else
-      page.Orientation:= ppoLandscape;
+    begin
+      PP.H:=aHeight;
+      PP.W:=aWidth;
+      PP.Printable.T:=10;
+      PP.Printable.L:=11;
+      PP.Printable.R:=aWidth - 11;
+      PP.Printable.B:=aHeight - 10;
+      page.Paper := PP;
+      page.PaperType:= ptCustom;
+    end;
 
     sec.AddPage(page);
 
@@ -152,6 +172,17 @@ begin
   finally
     doc.Free;
   end;
+end;
+
+
+procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aWidth, aHeight: integer);
+begin
+  _CreateSinglePageEmpyPdf(aPdfFile, ptCustom, false, aWidth, aHeight);
+end;
+
+procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aPaperType: TPDFPaperType; const aPortraitOrientation: boolean);
+begin
+  _CreateSinglePageEmpyPdf(aPdfFile, aPaperType, aPortraitOrientation);
 end;
 
 end.
