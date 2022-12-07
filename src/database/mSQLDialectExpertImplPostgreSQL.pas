@@ -29,7 +29,7 @@ type
   public
     constructor Create; override;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; override;
-    function GetSQLForFieldname(const aFieldName: String): String; override; overload;
+    function GetSQLForFieldname(const aFieldName: String; const aOperator: TmFilterOperator): String; override;
     function GetSQLForTablename(const aTableName: String): String; override;
     function GetSQLForConditionOperator (const aOperator: TmFilterOperator) : string; override;
   end;
@@ -361,7 +361,7 @@ begin
   end;
 end;
 
-function TSQLDialectExpertImplPostgreSQL.GetSQLForFieldname(const aFieldName: String): String;
+function TSQLDialectExpertImplPostgreSQL.GetSQLForFieldname(const aFieldName: String; const aOperator: TmFilterOperator): String;
 begin
   Result:= '"' + aFieldName + '"';
 end;

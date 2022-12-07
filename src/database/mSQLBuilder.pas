@@ -90,7 +90,7 @@ begin
   if not Assigned(FSQLDialectExpert) then
     raise TmDataConnectionException.Create('No database vendor was set. Unable to build definitive sql command');
 
-  Result := '(' + FSQLDialectExpert.GetSQLForFieldname(aFieldName) + ' ' + FSQLDialectExpert.GetSQLForConditionOperator(aOperator) + ' ' + PARAMETER_DELIMITER + aParamNameWithoutDelimiter + PARAMETER_DELIMITER +')';
+  Result := '(' + FSQLDialectExpert.GetSQLForFieldname(aFieldName, aOperator) + ' ' + FSQLDialectExpert.GetSQLForConditionOperator(aOperator) + ' ' + PARAMETER_DELIMITER + aParamNameWithoutDelimiter + PARAMETER_DELIMITER +')';
 end;
 
 function TmSQLBuilder.SQLSnippetForValue(const aParamNameWithoutDelimiter: String): String;

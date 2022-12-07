@@ -31,7 +31,7 @@ type
     constructor Create; virtual; abstract;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; virtual; abstract;
     function GetSQLForConditionOperator (const aOperator: TmFilterOperator) : string; virtual;
-    function GetSQLForFieldname(const aFieldName: String): String; virtual;
+    function GetSQLForFieldname(const aFieldName: String; const aOperator: TmFilterOperator): String; virtual;
     function GetSQLForTablename(const aTableName: String): String; virtual;
   end;
 
@@ -92,7 +92,7 @@ begin
     Result := '?';
 end;
 
-function TSQLDialectExpertImpl.GetSQLForFieldname(const aFieldName: String): String;
+function TSQLDialectExpertImpl.GetSQLForFieldname(const aFieldName: String; const aOperator: TmFilterOperator): String;
 begin
   Result := aFieldName;
 end;

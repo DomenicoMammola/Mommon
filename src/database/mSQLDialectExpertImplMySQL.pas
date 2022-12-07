@@ -30,6 +30,7 @@ type
     constructor Create; override;
     function GetSQLForParameter (aParam : TmQueryParameter) : string; override;
     function GetSQLForConditionOperator (const aOperator: TmFilterOperator) : string; override;
+    function GetSQLForFieldname(const aFieldName: String; const aOperator: TmFilterOperator): String; override;
   end;
 
 
@@ -64,10 +65,12 @@ begin
   begin
     case aParam.DataType of
       ptBoolean:
-        if aParam.AsBoolean then
-          Result := '1'
-        else
-          Result := '0';
+        begin
+          if aParam.AsBoolean then
+            Result := '1'
+          else
+            Result := '0';
+        end;
       ptDate:
         begin
           if (aParam.Operator = TmFilterOperator.foIn) then
@@ -361,14 +364,26 @@ begin
         end;
     end;
   end;
+  if (aParam.Operator = TmFilterOperator.foNotEq) then // NULL-safe not equal, https://9to5answer.com/mysql-null-safe-not-equal-operator
+    Result := Result + ')';
 end;
 
 function TSQLDialectExpertImplMySQL.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
 begin
   if (aOperator = foEq) then
     Result := '<=>' // NULL-safe equal, https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_equal-to
+  else if (aOperator = foNotEq) then
+    Result := '<=>' // NULL-safe not equal, https://9to5answer.com/mysql-null-safe-not-equal-operator
   else
     Result:=inherited GetSQLForConditionOperator(aOperator);
+end;
+
+function TSQLDialectExpertImplMySQL.GetSQLForFieldname(const aFieldName: String; const aOperator: TmFilterOperator): String;
+begin
+  if (aOperator = foNotEq) then
+      Result := ' NOT(' + aFieldName  // NULL-safe not equal, https://9to5answer.com/mysql-null-safe-not-equal-operator
+  else
+    Result:=inherited GetSQLForFieldname(aFieldName, aOperator);
 end;
 
 initialization
