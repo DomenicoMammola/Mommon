@@ -365,8 +365,8 @@ end;
 
 function TSQLDialectExpertImplMySQL.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
 begin
-  if (aOperator = foNotEq) then  // null-safe equality operator, see https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_equal-to
-    Result := '<=>'
+  if (aOperator = foEq) then
+    Result := '<=>' // NULL-safe equal, https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_equal-to
   else
     Result:=inherited GetSQLForConditionOperator(aOperator);
 end;
