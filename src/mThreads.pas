@@ -291,7 +291,7 @@ begin
   for i := 0 to FThreads.Count - 1 do
   begin
     (FThreads.Items[i] as TThread).Terminate;
-    (FCanDieEvents.Items[i] as TSimpleEvent).WaitFor(3000);
+    (FCanDieEvents.Items[i] as TSimpleEvent).WaitFor(INFINITE);
   end;
   FreeAndNil(FThreads);
   FreeAndNil(FCanDieEvents);
@@ -321,11 +321,14 @@ begin
       FJobsRunning.Clear;
 
       {$IFDEF DEBUG}
-      logger.Debug('[TControlThread] Scheduled jobs:' + IntToStr(FJobs.Count));
-      logger.Debug('[TControlThread] Max parallel jobs:' + IntToStr(FMaxConcurrentThreads));
+      if not Terminated then
+      begin
+        logger.Debug('[TControlThread] Scheduled jobs:' + IntToStr(FJobs.Count));
+        logger.Debug('[TControlThread] Max parallel jobs:' + IntToStr(FMaxConcurrentThreads));
+      end;
       {$ENDIF}
 
-      if FJobs.Count > 0 then
+      if (FJobs.Count > 0) then
       begin
         FRunning := true;
 
@@ -502,7 +505,7 @@ begin
   begin
     FControlThread.Terminate;
     (FControlThread as TControlThread).CanStartEvent.SetEvent;
-    FCanEndEvent.WaitFor(3000);
+    FCanEndEvent.WaitFor(INFINITE);
     FreeAndNil(FControlThread);
   end;
   FreeAndNil(FCanEndEvent);
