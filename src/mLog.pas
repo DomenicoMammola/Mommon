@@ -338,20 +338,22 @@ begin
           begin
             FPublishersCriticalSection.Acquire;
             try
-              for i := 0 to FPublishers.Count - 1 do
+              if Assigned(FPublishers) then
               begin
-                FCurrentPublisher := FPublishers.Items[i] as TmLogPublisher;
-                if FCurrentPublisher.Active then
+                for i := 0 to FPublishers.Count - 1 do
                 begin
-                  if LevelsAreCompatible(FCurrentMsg.Level, FCurrentPublisher.Level) then
+                  FCurrentPublisher := FPublishers.Items[i] as TmLogPublisher;
+                  if FCurrentPublisher.Active then
                   begin
-                    if FCurrentPublisher.ActInsideMainThread then
-                      Self.Synchronize(PublishOnMainThread)
-                    else
-                      FCurrentPublisher.Publish(FCurrentMsg.Context, logMessageLevelToStr(FCurrentMsg.Level), FCurrentMsg.Message, FCurrentMsg.DateTime);
+                    if LevelsAreCompatible(FCurrentMsg.Level, FCurrentPublisher.Level) then
+                    begin
+                      if FCurrentPublisher.ActInsideMainThread then
+                        Self.Synchronize(PublishOnMainThread)
+                      else
+                        FCurrentPublisher.Publish(FCurrentMsg.Context, logMessageLevelToStr(FCurrentMsg.Level), FCurrentMsg.Message, FCurrentMsg.DateTime);
+                    end;
                   end;
                 end;
-
               end;
             finally
               FPublishersCriticalSection.Leave;
