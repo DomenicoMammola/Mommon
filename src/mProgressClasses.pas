@@ -32,6 +32,7 @@ type
     destructor Destroy; override;
     procedure AfterConstruction; override;
 
+    procedure AddProgress;
     procedure RefreshProgress;
     procedure RemoveProgress;
   end;
@@ -126,6 +127,15 @@ begin
   inherited AfterConstruction;
   FProgress := TmAbstractProgress.Create;
   FProgress.OwnerThread := Self;
+  Self.Synchronize(Self, AddProgress);
+end;
+
+procedure TmThreadWithProgress.AddProgress;
+var
+  gp : TmProgressGUI;
+begin
+  gp := GetProgressGUIFactory.GetCurrentProgressGUI;
+  gp.AddProgress(FProgress);
 end;
 
 
@@ -211,7 +221,6 @@ begin
   FCaption := '';
   FId := GenerateRandomIdString(30);
   FProgressClosed := false;
-  GetProgressGUIFactory.GetCurrentProgressGUI.AddProgress(Self);
 end;
 
 destructor TmAbstractProgress.Destroy;
