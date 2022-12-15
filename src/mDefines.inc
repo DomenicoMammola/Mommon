@@ -2,10 +2,19 @@
   {$IFDEF LCL}
     {$DEFINE GRAPHICS_AVAILABLE}
   {$ENDIF}
-  {$IFDEF CONSOLE}
-    {$DEFINE NOGUI}
-  {$ELSE}
-    {$DEFINE GUI}
+  {$IFDEF WINDOWS}
+    {$IFDEF CONSOLE}
+      {$DEFINE NOGUI}
+    {$ELSE}
+      {$DEFINE GUI}
+    {$ENDIF}
+  {$ENDIF}
+  {$IFDEF UNIX}
+    {$IFDEF LCL}
+      {$DEFINE GUI}
+    {$ELSE}
+      {$DEFINE NOGUI}
+    {$ENDIF}
   {$ENDIF}
 {$ELSE}
   {$DEFINE DELPHI}
