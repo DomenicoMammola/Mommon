@@ -747,7 +747,10 @@ var
 begin
   Result := false;
   tmp := Uppercase(Trim(aInputString));
-  i := Pos(' ', tmp);
+  i := 0;
+  for i := Length(tmp) downto 1 do
+    if tmp[i] = ' ' then
+      break;
   if i > 1 then
   begin
     if TryToUnderstandDateString(Copy(tmp, 1, i-1), tmpDate) then
