@@ -29,8 +29,23 @@ resourcestring
   SPoppler_pdfseparate_error_unable_to_run = 'Unable to run Poppler pdfseparate: ';
   SPoppler_pdftoppm_error_unable_to_run = 'Unable to run Poppler pdftoppm: ';
   SPoppler_pdftotext_error_unable_to_run = 'Unable to run Poppler pdftotext: ';
+  SPoppler_pdfinfo_error_unable_to_run = 'Unable to run Poppler pdfinfo: ';
 
 type
+
+  TPopplerPdfInfo = record
+    Title : string;
+    Subject : string;
+    Creator: string;
+    Producer: string;
+    CreationDate : TDateTime;
+    ModDate : TDateTime;
+    Pages : integer;
+    PageSize : string;
+    PageWidth : integer;
+    PageHeight : integer;
+    PDFVersion : string;
+  end;
 
   { TPopplerToolbox }
 
@@ -40,6 +55,7 @@ type
     class function CheckPoppler_pdfseparate_ExePath : boolean;
     class function CheckPoppler_pdftoppm_ExePath : boolean;
     class function CheckPoppler_pdftotext_ExePath : boolean;
+    class function CheckPoppler_pdfinfo_ExePath : boolean;
   public
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
     class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
@@ -48,6 +64,7 @@ type
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText : String): boolean; overload;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines : TStringList): boolean; overload;
     class function GetLastError : String;
+    class function GetInfoFromPdf (const aPdfFileName : string; var aInfo : TPopplerPdfInfo): boolean;
   end;
 
 var
@@ -55,12 +72,13 @@ var
   Poppler_pdfseparate_ExePath : string;
   Poppler_pdftoppm_ExePath : string;
   Poppler_pdftotext_ExePath : string;
+  Poppler_pdfinfo_ExePath : string;
 
 implementation
 
 uses
-  Process, LazUTF8,
-  mUtility,
+  Process, LazUTF8, StrUtils,
+  mUtility, mMathUtility,
   {$IFDEF NOGUI}
   mGraphicsUtilityNoGUI
   {$ELSE}
@@ -117,6 +135,11 @@ end;
 class function TPopplerToolbox.CheckPoppler_pdftotext_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdftotext_ExePath);
+end;
+
+class function TPopplerToolbox.CheckPoppler_pdfinfo_ExePath: boolean;
+begin
+  Result := CheckCLU(Poppler_pdfinfo_ExePath);
 end;
 
 class function TPopplerToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate: string): boolean;
@@ -343,6 +366,154 @@ end;
 class function TPopplerToolbox.GetLastError: String;
 begin
   Result := FLastError;
+end;
+
+function ExtractText (const aSourceLine : String; const aKey : String; var aValue : String): boolean;
+var
+  le : integer;
+begin
+  Result := false;
+  le := Length(aKey);
+  if CompareText(LeftStr(aSourceLine, le), aKey) = 0 then
+  begin
+    aValue:= Trim(Copy(aSourceLine, le + 1, 9999));
+    Result := true;
+  end;
+end;
+
+function ConvertDateTime(const aSource : String; var aValue : TDateTime): boolean;
+var
+  list : TStringList;
+  tmpDate : TDateTime;
+begin
+  Result := false;
+  //Thu Sep 30 18:25:50 2021 ora legale Europa occidentale
+  list := TStringList.Create;
+  try
+    list.Delimiter:= ' ';
+    list.DelimitedText:= aSource;
+    if list.Count >= 5 then
+    begin
+      if IsNumeric(list.Strings[2], false, false) and IsNumeric(list.Strings[4], false, false) then
+      begin
+        if TryToUnderstandDateTimeString(list.Strings[2] + ' ' + list.Strings[1] + ' ' + list.Strings[4] + ' ' + list.Strings[3], tmpDate) then
+        begin
+          aValue := tmpDate;
+          Result := true;
+        end;
+      end;
+    end;
+  finally
+    list.Free;
+  end;
+end;
+
+class function TPopplerToolbox.GetInfoFromPdf(const aPdfFileName: string; var aInfo : TPopplerPdfInfo): boolean;
+var
+  outputString, curStr, value : string;
+  tmpList : TStringList;
+  i, intValue : integer;
+  dateValue : TDateTime;
+begin
+  Result := false;
+
+  if not CheckPoppler_pdfinfo_ExePath then
+    exit;
+
+  if not FileExists(aPdfFileName) then
+  begin
+    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    exit;
+  end;
+
+  if RunCommand(Poppler_pdfinfo_ExePath, [AnsiQuotedStr(aPdfFileName,'"')], outputString, [poNoConsole,poWaitOnExit]) then
+  begin
+    aInfo.Title := '';
+    aInfo.Subject := '';
+    aInfo.Creator := '';
+    aInfo.Producer := '';
+    aInfo.CreationDate := 0;
+    aInfo.ModDate := 0;
+    aInfo.Pages := 0;
+    aInfo.PageSize := '';
+    aInfo.PageWidth := 0;
+    aInfo.PageHeight := 0;
+    aInfo.PDFVersion := '';
+(*
+Title:
+Subject:
+Keywords:
+Author:
+Creator:         PaperPort 14
+Producer:        PaperPort 14
+CreationDate:    Thu Sep 30 18:25:50 2021 ora legale Europa occidentale
+ModDate:         Thu Sep 30 18:25:57 2021 ora legale Europa occidentale
+Custom Metadata: no
+Metadata Stream: yes
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           5
+Encrypted:       no
+Page size:       614 x 1009 pts
+Page rot:        0
+File size:       1821455 bytes
+Optimized:       no
+PDF version:     1.6
+*)
+
+
+    tmpList := TStringList.Create;
+    try
+      tmpList.Delimiter:= #10;
+      tmpList.DelimitedText:= outputString;
+      for i := 0 to tmpList.Count - 1 do
+      begin
+        curStr := tmpList.Strings[i];
+        if ExtractText(curStr, 'Title:', value) then
+          aInfo.Title:= value
+        else if ExtractText(curStr, 'Subject:', value) then
+          aInfo.Subject:= value
+        else if ExtractText(curStr, 'Creator:', value) then
+          aInfo.Creator:= value
+        else if ExtractText(curStr, 'Producer:', value) then
+          aInfo.Producer:= value
+        else if ExtractText(curStr, 'CreationDate:', value) then
+        begin
+          if ConvertDateTime(value, dateValue) then
+            aInfo.CreationDate:= dateValue;
+        end
+        else if ExtractText(curStr, 'ModDate:', value) then
+        begin
+          if ConvertDateTime(value, dateValue) then
+            aInfo.ModDate:= dateValue;
+        end
+        else if ExtractText(curStr, 'Pages:', value) then
+        begin
+          if TryToConvertToInteger(value, intValue) then
+            aInfo.Pages:= intValue;
+        end
+        else if ExtractText(curStr, 'Page size:', value) then
+        begin
+          //
+        end
+        else if ExtractText(curStr, 'PDF version:', value) then
+          aInfo.PDFVersion:= value;
+      end;
+    finally
+      tmpList.Free;
+    end;
+  end
+  else
+  begin
+    FLastError := SPoppler_pdfinfo_error_unable_to_run + outputString;
+    exit;
+  end;
+  Result := true;
+
+
 end;
 
 initialization
