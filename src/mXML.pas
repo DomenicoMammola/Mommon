@@ -201,7 +201,7 @@ type
 implementation
 
 uses
-  mXML_oxml, {$IFDEF FPC}mXML_fpxml,{$ENDIF} mUtility;
+  {$IFDEF FPC}mXML_fpxml,{$ELSE}mXML_oxml, {$ENDIF} mUtility;
 
 var
   InternalFactory : TImpl_Factory;
