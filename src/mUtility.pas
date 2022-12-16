@@ -426,6 +426,10 @@ var
   dString, mString, yString : string;
   day, month, year : integer;
   canTry : boolean;
+  EnglishShortMonthNames: TMonthNameArray = ('Jan','Feb','Mar','Apr','May','Jun',
+          'Jul','Aug','Sep','Oct','Nov','Dec');
+  EnglishLongMonthNames: TMonthNameArray = ('January','February','March','April','May','June',
+          'July','August','September','October','November','December');
 begin
   Result := false;
   canTry := false;
@@ -545,6 +549,12 @@ begin
         month := DecodeMonthName(mString, FormatSettings.ShortMonthNames);
       if month = 0 then
         month := DecodeMonthName(mString, FormatSettings.LongMonthNames);
+
+      if month = 0 then
+        month := DecodeMonthName(mString, EnglishShortMonthNames);
+
+      if month = 0 then
+        month := DecodeMonthName(mString, EnglishLongMonthNames);
 
       if month > 0 then
       begin
