@@ -20,7 +20,8 @@ unit mPoppler;
 interface
 
 uses
-  sysutils, Classes;
+  sysutils, Classes,
+  fpPDF;
 
 resourcestring
   SPoppler_error_missing_clu = 'Missing clu: ';
@@ -408,11 +409,45 @@ begin
   end;
 end;
 
+function ExtractPageSize (const aSource : string; out aWidth, aHeight: integer): boolean;
+var
+  str : String;
+  i : integer;
+  tmpDouble : Double;
+begin
+  (*
+  614 x 1009 pts
+  841.89 x 595.276 pts (A4)
+  419.528 x 595.276 pts
+  515.906 x 728.504 pts
+  612 x 1008 pts
+  612 x 792 pts (letter)
+  *)
+  Result := false;
+  str := LowerCase(aSource);
+  i := Pos('x', str);
+  if i > 0 then
+  begin
+    if not mMathUtility.TryToConvertToDouble(trim(LeftStr(str, i - 1)), tmpDouble) then
+      exit;
+    aWidth := round(tmpDouble);
+    str := Copy(str, i + 1, 999);
+    i := Pos('pts', str);
+    if i > 0 then
+    begin
+      if not mMathUtility.TryToConvertToDouble(trim(LeftStr(str, i - 1)), tmpDouble) then
+        exit;
+      aHeight := round(tmpDouble);
+      Result := true;
+    end;
+  end;
+end;
+
 class function TPopplerToolbox.GetInfoFromPdf(const aPdfFileName: string; var aInfo : TPopplerPdfInfo): boolean;
 var
-  outputString, curStr, value : string;
+  outputString, curStr, value, cmd : string;
   tmpList : TStringList;
-  i, intValue : integer;
+  i, intValue, w, h : integer;
   dateValue : TDateTime;
 begin
   Result := false;
@@ -426,7 +461,8 @@ begin
     exit;
   end;
 
-  if RunCommand(Poppler_pdfinfo_ExePath, [AnsiQuotedStr(aPdfFileName,'"')], outputString, [poNoConsole,poWaitOnExit]) then
+  cmd := Poppler_pdfinfo_ExePath + ' ' + AnsiQuotedStr(aPdfFileName,'"');
+  if RunCommand(cmd, [], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   begin
     aInfo.Title := '';
     aInfo.Subject := '';
@@ -464,7 +500,6 @@ Optimized:       no
 PDF version:     1.6
 *)
 
-
     tmpList := TStringList.Create;
     try
       tmpList.Delimiter:= #10;
@@ -497,7 +532,11 @@ PDF version:     1.6
         end
         else if ExtractText(curStr, 'Page size:', value) then
         begin
-          //
+          if ExtractPageSize(value, w, h) then
+          begin
+            aInfo.PageWidth := w;
+            aInfo.PageHeight := h;
+          end;
         end
         else if ExtractText(curStr, 'PDF version:', value) then
           aInfo.PDFVersion:= value;
