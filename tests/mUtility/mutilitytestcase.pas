@@ -22,6 +22,7 @@ type
     procedure TestHumanReadableUniqueIdentifiers;
     procedure TestEncodeDecodeTimestampForFilename;
     procedure TestEscapeString;
+    procedure TestDateTimeConversions;
   end;
 
 implementation
@@ -302,6 +303,49 @@ begin
   CheckEquals('\\\\', RevertEscapedStringValue(EscapeStringValue('\\\\', 'json'), 'json'));
   CheckEquals('____O O_____', RevertEscapedStringValue(EscapeStringValue('____O O_____', 'json'), 'json'));
   CheckEquals('\\myserver\dir\dir2\pippo.txt', RevertEscapedStringValue(EscapeStringValue('\\myserver\dir\dir2\pippo.txt', 'json'), 'json'));
+end;
+
+procedure TTestCaseUtility.TestDateTimeConversions;
+var
+  outValue, refValue : TDateTime;
+begin
+  refValue := EncodeDate(2022, 4, 30);
+  CheckTrue(TryToUnderstandDateString('30/04/2022', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('30/04/22', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('30-04-22', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('300422', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('30042022', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('30\04\2022', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('30 04 2022', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('30 Apr 2022', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateString('30 April 2022', outValue));
+  CheckEquals(refValue, outValue);
+
+  refValue := EncodeTime(11, 23, 0, 0);
+  CheckTrue(TryToUnderstandTimeString('11:23:00', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandTimeString('112300', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandTimeString('112301', outValue));
+  CheckNotEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandTimeString('11.23.00', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandTimeString('11:23', outValue));
+  CheckEquals(refValue, outValue);
+
+  refValue := EncodeDateTime(2022, 4, 30, 11, 23, 0, 0);
+  CheckTrue(TryToUnderstandDateTimeString('30/04/2022 11:23:00', outValue));
+  CheckEquals(refValue, outValue);
+  CheckTrue(TryToUnderstandDateTimeString('30 Apr 2022 11:23:00', outValue));
+  CheckEquals(refValue, outValue);
 end;
 
 
