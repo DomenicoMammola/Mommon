@@ -195,7 +195,7 @@ begin
   Result := '';
   i := Pos('@', aMailAddress);
   if i > 0 then
-    Result := Copy(aMailAddress, i - 1, MaxInt);
+    Result := Copy(aMailAddress, i + 1, MaxInt);
 end;
 
 constructor TSendMail.Create;
