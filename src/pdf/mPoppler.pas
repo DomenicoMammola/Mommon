@@ -59,7 +59,7 @@ type
     class function CheckPoppler_pdfinfo_ExePath : boolean;
   public
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
-    class function MergePdfFiles (const aFiles : TStringList; const aDestinationFileName : string): boolean;
+    class function MergePdfFiles (const aFiles : TStrings; const aDestinationFileName : string): boolean;
     class function ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     class function ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 72) : boolean;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText : String): boolean; overload;
@@ -106,7 +106,7 @@ begin
   {$ELSE}
   {$IFDEF UNIX}
   cmd := '-v ' + aCLU;
-  Result := RunCommand('/bin/bash',['-c','command', cmd],outputString, [poNoConsole, poWaitOnExit]);
+  Result := RunCommand('/bin/bash',['-c','command', cmd],outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]);
   if not Result then
     FLastError := SPoppler_error_missing_clu + aCLU;
   {$ELSE}
@@ -169,7 +169,7 @@ begin
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
 
   cmd := AnsiQuotedStr(aPdfFileName,'"') + ' "' + thumbFileTemplate + '"';
-  if not RunCommand(Poppler_pdfseparate_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  if not RunCommand(Poppler_pdfseparate_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
     FLastError := SPoppler_pdfseparate_error_unable_to_run + outputString;
@@ -178,7 +178,7 @@ begin
   Result := true;
 end;
 
-class function TPopplerToolbox.MergePdfFiles(const aFiles: TStringList; const aDestinationFileName: string): boolean;
+class function TPopplerToolbox.MergePdfFiles(const aFiles: TStrings; const aDestinationFileName: string): boolean;
 var
   outputString : string;
   i : integer;
@@ -204,7 +204,7 @@ begin
     cmd := cmd + ' ' + AnsiQuotedStr(aFiles.Strings[i],'"');
 
   cmd := cmd + ' ' + AnsiQuotedStr(aDestinationFileName,'"');
-  if not RunCommand(Poppler_pdfunite_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  if not RunCommand(Poppler_pdfunite_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
     FLastError := SPoppler_pdfunite_error_unable_to_run + outputString;
@@ -237,7 +237,7 @@ begin
   {$ELSE}
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
   cmd := '-singlefile -png ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"');
-  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
     tempFile := ChangeFileExt(tempFile, '.png');
@@ -289,7 +289,7 @@ begin
   {$ELSE}
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
   cmd := '-singlefile -png -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tmpDestFile,'"');
-  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]) then
+  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
     Result := true;
@@ -348,7 +348,7 @@ begin
     cmd := '-layout ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"')
   else
     cmd := AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"');
-  ris := RunCommand(Poppler_pdftotext_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit]);
+  ris := RunCommand(Poppler_pdftotext_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]);
   {$ENDIF}
   if ris then
   begin
@@ -449,6 +449,10 @@ var
   tmpList : TStringList;
   i, intValue, w, h : integer;
   dateValue : TDateTime;
+  {$IFDEF WINDOWS}
+  tmpFileName, tmpFileNameBatch : String;
+  command : TStringList;
+  {$ENDIF}
 begin
   Result := false;
 
@@ -461,9 +465,44 @@ begin
     exit;
   end;
 
-  cmd := Poppler_pdfinfo_ExePath + ' ' + AnsiQuotedStr(aPdfFileName,'"');
-  if RunCommand(cmd, [], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
-  begin
+  tmpList := TStringList.Create;
+  try
+    {$IFDEF WINDOWS}
+    command := TStringList.Create;
+    try
+      tmpFileNameBatch := GetTempFileName(GetTempDir, 'popplerinfo');
+      tmpFileNameBatch := ChangeFileExt(tmpFileNameBatch, '.bat');
+      tmpFileName := GetTempFileName(GetTempDir, '');
+      command.Append(Poppler_pdfinfo_ExePath + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' > ' + AnsiQuotedStr(tmpFileName,'"'));
+      command.SaveToFile(tmpFileNameBatch);
+      try
+        if RunCommand(tmpFileNameBatch, [], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+          tmpList.LoadFromFile(tmpFileName)
+        else
+        begin
+          FLastError := SPoppler_pdfinfo_error_unable_to_run + outputString;
+          exit;
+        end;
+      finally
+        if FileExists(tmpFileName) then
+          DeleteFile(tmpFileName);
+        if FileExists(tmpFileNameBatch) then
+          DeleteFile(tmpFileNameBatch);
+      end;
+    finally
+      command.Free;
+    end;
+    {$ELSE}
+    cmd := Poppler_pdfinfo_ExePath;
+    if not RunCommand(cmd, [AnsiQuotedStr(aPdfFileName,'"')], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+    begin
+      FLastError := SPoppler_pdfinfo_error_unable_to_run + outputString;
+      exit;
+    end;
+    tmpList.Delimiter:= #10;
+    tmpList.DelimitedText:= outputString;
+    {$ENDIF}
+
     aInfo.Title := '';
     aInfo.Subject := '';
     aInfo.Creator := '';
@@ -475,84 +514,73 @@ begin
     aInfo.PageWidth := 0;
     aInfo.PageHeight := 0;
     aInfo.PDFVersion := '';
-(*
-Title:
-Subject:
-Keywords:
-Author:
-Creator:         PaperPort 14
-Producer:        PaperPort 14
-CreationDate:    Thu Sep 30 18:25:50 2021 ora legale Europa occidentale
-ModDate:         Thu Sep 30 18:25:57 2021 ora legale Europa occidentale
-Custom Metadata: no
-Metadata Stream: yes
-Tagged:          no
-UserProperties:  no
-Suspects:        no
-Form:            none
-JavaScript:      no
-Pages:           5
-Encrypted:       no
-Page size:       614 x 1009 pts
-Page rot:        0
-File size:       1821455 bytes
-Optimized:       no
-PDF version:     1.6
-*)
-
-    tmpList := TStringList.Create;
-    try
-      tmpList.Delimiter:= #10;
-      tmpList.DelimitedText:= outputString;
-      for i := 0 to tmpList.Count - 1 do
+    (*
+    Title:
+    Subject:
+    Keywords:
+    Author:
+    Creator:         PaperPort 14
+    Producer:        PaperPort 14
+    CreationDate:    Thu Sep 30 18:25:50 2021 ora legale Europa occidentale
+    ModDate:         Thu Sep 30 18:25:57 2021 ora legale Europa occidentale
+    Custom Metadata: no
+    Metadata Stream: yes
+    Tagged:          no
+    UserProperties:  no
+    Suspects:        no
+    Form:            none
+    JavaScript:      no
+    Pages:           5
+    Encrypted:       no
+    Page size:       614 x 1009 pts
+    Page rot:        0
+    File size:       1821455 bytes
+    Optimized:       no
+    PDF version:     1.6
+    *)
+    for i := 0 to tmpList.Count - 1 do
+    begin
+      curStr := tmpList.Strings[i];
+      if ExtractText(curStr, 'Title:', value) then
+        aInfo.Title:= value
+      else if ExtractText(curStr, 'Subject:', value) then
+        aInfo.Subject:= value
+      else if ExtractText(curStr, 'Creator:', value) then
+        aInfo.Creator:= value
+      else if ExtractText(curStr, 'Producer:', value) then
+        aInfo.Producer:= value
+      else if ExtractText(curStr, 'CreationDate:', value) then
       begin
-        curStr := tmpList.Strings[i];
-        if ExtractText(curStr, 'Title:', value) then
-          aInfo.Title:= value
-        else if ExtractText(curStr, 'Subject:', value) then
-          aInfo.Subject:= value
-        else if ExtractText(curStr, 'Creator:', value) then
-          aInfo.Creator:= value
-        else if ExtractText(curStr, 'Producer:', value) then
-          aInfo.Producer:= value
-        else if ExtractText(curStr, 'CreationDate:', value) then
+        if ConvertDateTime(value, dateValue) then
+          aInfo.CreationDate:= dateValue;
+      end
+      else if ExtractText(curStr, 'ModDate:', value) then
+      begin
+        if ConvertDateTime(value, dateValue) then
+          aInfo.ModDate:= dateValue;
+      end
+      else if ExtractText(curStr, 'Pages:', value) then
+      begin
+        if TryToConvertToInteger(value, intValue) then
+          aInfo.Pages:= intValue;
+      end
+      else if ExtractText(curStr, 'Page size:', value) then
+      begin
+        if ExtractPageSize(value, w, h) then
         begin
-          if ConvertDateTime(value, dateValue) then
-            aInfo.CreationDate:= dateValue;
-        end
-        else if ExtractText(curStr, 'ModDate:', value) then
-        begin
-          if ConvertDateTime(value, dateValue) then
-            aInfo.ModDate:= dateValue;
-        end
-        else if ExtractText(curStr, 'Pages:', value) then
-        begin
-          if TryToConvertToInteger(value, intValue) then
-            aInfo.Pages:= intValue;
-        end
-        else if ExtractText(curStr, 'Page size:', value) then
-        begin
-          if ExtractPageSize(value, w, h) then
-          begin
-            aInfo.PageWidth := w;
-            aInfo.PageHeight := h;
-          end;
-        end
-        else if ExtractText(curStr, 'PDF version:', value) then
-          aInfo.PDFVersion:= value;
-      end;
-    finally
-      tmpList.Free;
+          aInfo.PageWidth := w;
+          aInfo.PageHeight := h;
+        end;
+      end
+      else if ExtractText(curStr, 'PDF version:', value) then
+        aInfo.PDFVersion:= value;
     end;
-  end
-  else
-  begin
-    FLastError := SPoppler_pdfinfo_error_unable_to_run + outputString;
-    exit;
+
+  finally
+    tmpList.Free;
   end;
+
   Result := true;
-
-
 end;
 
 initialization
