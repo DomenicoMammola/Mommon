@@ -24,7 +24,7 @@ type
 implementation
 
 uses
-  DateUtils, Forms;
+  DateUtils, Forms, StrUtils;
 
 
 procedure TTestPoppler.TestInfo;
@@ -38,6 +38,45 @@ begin
   CheckEquals(595, tmpInfo.PageHeight);
   CheckEquals('1.6', tmpInfo.PDFVersion);
   CheckEquals(EncodeDateTime(2022, 11, 28, 17, 40, 43, 0), tmpInfo.CreationDate);
+
+  CheckTrue(TPopplerToolbox.GetInfoFromPdf(IncludeTrailingPathDelimiter(Application.Location) + 'A4.pdf', tmpInfo));
+  CheckTrue(ContainsText(tmpInfo.Creator, 'Word per Office 365'));
+  CheckTrue(ContainsText(tmpInfo.Producer, 'Word per Office 365'));
+  CheckEquals(595, tmpInfo.PageWidth);
+  CheckEquals(842, tmpInfo.PageHeight);
+  CheckEquals('1.7', tmpInfo.PDFVersion);
+  CheckEquals(EncodeDateTime(2022, 12, 19, 10, 2, 40, 0), tmpInfo.CreationDate);
+
+  CheckTrue(TPopplerToolbox.GetInfoFromPdf(IncludeTrailingPathDelimiter(Application.Location) + 'letter.pdf', tmpInfo));
+  CheckEquals('Draw', tmpInfo.Creator);
+  CheckEquals('LibreOffice 7.2', tmpInfo.Producer);
+  CheckEquals(612, tmpInfo.PageWidth);
+  CheckEquals(792, tmpInfo.PageHeight);
+  CheckEquals('1.6', tmpInfo.PDFVersion);
+
+  CheckTrue(TPopplerToolbox.GetInfoFromPdf(IncludeTrailingPathDelimiter(Application.Location) + 'A5.pdf', tmpInfo));
+  CheckEquals('Draw', tmpInfo.Creator);
+  CheckEquals('LibreOffice 7.2', tmpInfo.Producer);
+  CheckEquals(420, tmpInfo.PageWidth);
+  CheckEquals(595, tmpInfo.PageHeight);
+  CheckEquals('1.6', tmpInfo.PDFVersion);
+  CheckEquals(EncodeDateTime(2022, 11, 28, 17, 37, 49, 0), tmpInfo.CreationDate);
+
+  CheckTrue(TPopplerToolbox.GetInfoFromPdf(IncludeTrailingPathDelimiter(Application.Location) + 'B5.pdf', tmpInfo));
+  CheckEquals('Draw', tmpInfo.Creator);
+  CheckEquals('LibreOffice 7.2', tmpInfo.Producer);
+  CheckEquals(516, tmpInfo.PageWidth);
+  CheckEquals(729, tmpInfo.PageHeight);
+  CheckEquals('1.6', tmpInfo.PDFVersion);
+  CheckEquals(EncodeDateTime(2022, 11, 28, 17, 40, 14, 0), tmpInfo.CreationDate);
+
+  CheckTrue(TPopplerToolbox.GetInfoFromPdf(IncludeTrailingPathDelimiter(Application.Location) + 'legal.pdf', tmpInfo));
+  CheckEquals('Draw', tmpInfo.Creator);
+  CheckEquals('LibreOffice 7.2', tmpInfo.Producer);
+  CheckEquals(612, tmpInfo.PageWidth);
+  CheckEquals(1008, tmpInfo.PageHeight);
+  CheckEquals('1.6', tmpInfo.PDFVersion);
+  CheckEquals(EncodeDateTime(2022, 11, 28, 17, 39, 15, 0), tmpInfo.CreationDate);
 end;
 
 procedure TTestPoppler.SetUp;
