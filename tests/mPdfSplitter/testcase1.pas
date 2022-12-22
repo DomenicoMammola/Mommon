@@ -9,9 +9,6 @@ uses
   mPoppler, mPdfSplitter, mProgress;
 
 
-const
-  popplerFolder = 'd:\temp\poppler';
-
 type
 
   { TTestCaseSplitter }
@@ -68,12 +65,26 @@ begin
 end;
 
 procedure TTestCaseSplitter.SetUp;
+{$IFDEF WINDOWS}
+var
+  popplerFolder : string;
+{$ENDIF}
 begin
+  {$IFDEF WINDOWS}
+  popplerFolder = 'd:\temp\poppler';
   Poppler_pdfunite_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfunite.exe';
   Poppler_pdfseparate_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfseparate.exe';
   Poppler_pdftoppm_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftoppm.exe';
   Poppler_pdftotext_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftotext.exe';
   Poppler_pdfinfo_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfinfo.exe';
+  {$ELSE}
+  Poppler_pdfunite_ExePath := 'pdfunite';
+  Poppler_pdfseparate_ExePath := 'pdfseparate';
+  Poppler_pdftoppm_ExePath := 'pdftoppm';
+  Poppler_pdftotext_ExePath := 'pdftotext';
+  Poppler_pdfinfo_ExePath := 'pdfinfo';
+  {$ENDIF}
+
   FOutputFolder:= IncludeTrailingPathDelimiter(ExtractFileDir(ParamStr(0))) + 'output';
   if not DirectoryExists(FOutputFolder) then
     ForceDirectories(FOutputFolder);

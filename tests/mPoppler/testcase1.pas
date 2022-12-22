@@ -8,8 +8,6 @@ uses
   Classes, SysUtils, fpcunit, testutils, testregistry,
   mPoppler;
 
-const
-  popplerFolder = 'd:\temp\poppler';
 
 type
 
@@ -30,8 +28,10 @@ uses
 procedure TTestPoppler.TestInfo;
 var
   tmpInfo : TPopplerPdfInfo;
+  ris : boolean;
 begin
-  CheckTrue(TPopplerToolbox.GetInfoFromPdf(IncludeTrailingPathDelimiter(Application.Location) + 'A4landscape.pdf', tmpInfo));
+  ris := TPopplerToolbox.GetInfoFromPdf(IncludeTrailingPathDelimiter(Application.Location) + 'A4landscape.pdf', tmpInfo);
+  CheckTrue(ris, TPopplerToolbox.GetLastError);
   CheckEquals('Draw', tmpInfo.Creator);
   CheckEquals('LibreOffice 7.2', tmpInfo.Producer);
   CheckEquals(842, tmpInfo.PageWidth);
@@ -80,12 +80,25 @@ begin
 end;
 
 procedure TTestPoppler.SetUp;
+{$IFDEF WINDOWS}
+var
+  popplerFolder : String;
+{$ENDIF}
 begin
+  {$IFDEF WINDOWS}
+  popplerFolder = 'd:\temp\poppler'; // set to the right folder
   Poppler_pdfunite_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfunite.exe';
   Poppler_pdfseparate_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfseparate.exe';
   Poppler_pdftoppm_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftoppm.exe';
   Poppler_pdftotext_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftotext.exe';
   Poppler_pdfinfo_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfinfo.exe';
+  {$ELSE}
+  Poppler_pdfunite_ExePath := 'pdfunite';
+  Poppler_pdfseparate_ExePath := 'pdfseparate';
+  Poppler_pdftoppm_ExePath := 'pdftoppm';
+  Poppler_pdftotext_ExePath := 'pdftotext';
+  Poppler_pdfinfo_ExePath := 'pdfinfo';
+  {$ENDIF}
 end;
 
 procedure TTestPoppler.TearDown;
