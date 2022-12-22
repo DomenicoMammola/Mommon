@@ -494,13 +494,16 @@ begin
     end;
     {$ELSE}
     cmd := Poppler_pdfinfo_ExePath;
-    if not RunCommand(cmd, [AnsiQuotedStr(aPdfFileName,'"')], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+    if not RunCommandIndir(ExtractFileDir(aPdfFileName), cmd, [ExtractFileName(aPdfFileName)], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
     begin
       FLastError := SPoppler_pdfinfo_error_unable_to_run + outputString;
       exit;
     end;
-    tmpList.Delimiter:= #10;
+    tmpList.Text:= outputString;
+    (*
+    tmpList.Delimiter:= '''';
     tmpList.DelimitedText:= outputString;
+    *)
     {$ENDIF}
 
     aInfo.Title := '';
