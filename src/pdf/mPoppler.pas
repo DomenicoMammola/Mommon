@@ -20,8 +20,7 @@ unit mPoppler;
 interface
 
 uses
-  sysutils, Classes,
-  fpPDF;
+  sysutils, Classes;
 
 resourcestring
   SPoppler_error_missing_clu = 'Missing clu: ';
@@ -57,11 +56,13 @@ type
     class function CheckPoppler_pdftoppm_ExePath : boolean;
     class function CheckPoppler_pdftotext_ExePath : boolean;
     class function CheckPoppler_pdfinfo_ExePath : boolean;
+    class function ExtractPagesFromPdfAsImages(const aPdfFileName, aDestinationFileName: string; const aImageType : string; const aResolution : integer; const aJpegQuality : integer; const aOnlyFrontPage : boolean) : boolean;
   public
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
     class function MergePdfFiles (const aFiles : TStrings; const aDestinationFileName : string): boolean;
     class function ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     class function ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 72) : boolean;
+    class function ExtractPagesFromPdfAsJpeg(const aPdfFileName, aDestinationFolder, aPrefixFileName : string; const aQuality : integer; const aResolution : integer = 72): boolean;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText : String): boolean; overload;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines : TStringList): boolean; overload;
     class function GetLastError : String;
@@ -78,7 +79,7 @@ var
 implementation
 
 uses
-  Process, LazUTF8, StrUtils,
+  Process, LazUTF8, StrUtils, FileUtil, Math,
   mUtility, mMathUtility,
   {$IFDEF NOGUI}
   mGraphicsUtilityNoGUI
@@ -143,16 +144,15 @@ begin
   Result := CheckCLU(Poppler_pdfinfo_ExePath);
 end;
 
-class function TPopplerToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate: string): boolean;
+class function TPopplerToolbox.ExtractPagesFromPdfAsImages(const aPdfFileName, aDestinationFileName: string; const aImageType: string; const aResolution: integer; const aJpegQuality : integer; const aOnlyFrontPage : boolean): boolean;
 var
-  outputString : string;
-  thumbFileTemplate : String;
+  outputString, tmpDestFile : string;
   {$IFNDEF UNIX}
   cmd : String;
   {$ENDIF}
 begin
   Result := false;
-  if not CheckPoppler_pdfseparate_ExePath then
+  if not CheckPoppler_pdftoppm_ExePath then
     exit;
 
   if not FileExists(aPdfFileName) then
@@ -161,21 +161,27 @@ begin
     exit;
   end;
 
-  thumbFileTemplate := IncludeTrailingPathDelimiter(aPagesFolder) + aFileNameTemplate;
-
   {$IFDEF UNIX}
-  if not RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdfseparate_ExePath, [aPdfFileName, thumbFileTemplate], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftoppm_ExePath, ['-singlefile' , '-' + aImageType, '-r', IntToStr(aResolution), aPdfFileName, aDestinationFileName], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
+  if aOnlyFrontPage then
+    cmd := '-singlefile '
+  else
+    cmd := '';
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
-
-  cmd := AnsiQuotedStr(aPdfFileName,'"') + ' "' + thumbFileTemplate + '"';
-  if not RunCommand(Poppler_pdfseparate_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+  cmd := cmd + '-' + aImageType + ' -r ' + IntToStr(aResolution);
+  if aImageType = 'jpeg' then
+    cmd := cmd + ' '  + '-jpegopt optimize=y,quality=' + IntToStr(aJpegQuality);
+  cmd := cmd + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(aDestinationFileName,'"');
+  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
-    FLastError := SPoppler_pdfseparate_error_unable_to_run + outputString;
-    exit;
+    Result := true;
+  end
+  else
+  begin
+    FLastError := SPoppler_pdftoppm_error_unable_to_run + outputString;
   end;
-  Result := true;
 end;
 
 class function TPopplerToolbox.MergePdfFiles(const aFiles: TStrings; const aDestinationFileName: string): boolean;
@@ -212,6 +218,42 @@ begin
   end;
   Result := true;
 end;
+
+class function TPopplerToolbox.SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate: string): boolean;
+var
+  outputString : string;
+  thumbFileTemplate : String;
+  {$IFNDEF UNIX}
+  cmd : String;
+  {$ENDIF}
+begin
+  Result := false;
+  if not CheckPoppler_pdfseparate_ExePath then
+    exit;
+
+  if not FileExists(aPdfFileName) then
+  begin
+    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    exit;
+  end;
+
+  thumbFileTemplate := IncludeTrailingPathDelimiter(aPagesFolder) + aFileNameTemplate;
+
+  {$IFDEF UNIX}
+  if not RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdfseparate_ExePath, [aPdfFileName, thumbFileTemplate], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+
+  cmd := AnsiQuotedStr(aPdfFileName,'"') + ' "' + thumbFileTemplate + '"';
+  if not RunCommand(Poppler_pdfseparate_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+  {$ENDIF}
+  begin
+    FLastError := SPoppler_pdfseparate_error_unable_to_run + outputString;
+    exit;
+  end;
+  Result := true;
+end;
+
 
 class function TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word): boolean;
 var
@@ -268,36 +310,15 @@ end;
 
 class function TPopplerToolbox.ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution: integer): boolean;
 var
-  outputString, tmpDestFile : string;
-  {$IFNDEF UNIX}
-  cmd : String;
-  {$ENDIF}
+  tmpDestFile : String;
 begin
-  Result := false;
-  if not CheckPoppler_pdftoppm_ExePath then
-    exit;
-
-  if not FileExists(aPdfFileName) then
-  begin
-    FLastError := SPoppler_error_file_missing + aPdfFileName;
-    exit;
-  end;
-
   tmpDestFile := ChangeFileExt(aDestinationFileName, '');
-  {$IFDEF UNIX}
-  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftoppm_ExePath, ['-singlefile' , '-png', '-r', IntToStr(aResolution), aPdfFileName, tmpDestFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
-  {$ELSE}
-  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
-  cmd := '-singlefile -png -r ' + IntToStr(aResolution) + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tmpDestFile,'"');
-  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
-  {$ENDIF}
-  begin
-    Result := true;
-  end
-  else
-  begin
-    FLastError := SPoppler_pdftoppm_error_unable_to_run + outputString;
-  end;
+  Result := ExtractPagesFromPdfAsImages(aPdfFileName, tmpDestFile, 'png', aResolution, 0, true);
+end;
+
+class function TPopplerToolbox.ExtractPagesFromPdfAsJpeg(const aPdfFileName, aDestinationFolder, aPrefixFileName: string; const aQuality: integer; const aResolution: integer): boolean;
+begin
+  Result := ExtractPagesFromPdfAsImages(aPdfFileName, IncludeTrailingPathDelimiter(aDestinationFolder) + aPrefixFileName, 'jpeg', aResolution, aQuality, false);
 end;
 
 class function TPopplerToolbox.ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText: String): boolean;
@@ -585,6 +606,7 @@ begin
 
   Result := true;
 end;
+
 
 initialization
   FLastError := '';
