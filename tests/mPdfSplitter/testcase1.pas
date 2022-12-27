@@ -71,7 +71,7 @@ var
 {$ENDIF}
 begin
   {$IFDEF WINDOWS}
-  popplerFolder = 'd:\temp\poppler';
+  popplerFolder := 'd:\temp\poppler';
   Poppler_pdfunite_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfunite.exe';
   Poppler_pdfseparate_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfseparate.exe';
   Poppler_pdftoppm_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftoppm.exe';

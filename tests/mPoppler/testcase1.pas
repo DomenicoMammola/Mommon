@@ -11,18 +11,22 @@ uses
 
 type
 
+  { TTestPoppler }
+
   TTestPoppler= class(TTestCase)
   protected
     procedure SetUp; override;
     procedure TearDown; override;
   published
     procedure TestInfo;
+    procedure TestExtractPagesAsJpeg;
   end;
 
 implementation
 
 uses
-  DateUtils, Forms, StrUtils;
+  DateUtils, Forms, StrUtils, FileUtil,
+  mUtility;
 
 
 procedure TTestPoppler.TestInfo;
@@ -79,6 +83,19 @@ begin
   CheckEquals(EncodeDateTime(2022, 11, 28, 17, 39, 15, 0), tmpInfo.CreationDate);
 end;
 
+procedure TTestPoppler.TestExtractPagesAsJpeg;
+var
+  tmpFolder : String;
+begin
+  tmpFolder:= GetUniqueTemporaryFolder;
+  try
+    CheckTrue(TPopplerToolbox.ExtractPagesFromPdfAsJpeg(IncludeTrailingPathDelimiter(Application.Location) + 'many_pages.pdf', tmpFolder, 'test_extract_pages_as_jpeg', 60, 150));
+    CheckTrue(FileExists(IncludeTrailingPathDelimiter(tmpFolder) + 'test_extract_pages_as_jpeg-43.jpg'));
+  finally
+    DeleteDirectory(tmpFolder, false);
+  end;
+end;
+
 procedure TTestPoppler.SetUp;
 {$IFDEF WINDOWS}
 var
@@ -86,7 +103,7 @@ var
 {$ENDIF}
 begin
   {$IFDEF WINDOWS}
-  popplerFolder = 'd:\temp\poppler'; // set to the right folder
+  popplerFolder := 'd:\temp\poppler'; // set to the right folder
   Poppler_pdfunite_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfunite.exe';
   Poppler_pdfseparate_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfseparate.exe';
   Poppler_pdftoppm_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftoppm.exe';
