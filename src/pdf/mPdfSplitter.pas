@@ -53,50 +53,8 @@ implementation
 
 uses
   SysUtils, Math, Classes, FileUtil,
-  mUtility;
+  mUtility, mPdfMerger;
 
-const
-  MAX_FILES = 10;
-
-function MergeFiles (aFilesToBeMerged : TStringList; const aWorkingFolder : String; const aDestinationFile : string; out aError : string) : boolean;
-var
-  temporaryFiles, curFilesToBeMerged : TStringList;
-  k, z : integer;
-  tmpFile : String;
-begin
-  Result := false;
-  temporaryFiles := TStringList.Create;
-  curFilesToBeMerged := TStringList.Create;
-  try
-    if aFilesToBeMerged.Count = 1 then
-    begin
-      CopyFile(aFilesToBeMerged.Strings[0], aDestinationFile);
-      Result := true;
-    end
-    else
-    begin
-      k := 0;
-      while k < aFilesToBeMerged.Count do
-      begin
-        for z := k to min(aFilesToBeMerged.Count - 1, (k + MAX_FILES - 1)) do
-          curFilesToBeMerged.Add(aFilesToBeMerged.Strings[z]);
-        tmpFile := IncludeTrailingPathDelimiter(aWorkingFolder) + GenerateRandomIdString(20) + '.pdf';
-        temporaryFiles.Add(tmpFile);
-        if not TPopplerToolbox.MergePdfFiles(curFilesToBeMerged, tmpFile) then
-        begin
-          aError := TPopplerToolbox.GetLastError;
-          exit;
-        end;
-        k := k + MAX_FILES;
-      end;
-      Result := MergeFiles(temporaryFiles, aWorkingFolder, aDestinationFile, aError);
-    end;
-  finally
-    temporaryFiles.Free;
-    curFilesToBeMerged.Free;
-  end;
-
-end;
 
 function SplitPdfFile(const aSourceFileName: String; const aCommands: TSplitCommands; aProgress: ImProgress; out aError: String): boolean;
 var
