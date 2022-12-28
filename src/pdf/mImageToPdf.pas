@@ -22,7 +22,7 @@ uses
 type
   TConvertedPdfOrientation = (cpoPortrait, cpoLandscape, cpoAdapt);
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean; overload;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation; const aPaperType : TPDFPaperType = ptA4; const aWidth : integer = 0; const aHeight : integer = 0): boolean; overload;
 function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile : String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean): boolean; overload;
 
 procedure CreateSinglePageEmpyPdf(const aPdfFile: String; const aWidth, aHeight : integer); overload;
@@ -33,22 +33,24 @@ implementation
 
 
 uses
-  sysutils,
+  SysUtils, Math,
   fpreadjpeg,
   fpparsettf;
 
-function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation; out aActualOrientation : TConvertedPdfOrientation): boolean;
+function ConvertImageToPdf(const aSourceImageFile, aDestinationPdfFile: String; const aEnlargeToPage : boolean; const aIgnoreBorders : boolean; const aOrientation : TConvertedPdfOrientation;
+  out aActualOrientation : TConvertedPdfOrientation; const aPaperType : TPDFPaperType = ptA4; const aWidth : integer = 0; const aHeight : integer = 0): boolean;
 var
   doc : TPDFDocument;
   page : TPDFPage;
   sec : TPDFSection;
-  img, w, h, pageWidth, pageHeight, imgWidth, imgHeight : integer;
+  img, w, h, pageWidth, pageHeight, imgWidth, imgHeight, margin : integer;
+  PP: TPDFPaper;
 begin
   Result := false;
   doc := TPDFDocument.Create(Nil);
   try
     doc.Infos.CreationDate:= Now;
-    doc.Options:= [poCompressFonts, poCompressText, poCompressImages];
+    doc.Options:= [poCompressFonts, poCompressText, poCompressImages, poUseRawJPEG];
     doc.StartDocument;
     sec := doc.Sections.AddSection; // we always need at least one section
 
@@ -58,7 +60,31 @@ begin
     imgHeight :=  doc.Images[0].Height;
 
     page := doc.Pages.AddPage;
-    page.PaperType:= ptA4;
+    if aPaperType = ptCustom then
+    begin
+      PP.H:= aHeight;
+      PP.W:= aWidth;
+      if aIgnoreBorders then
+      begin
+        PP.Printable.T:= 0;
+        PP.Printable.L:= 0;
+        PP.Printable.R:= aWidth;
+        PP.Printable.B:= aHeight;
+      end
+      else
+      begin
+        margin := min(10, trunc(aWidth * 0.035));
+        margin := min(margin, trunc(aHeight * 0.035));
+        PP.Printable.T:= margin;
+        PP.Printable.L:= margin;
+        PP.Printable.R:= aWidth - margin;
+        PP.Printable.B := aHeight - margin;
+      end;
+      page.Paper := PP;
+      page.PaperType:= ptCustom;
+    end
+    else
+      page.PaperType:= aPaperType;
     page.UnitOfMeasure:= uomPixels;
     if aOrientation = cpoPortrait then
       page.Orientation:= ppoPortrait
