@@ -30,6 +30,7 @@ resourcestring
   SPoppler_pdftoppm_error_unable_to_run = 'Unable to run Poppler pdftoppm: ';
   SPoppler_pdftotext_error_unable_to_run = 'Unable to run Poppler pdftotext: ';
   SPoppler_pdfinfo_error_unable_to_run = 'Unable to run Poppler pdfinfo: ';
+  SPoppler_pdfimages_error_unable_to_run = 'Unable to run Poppler pdfimages: ';
 
 type
 
@@ -56,6 +57,7 @@ type
     class function CheckPoppler_pdftoppm_ExePath : boolean;
     class function CheckPoppler_pdftotext_ExePath : boolean;
     class function CheckPoppler_pdfinfo_ExePath : boolean;
+    class function CheckPoppler_pdfimages_ExePath : boolean;
     class function ExtractPagesFromPdfAsImages(const aPdfFileName, aDestinationFileName: string; const aImageType : string; const aResolution : integer; const aJpegQuality : integer; const aOnlyFrontPage : boolean) : boolean;
   public
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
@@ -67,6 +69,7 @@ type
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines : TStringList): boolean; overload;
     class function GetLastError : String;
     class function GetInfoFromPdf (const aPdfFileName : string; var aInfo : TPopplerPdfInfo): boolean;
+    class function GetImagesInfoFromPdf (const aPdfFileName : string; out aImagesCount : integer): boolean;
   end;
 
 var
@@ -75,6 +78,7 @@ var
   Poppler_pdftoppm_ExePath : string;
   Poppler_pdftotext_ExePath : string;
   Poppler_pdfinfo_ExePath : string;
+  Poppler_pdfimages_ExePath : string;
 
 implementation
 
@@ -142,6 +146,11 @@ end;
 class function TPopplerToolbox.CheckPoppler_pdfinfo_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdfinfo_ExePath);
+end;
+
+class function TPopplerToolbox.CheckPoppler_pdfimages_ExePath: boolean;
+begin
+  Result := CheckCLU(Poppler_pdfimages_ExePath);
 end;
 
 class function TPopplerToolbox.ExtractPagesFromPdfAsImages(const aPdfFileName, aDestinationFileName: string; const aImageType: string; const aResolution: integer; const aJpegQuality : integer; const aOnlyFrontPage : boolean): boolean;
@@ -600,6 +609,77 @@ begin
         aInfo.PDFVersion:= value;
     end;
 
+  finally
+    tmpList.Free;
+  end;
+
+  Result := true;
+end;
+
+class function TPopplerToolbox.GetImagesInfoFromPdf(const aPdfFileName: string; out aImagesCount: integer): boolean;
+var
+  outputString, curStr, value, cmd : string;
+  tmpList : TStringList;
+  i, intValue, w, h : integer;
+  dateValue : TDateTime;
+  {$IFDEF WINDOWS}
+  tmpFileName, tmpFileNameBatch : String;
+  command : TStringList;
+  {$ENDIF}
+begin
+  Result := false;
+
+  if not CheckPoppler_pdfinfo_ExePath then
+    exit;
+
+  if not FileExists(aPdfFileName) then
+  begin
+    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    exit;
+  end;
+
+  tmpList := TStringList.Create;
+  try
+    {$IFDEF WINDOWS}
+    command := TStringList.Create;
+    try
+      tmpFileNameBatch := GetTempFileName(GetTempDir, 'popplerimages');
+      tmpFileNameBatch := ChangeFileExt(tmpFileNameBatch, '.bat');
+      tmpFileName := GetTempFileName(GetTempDir, '');
+      command.Append(Poppler_pdfimages_ExePath + ' -list ' + AnsiQuotedStr(aPdfFileName,'"') + ' > ' + AnsiQuotedStr(tmpFileName,'"'));
+      command.SaveToFile(tmpFileNameBatch);
+      try
+        if RunCommand(tmpFileNameBatch, [], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+          tmpList.LoadFromFile(tmpFileName)
+        else
+        begin
+          FLastError := SPoppler_pdfimages_error_unable_to_run + outputString;
+          exit;
+        end;
+      finally
+        if FileExists(tmpFileName) then
+          DeleteFile(tmpFileName);
+        if FileExists(tmpFileNameBatch) then
+          DeleteFile(tmpFileNameBatch);
+      end;
+    finally
+      command.Free;
+    end;
+    {$ELSE}
+    cmd := Poppler_pdfmages_ExePath;
+    if not RunCommandIndir(ExtractFileDir(aPdfFileName), cmd, ['-list', ExtractFileName(aPdfFileName)], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+    begin
+      FLastError := SPoppler_pdfimages_error_unable_to_run + outputString;
+      exit;
+    end;
+    tmpList.Text:= outputString;
+    (*
+    tmpList.Delimiter:= '''';
+    tmpList.DelimitedText:= outputString;
+    *)
+    {$ENDIF}
+
+    aImagesCount:= tmpList.Count - 2;
   finally
     tmpList.Free;
   end;
