@@ -13,7 +13,7 @@ interface
 
 uses
   Contnrs,
-  mPoppler, mProgress;
+  mProgress;
 
 type
 
@@ -53,7 +53,7 @@ implementation
 
 uses
   SysUtils, Math, Classes, FileUtil,
-  mUtility, mPdfMerger;
+  mUtility, mPdfMerger, mPoppler;
 
 
 function SplitPdfFile(const aSourceFileName: String; const aCommands: TSplitCommands; aProgress: ImProgress; out aError: String): boolean;
