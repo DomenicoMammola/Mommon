@@ -109,12 +109,14 @@ begin
   Poppler_pdftoppm_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftoppm.exe';
   Poppler_pdftotext_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdftotext.exe';
   Poppler_pdfinfo_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfinfo.exe';
+  Poppler_pdfimages_ExePath := IncludeTrailingPathDelimiter(popplerFolder) + 'pdfimages.exe';
   {$ELSE}
   Poppler_pdfunite_ExePath := 'pdfunite';
   Poppler_pdfseparate_ExePath := 'pdfseparate';
   Poppler_pdftoppm_ExePath := 'pdftoppm';
   Poppler_pdftotext_ExePath := 'pdftotext';
   Poppler_pdfinfo_ExePath := 'pdfinfo';
+  Poppler_pdfimages_ExePath := 'pdfimages';
   {$ENDIF}
 end;
 
