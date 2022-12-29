@@ -19,7 +19,7 @@ uses
 
 function GetPageType (const aWidth, aHeight : integer): TPDFPaperType;
 
-function ReduceSizeOfPdf (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aError : String) : boolean;
+function ReduceSizeOfPdf (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aReductionPerc : integer; out aError : String; const aResolution : integer = 72) : boolean;
 
 implementation
 
@@ -50,7 +50,7 @@ begin
   end;
 end;
 
-function ReduceSizeOfPdf(const aSourceFileName, aDestinationFileName: String; aProgress: ImProgress; out aError: String): boolean;
+function ReduceSizeOfPdf(const aSourceFileName, aDestinationFileName: String; aProgress: ImProgress; out aReductionPerc : integer; out aError: String; const aResolution : integer): boolean;
 var
   tmpFolderPages, tmpFolderJpeg, tmpFolderTemp : String;
   pdfinfo, pagePdfInfo : TPopplerPdfInfo;
@@ -61,6 +61,7 @@ var
   pt : TPDFPaperType;
   tmpSourceFile, tmpDestinationFile : string;
   filesToBeMerged : TStringList;
+  sizeSource, sizeDest : integer;
 begin
   Result := false;
 
@@ -69,6 +70,8 @@ begin
     aError := TPopplerToolbox.GetLastError;
     exit;
   end;
+
+  aReductionPerc:= 0;
 
   tmpFolderPages := GetUniqueTemporaryFolder;
 
@@ -96,6 +99,7 @@ begin
     try
       for i := 1 to pdfinfo.Pages do
       begin
+        aProgress.Notify('Processing page #' + IntToStr(i) + '...');
         tmpSourceFile:= IncludeTrailingPathDelimiter(tmpFolderPages) + 'page_' + IntToStr(i) + '.pdf';
 
         numOfImages := 0;
@@ -118,7 +122,7 @@ begin
           end;
 
           tmpDestinationFile:= 'page' + IntToStr(i);
-          if not TPopplerToolbox.ExtractPagesFromPdfAsJpeg(tmpSourceFile, tmpFolderJpeg, tmpDestinationFile, 60, 72) then
+          if not TPopplerToolbox.ExtractPagesFromPdfAsJpeg(tmpSourceFile, tmpFolderJpeg, tmpDestinationFile, 60, aResolution) then
           begin
             aError := TPopplerToolbox.GetLastError;
             exit;
@@ -146,9 +150,16 @@ begin
         end;
       end;
 
+      aProgress.Notify('Merging all together...');
       if not MergeFiles(filesToBeMerged, tmpFolderTemp, aDestinationFileName, aError) then
         exit;
 
+      sizeSource := FileSize(aSourceFileName);
+      sizeDest := FileSize(aDestinationFileName);
+
+      aReductionPerc:= max(0, trunc ((sizeSource - sizeDest) / (sizeSource/100)));
+
+      aProgress.Notify('Cleaning...');
     finally
       jpegFiles.Free;
       pdfPagesFiles.Free;
