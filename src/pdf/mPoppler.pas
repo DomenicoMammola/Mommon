@@ -479,9 +479,11 @@ var
   tmpList : TStringList;
   i, intValue, w, h : integer;
   dateValue : TDateTime;
+  rotate : boolean;
   {$IFDEF WINDOWS}
   tmpFileName, tmpFileNameBatch : String;
   command : TStringList;
+  newSourceFile : String;
   {$ENDIF}
 begin
   Result := false;
@@ -495,15 +497,19 @@ begin
     exit;
   end;
 
+  rotate := false;
+
   tmpList := TStringList.Create;
   try
     {$IFDEF WINDOWS}
     command := TStringList.Create;
     try
+      newSourceFile:= GetTempFileName(GetTempDir, 'popplerinfo_source_' + GenerateRandomIdString);
+      CopyFile(aPdfFileName, newSourceFile);
       tmpFileNameBatch := GetTempFileName(GetTempDir, 'popplerinfo');
       tmpFileNameBatch := ChangeFileExt(tmpFileNameBatch, '.bat');
       tmpFileName := GetTempFileName(GetTempDir, '');
-      command.Append(Poppler_pdfinfo_ExePath + ' ' + AnsiQuotedStr(aPdfFileName,'"') + ' > ' + AnsiQuotedStr(tmpFileName,'"'));
+      command.Append(AnsiQuotedStr(Poppler_pdfinfo_ExePath,'"') + ' ' + AnsiQuotedStr(newSourceFile,'"') + ' > ' + AnsiQuotedStr(tmpFileName,'"'));
       command.SaveToFile(tmpFileNameBatch);
       try
         if RunCommand(tmpFileNameBatch, [], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
@@ -518,6 +524,8 @@ begin
           DeleteFile(tmpFileName);
         if FileExists(tmpFileNameBatch) then
           DeleteFile(tmpFileNameBatch);
+        if FileExists(newSourceFile) then
+          DeleteFile(newSourceFile);
       end;
     finally
       command.Free;
@@ -605,8 +613,21 @@ begin
           aInfo.PageHeight := h;
         end;
       end
+      else if ExtractText(curStr, 'Page rot:', value) then
+      begin
+        if TryToConvertToInteger(value,  intValue) then
+          if abs(intValue) = 90 then
+            rotate := true;
+      end
       else if ExtractText(curStr, 'PDF version:', value) then
         aInfo.PDFVersion:= value;
+    end;
+
+    if rotate then
+    begin
+      h := aInfo.PageHeight;
+      aInfo.PageHeight:= aInfo.PageWidth;
+      aInfo.PageWidth:= h;
     end;
 
   finally
@@ -623,7 +644,7 @@ var
   i, intValue, w, h : integer;
   dateValue : TDateTime;
   {$IFDEF WINDOWS}
-  tmpFileName, tmpFileNameBatch : String;
+  tmpFileName, tmpFileNameBatch, newSourceFile : String;
   command : TStringList;
   {$ENDIF}
 begin
@@ -646,7 +667,10 @@ begin
       tmpFileNameBatch := GetTempFileName(GetTempDir, 'popplerimages');
       tmpFileNameBatch := ChangeFileExt(tmpFileNameBatch, '.bat');
       tmpFileName := GetTempFileName(GetTempDir, '');
-      command.Append(Poppler_pdfimages_ExePath + ' -list ' + AnsiQuotedStr(aPdfFileName,'"') + ' > ' + AnsiQuotedStr(tmpFileName,'"'));
+      newSourceFile:= GetTempFileName(GetTempDir, 'popplerimages_source_' + GenerateRandomIdString);
+      CopyFile(aPdfFileName, newSourceFile);
+
+      command.Append(AnsiQuotedStr(Poppler_pdfimages_ExePath,'"') + ' -list ' + AnsiQuotedStr(newSourceFile,'"') + ' > ' + AnsiQuotedStr(tmpFileName,'"'));
       command.SaveToFile(tmpFileNameBatch);
       try
         if RunCommand(tmpFileNameBatch, [], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
@@ -661,6 +685,8 @@ begin
           DeleteFile(tmpFileName);
         if FileExists(tmpFileNameBatch) then
           DeleteFile(tmpFileNameBatch);
+        if FileExists(newSourceFile) then
+          DeleteFile(newSourceFile);
       end;
     finally
       command.Free;
