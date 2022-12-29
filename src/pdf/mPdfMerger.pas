@@ -46,6 +46,7 @@ begin
       k := 0;
       while k < aFilesToBeMerged.Count do
       begin
+        curFilesToBeMerged.Clear;
         for z := k to min(aFilesToBeMerged.Count - 1, (k + MERGE_NUM_FILES_LIMIT - 1)) do
           curFilesToBeMerged.Add(aFilesToBeMerged.Strings[z]);
         tmpFile := IncludeTrailingPathDelimiter(aWorkingFolder) + GenerateRandomIdString(20) + '.pdf';
