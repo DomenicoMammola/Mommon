@@ -171,6 +171,8 @@ function IsRunningAsRoot: boolean;
 procedure RunConsoleApplicationAndGetOutput(const aCommand : string; const aParameters : array of string; out aOutputText : String);
 {$ENDIF}
 
+function CheckCLU (const aCLU : String): boolean;
+
 {$IFDEF DELPHI}
 function VarIsBool(const V: Variant): Boolean;
 {$ENDIF}
@@ -2550,6 +2552,28 @@ begin
     tmpProcess.Free;
   end;
 end;
+
+function CheckCLU(const aCLU: String): boolean;
+{$IFDEF UNIX}
+var
+  cmd, outputString : String;
+{$ENDIF}
+begin
+  {$IFDEF WINDOWS}
+  Result := false;
+  if not FileExists(aCLU) then
+    exit;
+  Result := true;
+  {$ELSE}
+  {$IFDEF UNIX}
+  cmd := '-v ' + aCLU;
+  Result := RunCommand('/bin/bash',['-c','command', cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]);
+  {$ELSE}
+  Result := false;
+  {$ENDIF}
+  {$ENDIF}
+end;
+
 {$ENDIF}
 
 function GetTimeStampForFileName(const aInstant: TDateTime; const aAddTime : boolean = true): string;
