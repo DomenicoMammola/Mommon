@@ -23,14 +23,14 @@ uses
   sysutils, Classes;
 
 resourcestring
-  SPoppler_error_missing_clu = 'Missing clu: ';
-  SPoppler_error_file_missing = 'Pdf file is missing: ';
-  SPoppler_pdfunite_error_unable_to_run = 'Unable to run Poppler pdfunite: ';
-  SPoppler_pdfseparate_error_unable_to_run = 'Unable to run Poppler pdfseparate: ';
-  SPoppler_pdftoppm_error_unable_to_run = 'Unable to run Poppler pdftoppm: ';
-  SPoppler_pdftotext_error_unable_to_run = 'Unable to run Poppler pdftotext: ';
-  SPoppler_pdfinfo_error_unable_to_run = 'Unable to run Poppler pdfinfo: ';
-  SPoppler_pdfimages_error_unable_to_run = 'Unable to run Poppler pdfimages: ';
+  SPoppler_error_missing_clu = 'Missing clu: %s';
+  SPoppler_error_file_missing = 'Pdf file is missing: %s';
+  SPoppler_pdfunite_error_unable_to_run = 'Unable to run Poppler pdfunite: %s';
+  SPoppler_pdfseparate_error_unable_to_run = 'Unable to run Poppler pdfseparate: %s';
+  SPoppler_pdftoppm_error_unable_to_run = 'Unable to run Poppler pdftoppm: %s';
+  SPoppler_pdftotext_error_unable_to_run = 'Unable to run Poppler pdftotext: %s';
+  SPoppler_pdfinfo_error_unable_to_run = 'Unable to run Poppler pdfinfo: %s';
+  SPoppler_pdfimages_error_unable_to_run = 'Unable to run Poppler pdfimages: %s';
 
 type
 
@@ -67,9 +67,9 @@ type
     class function ExtractPagesFromPdfAsJpeg(const aPdfFileName, aDestinationFolder, aPrefixFileName : string; const aQuality : integer; const aResolution : integer = 72): boolean;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText : String): boolean; overload;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines : TStringList): boolean; overload;
-    class function GetLastError : String;
     class function GetInfoFromPdf (const aPdfFileName : string; var aInfo : TPopplerPdfInfo): boolean;
     class function GetImagesInfoFromPdf (const aPdfFileName : string; out aImagesCount : integer): boolean;
+    class function GetLastError : String;
   end;
 
 var
@@ -94,63 +94,48 @@ uses
 var
   FLastError : String;
 
-function CheckCLU (const aCLU : String): boolean;
-{$IFDEF UNIX}
-var
-  cmd, outputString : String;
-{$ENDIF}
-begin
-  {$IFDEF WINDOWS}
-  Result := false;
-  if not FileExists(aCLU) then
-  begin
-    FLastError := SPoppler_error_missing_clu +  aCLU;
-    exit;
-  end;
-  Result := true;
-  {$ELSE}
-  {$IFDEF UNIX}
-  cmd := '-v ' + aCLU;
-  Result := RunCommand('/bin/bash',['-c','command', cmd],outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]);
-  if not Result then
-    FLastError := SPoppler_error_missing_clu + aCLU;
-  {$ELSE}
-  FLastError := SPoppler_error_missing_clu +  aCLU;
-  Result := false;
-  {$ENDIF}
-  {$ENDIF}
-end;
-
 { TPopplerToolbox }
 
 class function TPopplerToolbox.CheckPoppler_pdfunite_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdfunite_ExePath);
+  if not Result then
+    FLastError := Format(SPoppler_error_missing_clu, [Poppler_pdfunite_ExePath]);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdfseparate_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdfseparate_ExePath);
+  if not Result then
+    FLastError := Format(SPoppler_error_missing_clu, [Poppler_pdfseparate_ExePath]);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdftoppm_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdftoppm_ExePath);
+  if not Result then
+    FLastError := Format(SPoppler_error_missing_clu, [Poppler_pdftoppm_ExePath]);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdftotext_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdftotext_ExePath);
+  if not Result then
+    FLastError := Format(SPoppler_error_missing_clu, [Poppler_pdftotext_ExePath]);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdfinfo_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdfinfo_ExePath);
+  if not Result then
+    FLastError := Format(SPoppler_error_missing_clu, [Poppler_pdfinfo_ExePath]);
 end;
 
 class function TPopplerToolbox.CheckPoppler_pdfimages_ExePath: boolean;
 begin
   Result := CheckCLU(Poppler_pdfimages_ExePath);
+  if not Result then
+    FLastError := Format(SPoppler_error_missing_clu, [Poppler_pdfimages_ExePath]);
 end;
 
 class function TPopplerToolbox.ExtractPagesFromPdfAsImages(const aPdfFileName, aDestinationFileName: string; const aImageType: string; const aResolution: integer; const aJpegQuality : integer; const aOnlyFrontPage : boolean): boolean;
@@ -169,7 +154,7 @@ begin
 
   if not FileExists(aPdfFileName) then
   begin
-    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    FLastError := Format(SPoppler_error_file_missing, [aPdfFileName]);
     exit;
   end;
 
@@ -208,7 +193,7 @@ begin
   end
   else
   begin
-    FLastError := SPoppler_pdftoppm_error_unable_to_run + outputString;
+    FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
   end;
 end;
 
@@ -241,7 +226,7 @@ begin
   if not RunCommand(Poppler_pdfunite_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
-    FLastError := SPoppler_pdfunite_error_unable_to_run + outputString;
+    FLastError := Format(SPoppler_pdfunite_error_unable_to_run, [outputString]);
     exit;
   end;
   Result := true;
@@ -261,7 +246,7 @@ begin
 
   if not FileExists(aPdfFileName) then
   begin
-    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    FLastError := Format(SPoppler_error_file_missing, [aPdfFileName]);
     exit;
   end;
 
@@ -276,7 +261,7 @@ begin
   if not RunCommand(Poppler_pdfseparate_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
-    FLastError := SPoppler_pdfseparate_error_unable_to_run + outputString;
+    FLastError := Format(SPoppler_pdfseparate_error_unable_to_run, [outputString]);
     exit;
   end;
   Result := true;
@@ -297,7 +282,7 @@ begin
 
   if not FileExists(aPdfFileName) then
   begin
-    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    FLastError := Format(SPoppler_error_file_missing, [aPdfFileName]);
     exit;
   end;
 
@@ -316,7 +301,7 @@ begin
     begin
       if not GeneratePNGThumbnailOfImage(tempFile, aThumbnailFileName, aWidth, aHeight, outputString) then
       begin
-        FLastError := SPoppler_pdftoppm_error_unable_to_run + outputString;
+        FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
         DeleteFile(tempFile);
         exit;
       end;
@@ -324,13 +309,13 @@ begin
     end
     else
     begin
-      FLastError := SPoppler_pdftoppm_error_unable_to_run + outputString;
+      FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
       exit;
     end;
   end
   else
   begin
-    FLastError := SPoppler_pdftoppm_error_unable_to_run + outputString;
+    FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
     exit;
   end;
   Result := true;
@@ -380,7 +365,7 @@ begin
 
   if not FileExists(aPdfFileName) then
   begin
-    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    FLastError := Format(SPoppler_error_file_missing,[aPdfFileName]);
     exit;
   end;
 
@@ -406,7 +391,7 @@ begin
   end
   else
   begin
-    FLastError := SPoppler_pdftotext_error_unable_to_run + outputString;
+    FLastError := Format(SPoppler_pdftotext_error_unable_to_run, [outputString]);
     exit;
   end;
   Result := true;
@@ -511,7 +496,7 @@ begin
 
   if not FileExists(aPdfFileName) then
   begin
-    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    FLastError := Format(SPoppler_error_file_missing, [aPdfFileName]);
     exit;
   end;
 
@@ -534,7 +519,7 @@ begin
           tmpList.LoadFromFile(tmpFileName)
         else
         begin
-          FLastError := SPoppler_pdfinfo_error_unable_to_run + outputString;
+          FLastError := Format(SPoppler_pdfinfo_error_unable_to_run, [outputString]);
           exit;
         end;
       finally
@@ -552,7 +537,7 @@ begin
     cmd := Poppler_pdfinfo_ExePath;
     if not RunCommandIndir(ExtractFileDir(aPdfFileName), cmd, [ExtractFileName(aPdfFileName)], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
     begin
-      FLastError := SPoppler_pdfinfo_error_unable_to_run + outputString;
+      FLastError := Format(SPoppler_pdfinfo_error_unable_to_run, [outputString]);
       exit;
     end;
     tmpList.Text:= outputString;
@@ -671,7 +656,7 @@ begin
 
   if not FileExists(aPdfFileName) then
   begin
-    FLastError := SPoppler_error_file_missing + aPdfFileName;
+    FLastError := Format(SPoppler_error_file_missing, [aPdfFileName]);
     exit;
   end;
 
@@ -693,7 +678,7 @@ begin
           tmpList.LoadFromFile(tmpFileName)
         else
         begin
-          FLastError := SPoppler_pdfimages_error_unable_to_run + outputString;
+          FLastError := Format(SPoppler_pdfimages_error_unable_to_run, [outputString]);
           exit;
         end;
       finally
@@ -711,7 +696,7 @@ begin
     cmd := Poppler_pdfimages_ExePath;
     if not RunCommandIndir(ExtractFileDir(aPdfFileName), cmd, ['-list', ExtractFileName(aPdfFileName)], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
     begin
-      FLastError := SPoppler_pdfimages_error_unable_to_run + outputString;
+      FLastError := Format(SPoppler_pdfimages_error_unable_to_run, [outputString]);
       exit;
     end;
     tmpList.Text:= outputString;
