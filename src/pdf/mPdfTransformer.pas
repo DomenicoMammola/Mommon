@@ -8,7 +8,6 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 //
-// https://mrcoles.com/combine-compress-pdf/
 unit mPdfTransformer;
 
 interface
@@ -19,13 +18,15 @@ uses
 
 function GetPageType (const aWidth, aHeight : integer): TPDFPaperType;
 
-function ReduceSizeOfPdf (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aReductionPerc : integer; out aError : String; const aResolution : integer = 72) : boolean;
+function ReduceSizeOfPdfWithPoppler (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aReductionPerc : integer; out aError : String; const aResolution : integer = 72) : boolean;
+
+function ReduceSizeOfPdfWithGhostscript (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aReductionPerc : integer; out aError : String; const aResolution : integer = 72) : boolean;
 
 implementation
 
 uses
   FileUtil, SysUtils, Classes, Math,
-  mPoppler, mUtility, mImageToPdf, mPdfMerger;
+  mPoppler, mUtility, mImageToPdf, mPdfMerger, mGhostscript;
 
 function GetPageType(const aWidth, aHeight: integer): TPDFPaperType;
 var
@@ -50,7 +51,26 @@ begin
   end;
 end;
 
-function ReduceSizeOfPdf(const aSourceFileName, aDestinationFileName: String; aProgress: ImProgress; out aReductionPerc : integer; out aError: String; const aResolution : integer): boolean;
+function ReduceSizeOfPdfWithGhostscript(const aSourceFileName, aDestinationFileName: String; aProgress: ImProgress; out aReductionPerc: integer; out aError: String; const aResolution: integer): boolean;
+var
+  sizeSource, sizeDest : integer;
+begin
+  aProgress.Notify('Running optimizer...');
+  Result := TGhostscriptToolbox.CompressPdf(aSourceFileName, aDestinationFileName, aResolution);
+  if not Result then
+  begin
+    aError:= TGhostscriptToolbox.GetLastError;
+  end
+  else
+  begin
+    sizeSource := FileSize(aSourceFileName);
+    sizeDest := FileSize(aDestinationFileName);
+
+    aReductionPerc:= max(0, trunc ((sizeSource - sizeDest) / (sizeSource/100)));
+  end;
+end;
+
+function ReduceSizeOfPdfWithPoppler(const aSourceFileName, aDestinationFileName: String; aProgress: ImProgress; out aReductionPerc : integer; out aError: String; const aResolution : integer): boolean;
 var
   tmpFolderPages, tmpFolderJpeg, tmpFolderTemp : String;
   pdfinfo, pagePdfInfo : TPopplerPdfInfo;
