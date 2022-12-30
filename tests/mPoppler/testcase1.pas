@@ -86,10 +86,12 @@ end;
 procedure TTestPoppler.TestExtractPagesAsJpeg;
 var
   tmpFolder : String;
+  ris : boolean;
 begin
   tmpFolder:= GetUniqueTemporaryFolder;
   try
-    CheckTrue(TPopplerToolbox.ExtractPagesFromPdfAsJpeg(IncludeTrailingPathDelimiter(Application.Location) + 'many_pages.pdf', tmpFolder, 'test_extract_pages_as_jpeg', 60, 150));
+    ris := TPopplerToolbox.ExtractPagesFromPdfAsJpeg(IncludeTrailingPathDelimiter(Application.Location) + 'many_pages.pdf', tmpFolder, 'test_extract_pages_as_jpeg', 60, 150);
+    CheckTrue(ris, TPopplerToolbox.GetLastError);
     CheckTrue(FileExists(IncludeTrailingPathDelimiter(tmpFolder) + 'test_extract_pages_as_jpeg-43.jpg'));
   finally
     DeleteDirectory(tmpFolder, false);
