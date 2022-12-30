@@ -155,9 +155,12 @@ end;
 
 class function TPopplerToolbox.ExtractPagesFromPdfAsImages(const aPdfFileName, aDestinationFileName: string; const aImageType: string; const aResolution: integer; const aJpegQuality : integer; const aOnlyFrontPage : boolean): boolean;
 var
-  outputString, tmpDestFile : string;
-  {$IFNDEF UNIX}
+  outputString : string;
+  {$IFDEF WINDOWS}
   cmd : String;
+  {$ENDIF}
+  {$IFDEF UNIX}
+  ris : boolean;
   {$ENDIF}
 begin
   Result := false;
@@ -170,8 +173,24 @@ begin
     exit;
   end;
 
+  outputString:= '';
+
   {$IFDEF UNIX}
-  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftoppm_ExePath, ['-singlefile' , '-' + aImageType, '-r', IntToStr(aResolution), aPdfFileName, aDestinationFileName], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  if aOnlyFrontPage then
+  begin
+    if aImageType = 'jpeg' then
+      ris :=  RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdftoppm_ExePath, ['-singlefile', '-' + aImageType, '-r', IntToStr(aResolution), '-jpegopt', 'optimize=y,quality=' + IntToStr(aJpegQuality), aPdfFileName, aDestinationFileName], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut])
+    else
+      ris :=  RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdftoppm_ExePath, ['-singlefile', '-' + aImageType, '-r', IntToStr(aResolution), aPdfFileName, aDestinationFileName], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]);
+  end
+  else
+  begin
+    if aImageType = 'jpeg' then
+      ris :=  RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdftoppm_ExePath, ['-' + aImageType, '-r', IntToStr(aResolution), '-jpegopt', 'optimize=y,quality=' + IntToStr(aJpegQuality), aPdfFileName, aDestinationFileName], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut])
+    else
+      ris :=  RunCommandIndir(ExtractFileDir(aDestinationFileName), Poppler_pdftoppm_ExePath, ['-' + aImageType, '-r', IntToStr(aResolution), aPdfFileName, aDestinationFileName], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]);
+  end;
+  if ris then
   {$ELSE}
   if aOnlyFrontPage then
     cmd := '-singlefile '
@@ -353,7 +372,6 @@ var
   {$IFNDEF UNIX}
   cmd : string;
   {$ENDIF}
-  list : TStringList;
   ris : boolean;
 begin
   Result := false;
@@ -639,10 +657,8 @@ end;
 
 class function TPopplerToolbox.GetImagesInfoFromPdf(const aPdfFileName: string; out aImagesCount: integer): boolean;
 var
-  outputString, curStr, value, cmd : string;
+  outputString, cmd : string;
   tmpList : TStringList;
-  i, intValue, w, h : integer;
-  dateValue : TDateTime;
   {$IFDEF WINDOWS}
   tmpFileName, tmpFileNameBatch, newSourceFile : String;
   command : TStringList;
@@ -692,7 +708,7 @@ begin
       command.Free;
     end;
     {$ELSE}
-    cmd := Poppler_pdfmages_ExePath;
+    cmd := Poppler_pdfimages_ExePath;
     if not RunCommandIndir(ExtractFileDir(aPdfFileName), cmd, ['-list', ExtractFileName(aPdfFileName)], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
     begin
       FLastError := SPoppler_pdfimages_error_unable_to_run + outputString;
