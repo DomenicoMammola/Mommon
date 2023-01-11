@@ -47,7 +47,7 @@ type
     procedure Clear;
   end;
 
-  function SplitPdfFile(const aSourceFileName : String; const aCommands : TSplitCommands; aProgress: ImProgress; out aError : String) : boolean;
+  function SplitPdfFile(const aSourceFileName : String; const aCommands : TSplitCommands; aProgress: ImProgress; out aProcessedFiles : word; out aError : String) : boolean;
 
 implementation
 
@@ -56,7 +56,7 @@ uses
   mUtility, mPdfMerger, mPoppler;
 
 
-function SplitPdfFile(const aSourceFileName: String; const aCommands: TSplitCommands; aProgress: ImProgress; out aError: String): boolean;
+function SplitPdfFile(const aSourceFileName: String; const aCommands: TSplitCommands; aProgress: ImProgress; out aProcessedFiles : word; out aError: String): boolean;
 var
   tmpPagesFolder, tmpFile : string;
   pdfInfo : TPopplerPdfInfo;
@@ -65,6 +65,7 @@ var
   filesToBeMerged : TStringList;
 begin
   Result := false;
+  aProcessedFiles:= 0;
   tmpPagesFolder:= IncludeTrailingPathDelimiter(GetTempDir) + GenerateRandomIdString(30);
   if not DirectoryExists(tmpPagesFolder) then
     if not ForceDirectories(tmpPagesFolder) then
@@ -100,10 +101,22 @@ begin
     if aCommands.Get(i).PageTo = 0 then
       stop := pdfInfo.Pages
     else
-      stop := min(aCommands.Get(i).PageTo, pdfInfo.Pages);
+      stop := aCommands.Get(i).PageTo; //min(aCommands.Get(i).PageTo, pdfInfo.Pages);
     if start > stop then
     begin
       aError:= 'Start page cannot follow end page';
+      exit;
+    end;
+
+    if start > pdfInfo.Pages then
+    begin
+      aError:= 'Start page value is too high';
+      exit;
+    end;
+
+    if stop > pdfInfo.Pages then
+    begin
+      aError:= 'Stop page value is too high';
       exit;
     end;
 
@@ -113,6 +126,7 @@ begin
         filesToBeMerged.Add(IncludeTrailingPathDelimiter(tmpPagesFolder) + Format('page%d.pdf', [k]));
       if not MergeFiles(filesToBeMerged, tmpPagesFolder, aCommands.Get(i).FileNameDestination, aError) then
         exit;
+      inc(aProcessedFiles);
     finally
       filesToBeMerged.Free;
     end;
