@@ -82,6 +82,8 @@ type
     FPort: Integer;
     FUserName: String;
     FPassword: String;
+    FTimeout : integer;
+    FConnectTimeout : integer;
     FAcceptOnlyMailFromSpecificDomain : boolean;
     FAllowedSenderDomains : TStringList;
     FSSLConnection : boolean;
@@ -92,6 +94,9 @@ type
     {$IFDEF OUTLOOK_OAUTH2_AVAILABLE}
     procedure IdSASLXOAuth21GetAccessToken(Sender: TObject; var AccessToken: string);
     {$ENDIF}
+  public
+    const DEFAULT_TIMEOUT : integer = -1;
+    const TIMEOUT_INFINITE : integer = -2;
   public
     constructor Create;
     destructor Destroy; override;
@@ -108,6 +113,8 @@ type
     function SetSSLConnection : TGetMailPop3;
     function SetTLSConnection : TGetMailPop3;
     function SetAcceptOnlyMailFromSpecificDomain : TGetMailPop3;
+    function SetTimeout(const aMSec : integer): TGetMailPop3;
+    function SetConnectTimeout(const aMSec : integer): TGetMailPop3;
     function AddAllowedSenderDomain(const aAllowedSenderDomain: String): TGetMailPop3;
   end;
 
@@ -530,6 +537,8 @@ constructor TGetMailPop3.Create;
 begin
   FHost:= '127.0.0.1';
   FPort:= 995;
+  FTimeout:= TIMEOUT_INFINITE;
+  FConnectTimeout:= 5000;
   FUserName:= '';
   FPassword:= '';
   FSSLConnection:= false;
@@ -567,6 +576,7 @@ begin
   try
     tmpPop3.Host:= FHost;
     tmpPop3.Port:= FPort;
+    tmpPop3.ReadTimeout:= FTimeout;
 
     if FSSLConnection then
     begin
@@ -584,7 +594,7 @@ begin
       tmpPop3.UseTLS := utUseExplicitTLS;
     end;
 
-    tmpPop3.ConnectTimeout:= 5000;
+    tmpPop3.ConnectTimeout:= FConnectTimeout;
 
     if FAuthentication = paOutlookOAuth2 then
     begin
@@ -722,6 +732,18 @@ end;
 function TGetMailPop3.SetAcceptOnlyMailFromSpecificDomain: TGetMailPop3;
 begin
   FAcceptOnlyMailFromSpecificDomain:= true;
+  Result := Self;
+end;
+
+function TGetMailPop3.SetTimeout(const aMSec: integer): TGetMailPop3;
+begin
+  FTimeout:= aMSec;
+  Result := Self;
+end;
+
+function TGetMailPop3.SetConnectTimeout(const aMSec: integer): TGetMailPop3;
+begin
+  FConnectTimeout:= aMSec;
   Result := Self;
 end;
 
