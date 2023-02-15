@@ -30,7 +30,7 @@ type
   TListSortCompare = function (Item1, Item2: Pointer): Integer of object; // cloned from LCLProc but with 'of object'
 
 function GenerateRandomIdString : string; overload;
-function GenerateRandomIdString(aLength : integer): string; overload;
+function GenerateRandomIdString(aLength : integer; const aOnlyLetters : boolean = false): string; overload;
 function CreateUniqueIdentifier : String; // actually a GUID without parentheses, to be used as unique indentifier in db tables
 function IsUniqueIdentifier (const aUI : String): boolean;
 {$IFDEF FPC}
@@ -306,15 +306,24 @@ begin
       inc(Result);
 end;
 
-function GenerateRandomIdString(aLength : integer): string;
+function GenerateRandomIdString(aLength : integer; const aOnlyLetters : boolean = false): string;
 var
   Temp: string;
-  i: integer;
+  i, k: integer;
 begin
   Result := '';
-  Temp := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  if aOnlyLetters then
+  begin
+    Temp := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    k := 25;
+  end
+  else
+  begin
+    Temp := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    k := 35;
+  end;
   for i := 0 to aLength - 1 do
-    Result := Result + Temp[Random(35)+1];
+    Result := Result + Temp[Random(k)+1];
 end;
 
 function GenerateRandomIdString : string;
