@@ -80,17 +80,27 @@ var
 function ComposeDestinationSelectQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
 var
   i : integer;
-  comma, andStr : String;
+  comma, andStr, tmpAlias : String;
   curFieldToField: TDataReplicaFieldToField;
 begin
+  tmpAlias := LowerCase(GenerateRandomIdString(5, true));
   Result := 'select ';
   comma := '';
   for i := 0 to aTable.FieldsMapping.Count - 1 do
   begin
-    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString);
+    Result := Result + comma + tmpAlias + '.' + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString, foEq);
     comma := ','
   end;
-  Result := Result + ' from ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
+
+  Result := Result + ' from ';
+
+  if aTable.DestinationSelectQuery <> '' then
+    Result := Result + '(' + aTable.DestinationSelectQuery + ')'
+  else
+    Result := Result + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
+
+  Result := Result + ' ' + tmpAlias;
+
   Result := Result + ' where ';
   andStr := '';
   for i := 0 to aTable.SourceKeyFields.Count - 1 do
@@ -113,7 +123,7 @@ begin
   comma := '';
   for i := 0 to aTable.FieldsMapping.Count - 1 do
   begin
-    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString);
+    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString, foEq);
     comma := ','
   end;
   Result := Result + ' from ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
@@ -128,7 +138,7 @@ begin
   comma := '';
   for i:= 0 to aTable.FieldsMapping.Count - 1 do
   begin
-    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString);
+    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString, foEq);
     comma := ','
   end;
   Result := Result + ') values (';
@@ -153,7 +163,7 @@ begin
   begin
     if aTable.SourceKeyFields.IndexOf(aTable.FieldsMapping.Get(i).SourceField.AsString) < 0 then
     begin
-      Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString) + '=' + aDestinationSB.SQLSnippetForValue(aTable.FieldsMapping.Get(i).SourceField.AsString);
+      Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString, foEq) + '=' + aDestinationSB.SQLSnippetForValue(aTable.FieldsMapping.Get(i).SourceField.AsString);
       comma := ','
     end;
   end;
