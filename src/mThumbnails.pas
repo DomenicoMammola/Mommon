@@ -71,6 +71,13 @@ begin
     try
       logger.Debug('[GeneratePNGThumbnail - file] Running ExtractThumbnailOfFrontPageFromPdfAsPng');
       Result := TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight);
+      if not Result then
+      begin
+        aError:= TPopplerToolbox.GetLastError;
+        logger.Error(aError);
+      end
+      else
+        logger.Debug('Generated thumbnail for pdf file: ' + aSourceFile);
       (*
       {$IFDEF UNIX}
       Result := TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight);
@@ -78,7 +85,6 @@ begin
       Result := TXPdfToolbox.ExtractThumbnailOfFrontPageFromPdf(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight);
       {$ENDIF}
       *)
-      logger.Debug('Generated thumbnail for pdf file: ' + aSourceFile);
     except
       on e: Exception do
       begin
@@ -146,6 +152,13 @@ begin
     begin
       try
         Result := TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(tmpSourceFileName, tmpThumbnailFileName, aMaxWidth, aMaxHeight);
+        if not Result then
+        begin
+          aError:= TPopplerToolbox.GetLastError;
+          logger.Error(aError);
+        end
+        else
+          logger.Debug('Generated thumbnail for pdf file: ' + tmpSourceFileName);
         (*
         {$IFDEF UNIX}
         Result := TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(tmpSourceFileName, tmpThumbnailFileName, aMaxWidth, aMaxHeight);
@@ -153,7 +166,6 @@ begin
         Result := TXPdfToolbox.ExtractThumbnailOfFrontPageFromPdf(tmpSourceFileName, tmpThumbnailFileName, aMaxWidth, aMaxHeight);
         {$ENDIF}
         *)
-        logger.Debug('Generated thumbnail for pdf file: ' + tmpSourceFileName);
       except
         on e: Exception do
         begin
