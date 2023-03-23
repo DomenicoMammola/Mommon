@@ -122,13 +122,14 @@ begin
 
   if aAdjustFontSize and (aText <> '') then
   begin
+    aCanvas.Font.Size := max(aCanvas.Font.Size, 1);
     lastSize := aCanvas.Font.Size;
 
     w := aCanvas.TextWidth(aText);
     h := aCanvas.TextHeight(aText);
-    if (w > aRect.Width) or (h > Arect.Height) then
+    if (w > aRect.Width) or (h > ARect.Height) then
     begin
-      while ((w > aRect.Width) or (h > Arect.Height)) and (aCanvas.Font.Size > 7) do
+      while ((w > aRect.Width) or (h > ARect.Height)) and (aCanvas.Font.Size > 1) do
       begin
         aCanvas.Font.Size := aCanvas.Font.Size - 1;
         w := aCanvas.TextWidth(aText);
