@@ -61,6 +61,8 @@ const
   mpFunction_compare = 'compare';
   mpFunction_comparestr = 'comparestr';
   mpFunction_comparetext = 'comparetext';
+  mpFunction_replacestr = 'replacestr';
+  mpFunction_replacetext = 'replacetext';
   mpFunction_round = 'round';
   mpFunction_ceil = 'ceil';
   mpFunction_floor = 'floor';
@@ -271,6 +273,8 @@ begin
   aList.Add(mpFunction_compare);
   aList.Add(mpFunction_comparestr);
   aList.Add(mpFunction_comparetext);
+  aList.Add(mpFunction_replacestr);
+  aList.Add(mpFunction_replacetext);
   aList.Add(mpFunction_round);
   aList.Add(mpFunction_ceil);
   aList.Add(mpFunction_floor);
@@ -1146,7 +1150,7 @@ end;
 
 function TKAParser.ExecuteStrFunction(const funct: string; ParametersList: TStringList): string;
 var
-  TempStrValue : string;
+  TempStrValue, TempStrValue2, TempStrValue3 : string;
   TempValue, TempValue2 : double;
   i: integer;
   TempStrArray : TmArrayOfVariants;
@@ -1175,7 +1179,7 @@ begin
 
     Self.CalculateString(ParametersList.Strings[0], TempStrValue);
     Result := TempStrValue;
-	Self.Calculate(ParametersList.Strings[1], TempValue);
+    Self.Calculate(ParametersList.Strings[1], TempValue);
     for i := 1 to Round(TempValue) do
       Result := Result + TempStrValue;
   end
@@ -1250,6 +1254,26 @@ begin
     Self.Calculate(ParametersList.Strings[1], TempValue);
     Self.Calculate(ParametersList.Strings[2], TempValue2);
     Result := Copy(TempStrValue, round(TempValue), round(TempValue2));
+  end
+  else if CompareText(funct, mpFunction_replacestr) = 0 then
+  begin
+    if ParametersList.Count <> 3 then
+      RaiseError(SWrongParamCount);
+
+    Self.CalculateString(ParametersList.Strings[0], TempStrValue);
+    Self.CalculateString(ParametersList.Strings[1], TempStrValue2);
+    Self.CalculateString(ParametersList.Strings[2], TempStrValue3);
+    Result := StringReplace(TempStrValue, TempStrValue2, TempStrValue3, [rfReplaceAll]);
+  end
+  else if CompareText(funct, mpFunction_replacetext) = 0 then
+  begin
+    if ParametersList.Count <> 3 then
+      RaiseError(SWrongParamCount);
+
+    Self.CalculateString(ParametersList.Strings[0], TempStrValue);
+    Self.CalculateString(ParametersList.Strings[1], TempStrValue2);
+    Self.CalculateString(ParametersList.Strings[2], TempStrValue3);
+    Result := StringReplace(TempStrValue, TempStrValue2, TempStrValue3, [rfReplaceAll, rfIgnoreCase]);
   end
   else
   if CompareText(funct, mpFunction_sum) = 0 then
@@ -1365,6 +1389,8 @@ begin
     (temp = mpFunction_compare) or
     (temp = mpFunction_comparestr) or
     (temp = mpFunction_comparetext) or
+    (temp = mpFunction_replacestr) or
+    (temp = mpFunction_replacetext) or
     (temp = mpFunction_round) or
     (temp = mpFunction_ceil) or
     (temp = mpFunction_floor) or
