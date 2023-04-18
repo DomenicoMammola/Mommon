@@ -19,6 +19,8 @@ uses
   mMaps;
 
 type
+  TMustacheChars = (mcCurly, mcSquare, mcRound, mcChevronsAngle);
+
   { TMustacheLexState }
 
   TMustacheLexState = class
@@ -28,7 +30,10 @@ type
     FLenRow : Int64;
     FOpenTokens : Integer;
     FLastTokenString : String;
+    FLeftTokenDelimiter : Char;
+    FRightTokenDelimiter : Char;
   public
+    constructor Create (const aMustacheChars : TMustacheChars);
     procedure SetText (const aText : String);
     procedure Advance;
     procedure GoBack;
@@ -36,6 +41,8 @@ type
     function CurrentChar: Char;
     property OpenTokens : integer read FOpenTokens write FOpenTokens;
     property LastTokenString : String read FLastTokenString write FLastTokenString;
+    property LeftTokenDelimiter : Char read FLeftTokenDelimiter;
+    property RightTokenDelimiter : Char read FRightTokenDelimiter;
   end;
 
 
@@ -45,6 +52,7 @@ type
   TmMicroMustache = class
   strict private
     FValues : TmStringDictionary;
+    FMustacheChars : TMustacheChars;
     procedure yylex (aState : TMustacheLexState; var aValue : String);
     function CalcToken (const aToken : String) : String;
   public
@@ -53,17 +61,48 @@ type
 
     procedure AddValue (const aKey, aValue : string);
     function Render(aTemplate: String): String;
+
+    property MustacheChars : TMustacheChars read FMustacheChars write FMustacheChars;
   end;
 
 implementation
 
 uses
+  SysUtils,
   mBaseClassesAsObjects, mLog, htmlelements;
 
 var
   logger : TmLog;
 
 { TMustacheLexState }
+
+constructor TMustacheLexState.Create(const aMustacheChars: TMustacheChars);
+begin
+  case aMustacheChars of
+    mcCurly :
+      begin
+        FLeftTokenDelimiter:= '{';
+        FRightTokenDelimiter:= '}';
+      end;
+    mcSquare :
+      begin
+        FLeftTokenDelimiter:= '[';
+        FRightTokenDelimiter:= ']';
+      end;
+    mcRound :
+      begin
+        FLeftTokenDelimiter:= '(';
+        FRightTokenDelimiter:= ')';
+      end;
+    mcChevronsAngle :
+      begin
+        FLeftTokenDelimiter:= '<';
+        FRightTokenDelimiter:= '>';
+      end
+    else
+      raise Exception.Create('Unsupported mustache chars');
+  end;
+end;
 
 procedure TMustacheLexState.SetText(const aText: String);
 begin
@@ -101,10 +140,10 @@ procedure TmMicroMustache.yylex(aState: TMustacheLexState; var aValue : String);
 begin
   while not aState.Eof do
   begin
-    if aState.CurrentChar = '{' then
+    if aState.CurrentChar = aState.LeftTokenDelimiter then
     begin
       aState.Advance;
-      if aState.Eof or (aState.CurrentChar <> '{') then
+      if aState.Eof or (aState.CurrentChar <> aState.LeftTokenDelimiter) then
       begin
         aState.GoBack;
         if aState.OpenTokens > 0 then
@@ -115,10 +154,10 @@ begin
       else
         aState.OpenTokens:= aState.OpenTokens + 1;
     end
-    else if (aState.CurrentChar = '}') then
+    else if (aState.CurrentChar = aState.RightTokenDelimiter) then
     begin
       aState.Advance;
-      if aState.Eof or (aState.CurrentChar <> '}') then
+      if aState.Eof or (aState.CurrentChar <> aState.RightTokenDelimiter) then
       begin
         aState.GoBack;
         if aState.OpenTokens > 0 then
@@ -151,7 +190,7 @@ begin
   begin
     if aState.OpenTokens > 0 then
     begin
-      aValue := aValue + '{{' + aState.LastTokenString;
+      aValue := aValue + aState.LeftTokenDelimiter + aState.LeftTokenDelimiter + aState.LastTokenString;
       aState.LastTokenString:= '';
     end;
   end;
@@ -168,7 +207,7 @@ begin
     exit;
   end;
 
-  state := TMustacheLexState.Create;
+  state := TMustacheLexState.Create(FMustacheChars);
   try
     logger.Debug('CalcToken:' + aToken);
     state.SetText(aToken);
@@ -192,6 +231,7 @@ end;
 constructor TmMicroMustache.Create;
 begin
   FValues := TmStringDictionary.Create(true);
+  FMustacheChars:= mcCurly;
 end;
 
 destructor TmMicroMustache.Destroy;
@@ -215,7 +255,7 @@ var
   lexState : TMustacheLexState;
 begin
   Result := '';
-  lexState := TMustacheLexState.Create;
+  lexState := TMustacheLexState.Create(FMustacheChars);
   try
     lexState.SetText(aTemplate);
     yylex(lexState, Result);
