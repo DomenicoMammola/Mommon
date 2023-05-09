@@ -172,22 +172,32 @@ begin
   end;
 end;
 
+
 function IsNumeric(const aValue: string; const aAllowFloat, aAllowSigns: Boolean): Boolean;
+const NONE = 0;
+const FIRST_FOUND_COMMA = 1;
+const FIRST_FOUND_DOT = 2;
 var
-  i, lg : integer;
+  i, lg, p1, p2 : integer;
   tmpDouble : double;
-  numCommas, numDots : integer;
+  numCommas, numDots, firstFound : integer;
+  hasSign : boolean;
+  thousandSeparator, decimalSeparator : Char;
 begin
   Result := false;
   lg := Length(aValue);
   if lg = 0 then
     exit;
 
+  hasSign := false;
+  firstFound := NONE;
+
   if aAllowSigns then
   begin
     if ((aValue[1] in ['-', '+']) and (lg = 1)) then
       exit;
-    if (not (aValue[1] in ['0'..'9','-', '+'])) then
+    hasSign := aValue[1] in ['-', '+'];
+    if (not hasSign) and (not (aValue[1] in ['0'..'9'])) then
       exit;
   end
   else
@@ -213,14 +223,12 @@ begin
       if aValue[i] = '.' then
       begin
         inc (numDots);
-        if (numDots > 1) or (numCommas > 0) then
-          exit;
+        firstFound:= FIRST_FOUND_DOT;
       end
       else if aValue[i] = ',' then
       begin
         inc (numCommas);
-        if (numCommas > 1) or (numDots > 0) then
-          exit;
+        firstFound:= FIRST_FOUND_COMMA;
       end
       else
       begin
@@ -228,6 +236,94 @@ begin
           exit;
       end;
     end;
+    if (numCommas > 1) and (numDots > 1) then
+      exit;
+
+    thousandSeparator:= '#';
+    decimalSeparator:= '#';
+
+    (*
+    COMMAS  DOTS FIRST  DECIMAL THOUSAND
+    1       0    -      C       -
+    +1      0    -      -       C
+    0       1    -      D       -
+    0       +1   -      -       D
+    1       1    C      D       C
+    1       1    D      C       D
+    +1      1    C      D       C
+    +1      1    D      exit
+    1       +1   C      exit
+    1       +1   D      C       D
+    *)
+
+    if (numCommas = 1) and (numDots = 0) then
+      decimalSeparator:= ','
+    else if (numCommas > 1) and (numDots = 0) then
+      thousandSeparator:= ','
+    else if (numCommas = 0) and (numDots = 1) then
+      decimalSeparator:= '.'
+    else if (numCommas = 0) and (numDots > 1) then
+      thousandSeparator:= '.'
+    else if (numCommas = 1) and (numDots = 1) then
+    begin
+      if firstFound = FIRST_FOUND_COMMA then
+      begin
+        decimalSeparator:= '.';
+        thousandSeparator:= ',';
+      end
+      else
+      begin
+        decimalSeparator:= ',';
+        thousandSeparator:= '.';
+      end;
+    end
+    else if (numCommas > 1) and (numDots = 1) then
+    begin
+      if (firstFound = FIRST_FOUND_COMMA) then
+      begin
+        decimalSeparator:= '.';
+        thousandSeparator:= ',';
+      end
+      else
+        exit;
+    end
+    else if (numCommas = 1) and (numDots > 1) then
+    begin
+      if (firstFound = FIRST_FOUND_DOT) then
+      begin
+        decimalSeparator:= ',';
+        thousandSeparator:= '.';
+      end
+      else
+        exit;
+    end;
+
+    if (thousandSeparator <> '#') then
+    begin
+      p1 := Pos(thousandSeparator, aValue);
+      if (hasSign and (p1 > 5)) or ((not hasSign) and (p1 > 4)) then
+          exit;
+      p2 := p1;
+      while p2 > 1 do
+      begin
+        p2 := Pos(thousandSeparator, aValue, p1 + 1);
+        if p2 <= 0 then
+          break
+        else
+        begin
+          if p2 <> p1 + 4 then
+            exit;
+          p1 := p2;
+        end;
+      end;
+      if (decimalSeparator <> '#') then
+      begin
+        p2 := Pos(decimalSeparator, aValue);
+        if p1 <> (p2 - 4) then
+          exit;
+      end;
+    end;
+
     if not TryToConvertToDouble(aValue, tmpDouble) then
       exit;
   end;
