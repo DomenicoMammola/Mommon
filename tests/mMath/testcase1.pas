@@ -19,6 +19,8 @@ type
   { TTestCase1 }
 
   TTestCase1= class(TTestCase)
+  strict private
+    function UseDefaultThousandSeparator (const aValue : string; const myThousandSeparator : string = '.'): string;
   published
     procedure TestRounding;
     procedure TestGetFractionalPartDigits;
@@ -26,6 +28,11 @@ type
   end;
 
 implementation
+
+function TTestCase1.UseDefaultThousandSeparator(const aValue: string; const myThousandSeparator : string = '.'): string;
+begin
+  Result := StringReplace(aValue, myThousandSeparator, FormatSettings.ThousandSeparator, [rfReplaceAll]);
+end;
 
 procedure TTestCase1.TestRounding;
 begin
@@ -127,9 +134,9 @@ var
 begin
   CheckTrue(IsNumeric('19072320140648820000001', false, true));
   CheckTrue(TryToConvertToInteger('87998540', i));
-  CheckFalse(TryToConvertToInteger('879.98540', i));
-  CheckTrue(TryToConvertToInteger('87.998.540', i));
-  CheckFalse(TryToConvertToInteger('879.9854O', i));
+  CheckFalse(TryToConvertToInteger(UseDefaultThousandSeparator('879.98540'), i));
+  CheckTrue(TryToConvertToInteger(UseDefaultThousandSeparator('87.998.540'), i));
+  CheckFalse(TryToConvertToInteger(UseDefaultThousandSeparator('879.9854O'), i));
   CheckTrue(IsNumeric('+585', false, true));
   CheckFalse(IsNumeric('+585', false, false));
   CheckTrue(IsNumeric('-12.66589', true, true));
@@ -166,6 +173,22 @@ begin
   CheckFalse(IsNumeric('11,', true, false));
   CheckFalse(IsNumeric('.11', true, false));
   CheckFalse(IsNumeric(',11', true, false));
+
+  CheckTrue(IsInteger('123', false, ''));
+  CheckFalse(IsInteger('+23', false, ''));
+  CheckTrue(IsInteger('+23', true, ''));
+  CheckFalse(IsInteger('-', true, ''));
+  CheckFalse(IsInteger('+', false, ''));
+  CheckFalse(IsInteger('++234', true, ''));
+  CheckFalse(IsInteger('+234.2', true, ''));
+  CheckFalse(IsInteger('+234.2', true, '.'));
+  CheckTrue(IsInteger('1.234', false, '.'));
+  CheckTrue(IsInteger('1.430.000', false, '.'));
+  CheckTrue(IsInteger('1.430.000', true, '.'));
+  CheckTrue(IsInteger('-1.430.000', true, '.'));
+  CheckTrue(IsInteger('+1.430.000', true, '.'));
+  CheckFalse(IsInteger('1.430.000,00', true, '.'));
+  CheckFalse(IsInteger('1.430.000', false, ','));
 end;
 
 
