@@ -28,6 +28,7 @@ function TryToConvertToDouble(aValue: string; out aOutValue: Double): boolean;
 function TryToConvertToInteger(aValue: string; out aOutValue: Integer): boolean;
 function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
 function IsNumeric(const aValue: string; const aAllowFloat, aAllowSigns: Boolean): Boolean;
+function IsInteger(const aValue: string; const aAllowSigns: Boolean; const aThousandsSeparator : String): Boolean;
 function ExtractFirstInteger(aValue: string; out aOutValue: Integer): boolean;
 
 implementation
@@ -185,35 +186,32 @@ var
   thousandSeparator, decimalSeparator : Char;
 begin
   Result := false;
-  lg := Length(aValue);
-  if lg = 0 then
-    exit;
-
-  hasSign := false;
-  firstFound := NONE;
-
-  if aAllowSigns then
-  begin
-    if ((aValue[1] in ['-', '+']) and (lg = 1)) then
-      exit;
-    hasSign := aValue[1] in ['-', '+'];
-    if (not hasSign) and (not (aValue[1] in ['0'..'9'])) then
-      exit;
-  end
-  else
-    if (not (aValue[1] in ['0'..'9'])) then
-       exit;
-
   if not aAllowFloat then
   begin
-    for i := 2 to lg do
-    begin
-      if not (aValue[i] in ['0'..'9'])  then
-        exit;
-    end;
+    Result := IsInteger(aValue, aAllowSigns, '');
+    exit;
   end
   else
   begin
+    lg := Length(aValue);
+    if lg = 0 then
+      exit;
+
+    hasSign := false;
+    firstFound := NONE;
+
+    if aAllowSigns then
+    begin
+      if ((aValue[1] in ['-', '+']) and (lg = 1)) then
+        exit;
+      hasSign := aValue[1] in ['-', '+'];
+      if (not hasSign) and (not (aValue[1] in ['0'..'9'])) then
+        exit;
+    end
+    else
+      if (not (aValue[1] in ['0'..'9'])) then
+         exit;
+
     if not (aValue[lg] in ['0'..'9'])  then
       exit;
     numCommas := 0;
@@ -326,6 +324,56 @@ begin
 
     if not TryToConvertToDouble(aValue, tmpDouble) then
       exit;
+  end;
+
+  Result := true;
+end;
+
+function IsInteger(const aValue: string; const aAllowSigns: Boolean; const aThousandsSeparator: String): Boolean;
+var
+  lg, i : integer;
+  hasSign : boolean;
+  lastThSep : integer;
+begin
+  Result := false;
+  lg := Length(aValue);
+  if lg = 0 then
+    exit;
+
+  if aAllowSigns then
+  begin
+    if ((aValue[1] in ['-', '+']) and (lg = 1)) then
+      exit;
+    hasSign := aValue[1] in ['-', '+'];
+    if (not hasSign) and (not (aValue[1] in ['0'..'9'])) then
+      exit;
+  end
+  else
+    if (not (aValue[1] in ['0'..'9'])) then
+       exit;
+
+  lastThSep := -1;
+  for i := lg downto 2 do
+  begin
+    if not (aValue[i] in ['0'..'9']) and (not (aValue[i] = aThousandsSeparator))  then
+      exit;
+    if aValue[i] = aThousandsSeparator then
+    begin
+      if lastThSep = -1 then
+      begin
+        if (lg - i <> 3) then
+          exit;
+
+        lastThSep:= i
+      end
+      else
+      begin
+        if (lastThSep - i <> 4) then
+          exit
+        else
+          lastThSep := i;
+      end;
+    end;
   end;
 
   Result := true;
