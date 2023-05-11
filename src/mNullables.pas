@@ -1490,12 +1490,16 @@ end;
 class function TNullableInteger.StringToVariant(const aValue: String): Variant;
 var
   tmp : String;
+  tmpValue : Integer;
 begin
   tmp := Trim(aValue);
-  if IsNumeric(tmp, false, true) then
-    Result := StrToInt(tmp)
+  if (tmp = '') then
+    Result := Null
   else
-    Result := Null;
+    if mMathUtility.TryToConvertToInteger(tmp, tmpValue) then
+      Result := tmpValue
+    else
+      Result := Null;
 end;
 
 class function TNullableInteger.VariantToString(const aValue: Variant): String;
@@ -2103,15 +2107,17 @@ end;
 
 class function TNullableDouble.StringToVariant(const aValue: String): Variant;
 var
-  tmp : double;
+  tmp : String;
+  tmpValue : Double;
 begin
-  if (aValue = '') then
+  tmp := Trim(aValue);
+  if (tmp = '') then
     Result := Null
   else
-    if mMathUtility.TryToConvertToDouble(aValue, tmp) then
-      Result := tmp
+    if mMathUtility.TryToConvertToDouble(tmp, tmpValue) then
+      Result := tmpValue
     else
-      Result := null;
+      Result := Null;
 end;
 
 class function TNullableDouble.VariantToString(const aValue: Variant; const aDisplayFormat: string): String;
