@@ -48,6 +48,7 @@ type
   TmUprightEvent = class
   strict private
     FEventDate : TDateTime;
+    FSameDateSortBy : String;
     FValues : array [0..MAX_NUM_OF_VALUES-1] of TNullableDouble;
     FAttributes : array [0..MAX_NUM_OF_ATTRIBUTES-1] of TNullableString;
     FEventType : TmUprightEventType;
@@ -64,6 +65,7 @@ type
     procedure Assign(const aSource : TmUprightEvent);
 
     property EventDate: TDateTime read FEventDate write FEventDate;
+    property SameDateSortBy : String read FSameDateSortBy write FSameDateSortBy;
     property DatumKey: string read FDatumKey write FDatumKey;
     property EventType : TmUprightEventType read FEventType write FEventType;
     property Reference : TObject read FReference write FReference;
@@ -256,7 +258,12 @@ end;
 function TmUprightEvent.CompareTo(aOther: TmUprightEvent): integer;
 begin
   if DoublesAreEqual(EventDate, aOther.EventDate) then
-    Result := 0
+  begin
+    if (SameDateSortBy <> '') and (aOther.SameDateSortBy <> '') then
+      Result := CompareStr(SameDateSortBy, aOther.SameDateSortBy)
+    else
+      Result := 0;
+  end
   else if DoubleIsLessThan(EventDate, aOther.EventDate) then
     Result := -1
   else
