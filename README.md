@@ -1,2 +1,2 @@
 # Mommon
-A bunch of common useful units and classes for my pascal projects
+A bunch of useful units and classes for my pascal projects
