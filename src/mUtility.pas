@@ -97,6 +97,9 @@ function KeepOnlyLetters (const aSource : String; const aUnderscoreForSpaces: bo
 function KeepOnlyLettersAndNumbers (const aSource : String; const aUnderscoreForSpaces: boolean) : String;
 
 function ExtractSameLeftStringPart(const aList : TStringList): String;
+// i.e. source = 'Lazy cat is sleeping' => 'Lazy'
+// i.e. source = 'NoSpaceHere' => 'NoSpaceHere'
+function ExtractFirstWord(const aSource : String; const aSeparator : String = ' '): String;
 
 function ExtractLastFolderFromPath (aFullPath : string) : string;
 
@@ -1150,6 +1153,18 @@ begin
     end;
   end;
   Result := LeftStr(aList.Strings[0], maxLength);
+end;
+
+function ExtractFirstWord(const aSource: String; const aSeparator: String): String;
+var
+  p : integer;
+begin
+  Result := '';
+  p := Pos(aSeparator, aSource);
+  if p > 1 then
+    Result := Copy(aSource, 1, p - 1)
+  else if p <= 0 then
+    Result := aSource;
 end;
 
 function ExtractLastFolderFromPath(aFullPath: string): string;
