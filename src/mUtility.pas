@@ -100,6 +100,7 @@ function ExtractSameLeftStringPart(const aList : TStringList): String;
 // i.e. source = 'Lazy cat is sleeping' => 'Lazy'
 // i.e. source = 'NoSpaceHere' => 'NoSpaceHere'
 function ExtractFirstWord(const aSource : String; const aSeparator : String = ' '): String;
+function ExtractLastWord(const aSource : String; const aSeparator : String = ' '): String;
 
 function ExtractLastFolderFromPath (aFullPath : string) : string;
 
@@ -1167,6 +1168,18 @@ begin
     Result := aSource;
 end;
 
+function ExtractLastWord(const aSource: String; const aSeparator: String): String;
+var
+  p : integer;
+begin
+  Result := '';
+  p := RPos(aSeparator, aSource);
+  if p >= 1 then
+    Result := Copy(aSource, p + Length(aSeparator), Length(aSource))
+  else if p <= 0 then
+    Result := aSource;
+end;
+
 function ExtractLastFolderFromPath(aFullPath: string): string;
 var
   tmp : TStringList;
@@ -1189,6 +1202,7 @@ begin
   pwd := aPassword;
   while Length(pwd) < len do
     pwd := pwd + aPassword;
+  Result := '';
   SetLength(result, len);
   for i := 1 to len do
     result[i] := Chr(Ord(aText[i]) xor Ord(pwd[i]));
