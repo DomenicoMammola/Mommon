@@ -585,6 +585,7 @@ begin
     for i := 0 to tmpList.Count - 1 do
     begin
       curStr := tmpList.Strings[i];
+      value := '';
       if ExtractText(curStr, 'Title:', value) then
         aInfo.Title:= value
       else if ExtractText(curStr, 'Subject:', value) then
