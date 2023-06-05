@@ -24,7 +24,7 @@ uses
   Graphics,
   {$ENDIF}
   variants, Classes,
-  mUtility, mMathUtility, mFloatsManagement;
+  mMathUtility;
 
 type
 
@@ -482,8 +482,8 @@ type
 implementation
 
 uses
-  sysutils, dateutils
-  , mISOTime;
+  sysutils, dateutils,
+  mISOTime, mUtility, mFloatsManagement;
 
 { TNullableJsonHelper }
 
@@ -2518,7 +2518,7 @@ begin
     tmp := Self.AsString;
     if aMaxLength > 0 then
       tmp := Copy(tmp, 1, aMaxLength);
-    Result := '"' + aFieldName + '":"' + tmp + '"';
+    Result := '"' + aFieldName + '":"' + EscapeStringValue(tmp, 'json') + '"';
   end;
 end;
 
