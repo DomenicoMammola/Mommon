@@ -54,7 +54,7 @@ Function GetWidgetSet: String;
 
 // Exposing resource and version info compiled into exe
 Function GetResourceStrings(oStringList : TStringList) : Boolean;
-function GetFileVersionAsString: String;
+function GetFileVersionAsString(const aDigits : integer = 4): String;
 function GetFileVersion: TFileProductVersion;
 Function GetProductVersion: String;
 
@@ -193,17 +193,23 @@ begin
   end;
 end;
 
-Function ProductVersionToString(PV: TFileProductVersion): String;
+Function ProductVersionToString(PV: TFileProductVersion; const aDigits : integer = 4): String;
 Begin
-  Result := Format('%d.%d.%d.%d', [PV[0], PV[1], PV[2], PV[3]]);
+  case aDigits of
+    1: Result := Format('%d', [PV[0]]);
+    2: Result := Format('%d.%d', [PV[0], PV[1]]);
+    3: Result := Format('%d.%d.%d', [PV[0], PV[1], PV[2]]);
+    else
+      Result := Format('%d.%d.%d.%d', [PV[0], PV[1], PV[2], PV[3]]);
+  end;
 End;
 
-function GetFileVersionAsString: String;
+function GetFileVersionAsString(const aDigits : integer = 4): String;
 begin
   CreateInfo;
 
   If FInfo.BuildInfoAvailable Then
-    Result := ProductVersionToString(FInfo.FixedInfo.FileVersion)
+    Result := ProductVersionToString(FInfo.FixedInfo.FileVersion, aDigits)
   Else
     Result := 'No build information available';
 end;
