@@ -16,6 +16,7 @@ unit mGraphicsUtilityNoGUI;
 interface
 
   function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+  function CropImage(aSourceFile, aDestFile: String; aOriginX, aOriginY, aWidth, aHeight: integer; out aError: String) : boolean;
 
 implementation
 
@@ -46,6 +47,39 @@ begin
         thumbnail.SaveToFile(aThumbnailFile);
       finally
         thumbnail.Free;
+      end;
+      Result := true;
+    finally
+      sourcePicture.Free;
+    end;
+  except
+    on e: Exception do
+    begin
+      aError := e.Message;
+      Result := false;
+    end;
+  end;
+end;
+
+function CropImage(aSourceFile, aDestFile: String; aOriginX, aOriginY, aWidth, aHeight: integer; out aError: String) : boolean;
+var
+  sourcePicture, destinationPicture : TBGRABitmap;
+  r1, r2 : TRect;
+begin
+  Result := false;
+  try
+    sourcePicture := TBGRABitmap.Create(aSourceFile);
+    try
+      destinationPicture := TBGRABitmap.Create(aWidth, aHeight, BGRAWhite);
+      try
+        r1 := Rect(0, 0, aWidth - 1, aHeight - 1);
+        destinationPicture.CanvasBGRA.FillRect(r1);
+        r2 := Rect(aOriginX, aOriginY, aOriginX + aWidth - 1, aOriginY + aHeight - 1);
+        destinationPicture.CanvasBGRA.AntialiasingMode := amON;
+        destinationPicture.CanvasBGRA.CopyRect(0, 0, sourcePicture, r2);
+        destinationPicture.SaveToFile(aDestFile);
+      finally
+        destinationPicture.Free;
       end;
       Result := true;
     finally
