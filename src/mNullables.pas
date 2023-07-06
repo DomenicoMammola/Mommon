@@ -315,6 +315,12 @@ type
     procedure Subtract(const aValue : double); overload;
     procedure Subtract(const aValue : TNullableDouble); overload;
 
+    function ValueIsEqual (const aValue : TNullableDouble) : boolean; overload;
+    function ValueIsEqual (const aValue : double) : boolean; overload;
+    function ValueIsLessThan (const aValue : TNullableDouble) : boolean;
+    function ValueIsEqualOrLessThan (const aValue : TNullableDouble) : boolean;
+    function ValueIsMoreThan (const aValue : TNullableDouble) : boolean;
+
     class function StringToVariant(const aValue: String): Variant;
     class function VariantToString(const aValue: Variant; const aDisplayFormat : string): String;
 
@@ -482,7 +488,7 @@ type
 implementation
 
 uses
-  sysutils, dateutils,
+  sysutils, dateutils, math,
   mISOTime, mUtility, mFloatsManagement;
 
 { TNullableJsonHelper }
@@ -2103,6 +2109,31 @@ procedure TNullableDouble.Subtract(const aValue: TNullableDouble);
 begin
   if aValue.NotNull then
     Self.Subtract(aValue.Value);
+end;
+
+function TNullableDouble.ValueIsEqual(const aValue: TNullableDouble): boolean;
+begin
+  Result := DoublesAreEqual(aValue.AsFloat, Self.AsFloat, max(aValue.FractionalPartDigits, Self.FractionalPartDigits));
+end;
+
+function TNullableDouble.ValueIsEqual(const aValue: double): boolean;
+begin
+  Result := DoublesAreEqual(aValue, Self.AsFloat, Self.FractionalPartDigits);
+end;
+
+function TNullableDouble.ValueIsLessThan(const aValue: TNullableDouble): boolean;
+begin
+  Result := DoubleIsLessThan(Self.AsFloat, aValue.AsFloat, max(aValue.FractionalPartDigits, Self.FractionalPartDigits));
+end;
+
+function TNullableDouble.ValueIsEqualOrLessThan(const aValue: TNullableDouble): boolean;
+begin
+  Result := ValueIsLessThan(aValue) or ValueIsEqual(aValue);
+end;
+
+function TNullableDouble.ValueIsMoreThan(const aValue: TNullableDouble): boolean;
+begin
+  Result := not Self.ValueIsLessThan(aValue);
 end;
 
 class function TNullableDouble.StringToVariant(const aValue: String): Variant;
