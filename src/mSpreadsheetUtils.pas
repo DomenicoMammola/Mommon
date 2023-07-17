@@ -71,10 +71,10 @@ type
     procedure WriteInt64(const aRow, aCol : integer; const aValue : Int64);
     procedure WriteBoolean(const aRow, aCol : integer; const aValue : boolean); overload;
     procedure WriteBoolean(const aRow, aCol : integer; const aValue : TNullableBoolean); overload;
-    procedure WriteText(const aRow, aCol : integer; const aValue : TNullableString); overload;
-    procedure WriteText(const aRow, aCol : integer; const aValue : TNullableString; const aItalic, aBold : boolean; const aBackgroundColor : DWord = scNotDefined); overload;
-    procedure WriteText(const aRow, aCol : integer; const aValue : String); overload;
-    procedure WriteText(const aRow, aCol : integer; const aValue : String; const aItalic, aBold : boolean; const aBackgroundColor : DWord = scNotDefined); overload;
+    procedure WriteText(const aRow, aCol : integer; const aValue : TNullableString; const aSetCellDataTextType : boolean = false); overload;
+    procedure WriteText(const aRow, aCol : integer; const aValue : TNullableString; const aItalic, aBold : boolean; const aBackgroundColor : DWord = scNotDefined; const aSetCellDataTextType : boolean = false); overload;
+    procedure WriteText(const aRow, aCol : integer; const aValue : String; const aSetCellDataTextType : boolean = false); overload;
+    procedure WriteText(const aRow, aCol : integer; const aValue : String; const aItalic, aBold : boolean; const aBackgroundColor : DWord = scNotDefined; const aSetCellDataTextType : boolean = false); overload;
 
     procedure WriteSouthBorder(const aRow, aCol: integer);
     procedure WriteBorders(const aRow, aCol : integer; const aNorth, aSouth, aEast, aWest : boolean);
@@ -452,30 +452,34 @@ begin
   WriteDefaultFont(aRow, aCol);
 end;
 
-procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: TNullableString);
+procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: TNullableString; const aSetCellDataTextType : boolean = false);
 begin
-  Self.WriteText(aRow, aCol, aValue, false, false);
+  Self.WriteText(aRow, aCol, aValue, false, false, scNotDefined, aSetCellDataTextType);
 end;
 
-procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: TNullableString; const aItalic, aBold: boolean; const aBackgroundColor : DWord = scNotDefined);
+procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: TNullableString; const aItalic, aBold: boolean; const aBackgroundColor : DWord = scNotDefined; const aSetCellDataTextType : boolean = false);
 begin
   spWriteText(FSheet, aRow, aCol, aValue);
   WriteDefaultFont(aRow, aCol);
   WriteFontStyle(aRow, aCol, aItalic, aBold);
   WriteBackgroundColor(aRow, aCol, aBackgroundColor);
+  if aSetCellDataTextType then
+    FSheet.GetCell(aRow, aCol)^.ContentType:= cctUTF8String;
 end;
 
-procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: String);
+procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: String; const aSetCellDataTextType : boolean = false);
 begin
-  WriteText(aRow, aCol, aValue, false, false);
+  WriteText(aRow, aCol, aValue, false, false, scNotDefined, aSetCellDataTextType);
 end;
 
-procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: String; const aItalic, aBold: boolean; const aBackgroundColor : DWord = scNotDefined);
+procedure TmSpreadsheetHelper.WriteText(const aRow, aCol: integer; const aValue: String; const aItalic, aBold: boolean; const aBackgroundColor : DWord = scNotDefined; const aSetCellDataTextType : boolean = false);
 begin
   spWriteText(FSheet, aRow, aCol, aValue);
   WriteDefaultFont(aRow, aCol);
   WriteFontStyle(aRow, aCol, aItalic, aBold);
   WriteBackgroundColor(aRow, aCol, aBackgroundColor);
+  if aSetCellDataTextType then
+    FSheet.GetCell(aRow, aCol)^.ContentType:= cctUTF8String;
 end;
 
 procedure TmSpreadsheetHelper.WriteSouthBorder(const aRow, aCol: integer);
