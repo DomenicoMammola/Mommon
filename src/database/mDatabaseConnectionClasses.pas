@@ -167,7 +167,7 @@ function DatabaseVendorToString (aValue : TmDatabaseVendor) : string;
 function StringToDatabaseVendor (aValue : String) : TmDatabaseVendor;
 
 var
-  DefaultParamCheck : boolean = true;
+  DefaultParamCheck : boolean = false;
 
 implementation
 uses
