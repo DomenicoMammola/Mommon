@@ -75,24 +75,66 @@ begin
 end;
 
 function StringToSQLString(aValue : String): String;
+var
+  i : integer;
+  concatenate : boolean;
 begin
-  Result := '''' + StringReplace(aValue, '''', '''''', [rfReplaceAll]) + '''';
+  Result := '';
+  concatenate := false;
+  for i := 1 to Length(aValue) do
+  begin
+    if concatenate then
+    begin
+      Result := Result + ' || ''';
+      concatenate := false;
+    end;
+    if aValue[i] = '''' then
+      Result := Result + ''''''
+    else if aValue[i] = '\' then
+    begin
+      concatenate := true;
+      Result := Result + '''|| U&''\005C''';
+    end
+    else
+      Result := Result + aValue[i];
+  end;
+  Result := '''' + Result;
+  if not concatenate then
+    Result := Result + '''';
 end;
 
 function StringToSQLString(aValue: WideString): WideString;
+var
+  i : integer;
+  concatenate : boolean;
 begin
-  Result := '''' + WideStringReplace(aValue, '''', '''''', [rfReplaceAll]) + '''';
+  Result := '';
+  concatenate := false;
+  for i := 1 to Length(aValue) do
+  begin
+    if concatenate then
+    begin
+      Result := Result + ' || ''';
+      concatenate := false;
+    end;
+    if aValue[i] = '''' then
+      Result := Result + ''''''
+    else if aValue[i] = '\' then
+    begin
+      concatenate := true;
+      Result := Result + '''|| U&''\005C''';
+    end
+    else
+      Result := Result + aValue[i];
+  end;
+  if not concatenate then
+    Result := Result + '''';
 end;
 
 function WideStringToSQLString(aValue: WideString): String;
-var
-  tmp, tmp2 : WideString;
-  sqlString : WideString;
 begin
-  tmp := LazUTF8.UTF8ToUTF16('''');
-  tmp2 := LazUTF8.UTF8ToUTF16('''''');
-  sqlString := LazUTF8.UTF8ToUTF16('''') + WideStringReplace(aValue, tmp, tmp2, [rfReplaceAll]) + tmp;
-  Result := LazUTF8.UTF16ToUTF8(sqlString);
+  Result := LazUTF8.UTF16ToUTF8(aValue);
+  Result := StringToSQLString(Result);
 end;
 
 end.
