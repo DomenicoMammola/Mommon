@@ -65,6 +65,7 @@ type
     class function ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     class function ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 72) : boolean;
     class function ExtractPagesFromPdfAsJpeg(const aPdfFileName, aDestinationFolder, aPrefixFileName : string; const aQuality : integer; const aResolution : integer = 72): boolean;
+    class function ExtractPagesFromPdfAsPng(const aPdfFileName, aDestinationFolder, aPrefixFileName : string; const aResolution : integer = 72): boolean;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText : String): boolean; overload;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines : TStringList): boolean; overload;
     class function GetInfoFromPdf (const aPdfFileName : string; var aInfo : TPopplerPdfInfo): boolean;
@@ -332,6 +333,11 @@ end;
 class function TPopplerToolbox.ExtractPagesFromPdfAsJpeg(const aPdfFileName, aDestinationFolder, aPrefixFileName: string; const aQuality: integer; const aResolution: integer): boolean;
 begin
   Result := ExtractPagesFromPdfAsImages(aPdfFileName, IncludeTrailingPathDelimiter(aDestinationFolder) + aPrefixFileName, 'jpeg', aResolution, aQuality, false);
+end;
+
+class function TPopplerToolbox.ExtractPagesFromPdfAsPng(const aPdfFileName, aDestinationFolder, aPrefixFileName: string; const aResolution: integer): boolean;
+begin
+  Result := ExtractPagesFromPdfAsImages(aPdfFileName, IncludeTrailingPathDelimiter(aDestinationFolder) + aPrefixFileName, 'png', aResolution, 0, false);
 end;
 
 class function TPopplerToolbox.ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText: String): boolean;
