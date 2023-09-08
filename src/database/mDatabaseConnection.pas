@@ -480,6 +480,7 @@ end;
 
 function TmAbstractDatabaseCommand.ParamByName(const aValue: string): TmQueryParameter;
 begin
+  TraceSQL(FSQL.Text);
   CreateImplementation;
   if PrepareIfNecessary then
   begin
