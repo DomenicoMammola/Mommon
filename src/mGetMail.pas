@@ -386,6 +386,7 @@ begin
       Result := Result + FBody.Strings[i] + '<br>';
     Result := Result + '</span></body></html>';
   end;
+  Result := trim(Result);
   logger.Debug('GetHTMLReport:' + Result);
 end;
 
