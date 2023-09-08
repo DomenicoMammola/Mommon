@@ -31,7 +31,7 @@ type
   strict private
     class function CheckTesseract_ExePath : boolean;
   public
-    class function ExtractTextFromImage(const aImageFileName, aDestinationFileNoExtension : string; const aLanguage : TTesseractToolboxLanguages = ttlEnglish): boolean;
+    class function ExtractTextFromImage(const aImageFileName, aDestinationFileWithoutExtension : string; const aLanguage : TTesseractToolboxLanguages = ttlEnglish): boolean;
     class function GetLastError : String;
   end;
 
@@ -57,7 +57,7 @@ begin
     FLastError := Format(STesseract_error_missing_clu, [Tesseract_ExePath]);
 end;
 
-class function TTesseractToolbox.ExtractTextFromImage(const aImageFileName, aDestinationFileNoExtension: string; const aLanguage: TTesseractToolboxLanguages): boolean;
+class function TTesseractToolbox.ExtractTextFromImage(const aImageFileName, aDestinationFileWithoutExtension: string; const aLanguage: TTesseractToolboxLanguages): boolean;
 var
   outputString, languageParam : string;
   {$IFNDEF UNIX}
@@ -81,9 +81,9 @@ begin
     languageParam:= languageParam + 'eng';
 
   {$IFDEF UNIX}
-  if not RunCommandIndir(ExtractFileDir(aImageFileName), Tesseract_ExePath, [aImageFileName, aDestinationFileNoExtension, languageParam], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  if not RunCommandIndir(ExtractFileDir(aImageFileName), Tesseract_ExePath, [aImageFileName, aDestinationFileWithoutExtension, languageParam], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
   {$ELSE}
-  cmd := AnsiQuotedStr(aImageFileName,'"') + ' "' + aDestinationFileNoExtension + '"' + ' ' + languageParam;
+  cmd := AnsiQuotedStr(aImageFileName,'"') + ' "' + aDestinationFileWithoutExtension + '"' + ' ' + languageParam;
   if not RunCommand(Tesseract_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
   {$ENDIF}
   begin
