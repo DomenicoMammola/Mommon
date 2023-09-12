@@ -90,6 +90,7 @@ type
     destructor Destroy; override;
     procedure FillVirtualFieldDefs (aFieldDefs : TmVirtualFieldDefs; const aPrefix : String); override;
     function GetKeyFieldName : String; override;
+    procedure GetMinimumFields(aFieldsForLookup : TStringList); override;
   end;
 
 implementation
@@ -138,6 +139,12 @@ end;
 function TBooleanDatasetDataProvider.GetKeyFieldName: String;
 begin
   Result := TBooleanDatum.GetKeyField;
+end;
+
+procedure TBooleanDatasetDataProvider.GetMinimumFields(aFieldsForLookup: TStringList);
+begin
+  aFieldsForLookup.Clear;
+  aFieldsForLookup.Add(TBooleanDatum.FLD_VALUE);
 end;
 
 { TBooleanDataProvider }
