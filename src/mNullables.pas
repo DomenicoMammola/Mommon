@@ -23,11 +23,11 @@ uses
   {$IFDEF GRAPHICS_AVAILABLE}
   Graphics,
   {$ENDIF}
-  variants, Classes,
+  variants, Classes, SysUtils,
   mMathUtility;
 
 type
-
+  ENullablesException = class(Exception);
 
   { TAbstractNullable }
   TAbstractNullable = class abstract
@@ -488,7 +488,7 @@ type
 implementation
 
 uses
-  sysutils, dateutils, math,
+  dateutils, math,
   mISOTime, mUtility, mFloatsManagement;
 
 { TNullableJsonHelper }
@@ -539,7 +539,7 @@ begin
   if FDataType = AValue then
     Exit;
   if Assigned(FActualValue) then
-    raise Exception.Create('[TNullableValue.SetDataType] Datatype already set.');
+    raise ENullablesException.Create('[TNullableValue.SetDataType] Datatype already set.');
 end;
 
 procedure TNullableValue.CheckActualValue;
@@ -982,7 +982,7 @@ begin
     if TryToUnderstandTimeString(newValue, tmptime) then
       Result := tmptime
     else
-      raise Exception.Create('This string cannot be converted to time: ' + aValue);
+      raise ENullablesException.Create('This string cannot be converted to time: ' + aValue);
 end;
 
 class function TNullableTime.VariantToString(const aValue: Variant): String;
@@ -1580,7 +1580,7 @@ begin
     else if aSourceField.DataType = ftFixedChar then
       Self.Value := (aSourceField.AsString = 'T') or (aSourceField.AsString = '1') or (aSourceField.AsString = 'Y') or (aSourceField.AsString = 'S')
     else
-      raise Exception.Create('TNullableBoolean: cannot assign value from field of type ' + Fieldtypenames[aSourceField.DataType]);
+      raise ENullablesException.Create('TNullableBoolean: cannot assign value from field of type ' + Fieldtypenames[aSourceField.DataType]);
   end;
   SetTagChanged(false);
 end;
@@ -2426,7 +2426,7 @@ begin
       if TryToUnderstandDateString(newValue, tmpDate) then
         Result := tmpDate
       else
-        raise Exception.Create('This string cannot be converted to date: ' + aValue);
+        raise ENullablesException.Create('This string cannot be converted to date: ' + aValue);
     end;
   end;
 end;
@@ -2495,6 +2495,7 @@ end;
 
 procedure TAbstractNullable.SetIsUnassigned(AValue: Boolean);
 begin
+  Self.SetIsNull(true);
   FIsUnassigned:= aValue;
   SetTagChanged(false);
 end;
