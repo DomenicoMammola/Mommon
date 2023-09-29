@@ -51,6 +51,7 @@ type
 
   // https://forum.lazarus.freepascal.org/index.php?topic=36579.0
   function GetTextWidth(const aText: String; const aFont: TFont): Integer;
+  procedure GetTextExtend(const aText: String; const aFont: TFont; var aSize : TPoint);
 
   procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
 
@@ -101,6 +102,22 @@ begin
   try
     bmp.Canvas.Font.Assign(aFont);
     Result := bmp.Canvas.TextWidth(aText);
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure GetTextExtend(const aText: String; const aFont: TFont; var aSize: TPoint);
+var
+  bmp: TBitmap;
+  sz : TSize;
+begin
+  bmp := TBitmap.Create;
+  try
+    bmp.Canvas.Font.Assign(aFont);
+    sz := bmp.Canvas.TextExtent(aText);
+    aSize.X:= sz.Width;
+    aSize.Y:= sz.Height;
   finally
     bmp.Free;
   end;
