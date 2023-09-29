@@ -245,6 +245,8 @@ begin
   CheckFalse(IsMRNCodeValid('162TQFC1T0024237E0', error));
   CheckFalse(IsMRNCodeValid('16ITQ_C1T0024237E0', error));
   CheckFalse(IsMRNCodeValid('16ITQFC1T002423E0', error));
+  CheckTrue(IsMRNCodeValid('23ITQRY04NM01664R3', error));
+  CheckFalse(IsMRNCodeValid('23ITORYO4NM01664R3', error));
 end;
 
 procedure TTestCaseUtility.TestHumanReadableUniqueIdentifiers;
