@@ -21,9 +21,9 @@ uses
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
-  DB, BufDataset,
-  mDataProviderFieldDefs, mDatasetStandardSetup, mSortConditions, mDataProviderInterfaces,
-  mFilter, mSummary;
+  DB,
+  mDatasetStandardSetup, mSortConditions, mDataProviderInterfaces,
+  mFilter, mSummary, mFields, mVirtualDatasetProvider;
 
 {$REGION 'Documentation'}
 {
@@ -138,40 +138,6 @@ type
     BookmarkFlag : TBookmarkFlag;
   end;
 
-  { TmVirtualDatasetDataProvider }
-
-  TmVirtualDatasetDataProvider = class
-  strict private
-    FVirtualFieldDefs : TmVirtualFieldDefs;
-    FSortConditions : TSortByConditions;
-    FFilterConditions : TmFilters;
-    FSummaryDefinitions : TmSummaryDefinitions;
-    FSummaryValues : TmSummaryValues;
-  protected
-    procedure FillFieldDefOfDataset (aSource : TmVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
-  public
-    constructor Create; virtual;
-    destructor Destroy; override;
-
-    function GetRecordCount : integer; virtual; abstract;
-    procedure GetFieldValue (const AFieldName: String; const AIndex: Cardinal; out AValue: variant); virtual; abstract;
-    procedure DeleteRecord (const AIndex :integer); virtual; abstract;
-    procedure EditRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
-    procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
-
-    function Refresh (const aDoSort, aDoFilter: boolean): boolean; virtual; abstract;
-    procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); virtual; abstract;
-    procedure CalculateSummaries; virtual; abstract;
-
-    procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly : boolean); virtual;
-    procedure SetDefaultVisibilityOfFields (aFields : TFields); virtual;
-
-    property SortConditions : TSortByConditions read FSortConditions;
-    property FilterConditions : TmFilters read FFilterConditions;
-    property VirtualFieldDefs : TmVirtualFieldDefs read FVirtualFieldDefs;
-    property SummaryDefinitions : TmSummaryDefinitions read FSummaryDefinitions;
-    property SummaryValues : TmSummaryValues read FSummaryValues;
-  end;
 
   TmVirtualDatasetSortableManager = class;
   TmVirtualDatasetFilterManager = class;
@@ -1471,65 +1437,6 @@ begin
   end;
 end;
 
-
-{ TmVirtualDatasetDataProvider }
-
-constructor TmVirtualDatasetDataProvider.Create;
-begin
-  FVirtualFieldDefs := TmVirtualFieldDefs.Create;
-  FSortConditions := TSortByConditions.Create;
-  FFilterConditions := TmFilters.Create;
-  FSummaryDefinitions := TmSummaryDefinitions.Create;
-  FSummaryValues := TmSummaryValues.Create;
-end;
-
-destructor TmVirtualDatasetDataProvider.Destroy;
-begin
-  FSortConditions.Free;
-  FFilterConditions.Free;
-  FVirtualFieldDefs.Free;
-  FSummaryDefinitions.Free;
-  FSummaryValues.Free;
-  inherited;
-end;
-
-procedure TmVirtualDatasetDataProvider.FillFieldDefOfDataset (aSource : TmVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
-var
-  newName : string;
-begin
-  newName := aPrefix + aSource.Name;
-  aFieldDef.Name := newName;
-  aFieldDef.DataType := FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
-  if (aSource.DataType in [vftString, vftWideString]) then
-    aFieldDef.Size := aSource.Size;
-  if aSource.Required then
-    aFieldDef.Attributes := [faRequired];
-  if aReadOnly or aSource.ReadOnly then
-    aFieldDef.Attributes := aFieldDef.Attributes + [TFieldAttribute.faReadonly];
-  if (aSource.DataType = vftBCD) then
-    aFieldDef.Precision := aSource.Precision;
-end;
-
-
-procedure TmVirtualDatasetDataProvider.FillFieldDefsOfDataset(aFieldDefs: TFieldDefs; const aReadOnly : boolean);
-var
-  i : integer;
-  CurrentField : TmVirtualFieldDef;
-begin
-  for i := 0 to FVirtualFieldDefs.Count - 1 do
-  begin
-    CurrentField := FVirtualFieldDefs[i];
-    FillFieldDefOfDataset(CurrentField, '', aFieldDefs.AddFieldDef, aReadOnly);
-  end;
-end;
-
-procedure TmVirtualDatasetDataProvider.SetDefaultVisibilityOfFields(aFields: TFields);
-var
-  i : integer;
-begin
-  for i := 0 to aFields.Count - 1 do
-    aFields[i].Visible:= true;
-end;
 
 end.
 

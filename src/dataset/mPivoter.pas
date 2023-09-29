@@ -19,7 +19,7 @@ interface
 uses
   contnrs, db, variants, Classes,
   mDataProviderInterfaces,
-  mIntList, mMaps, mSummary, mNullables, mQuickReadOnlyVirtualDataSet;
+  mIntList, mMaps, mSummary, mNullables, mQuickReadOnlyVirtualDataSetProvider;
 
 type
 

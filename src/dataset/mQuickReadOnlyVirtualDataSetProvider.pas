@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit mQuickReadOnlyVirtualDataSet;
+unit mQuickReadOnlyVirtualDataSetProvider;
 
 {$IFDEF FPC}
 {$MODE DELPHI}
@@ -18,8 +18,8 @@ interface
 
 uses
   DB, Classes, contnrs, Variants, StrHashMap,
-  mVirtualDataSet, mDataProviderInterfaces, mSortConditions, mFilter, mIntList, mLog,
-  mVirtualDataSetJoins, mDataProviderFieldDefs, mVirtualDatasetFormulas, KAParser;
+  mDataProviderInterfaces, mSortConditions, mFilter, mIntList, mLog,
+  mVirtualDataSetJoins, mDataProviderFieldDefs, mVirtualDatasetFormulas, KAParser, mVirtualDatasetProvider;
 
 const
   KEY_FIELD_NAME = '_KEY';
