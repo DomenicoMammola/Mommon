@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit mDatasetStandardSetup;
+unit mDataFieldsStandardSetup;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -17,17 +17,19 @@ unit mDatasetStandardSetup;
 interface
 
 uses
-  DB;
+  DB,
+  mFields;
 
 
 function GenerateDisplayLabel(aSourceString : String) : String;
-procedure ApplyStandardSettingsToFields (aDataset : TDataset; aStandardFloatFormat : String);
+procedure ApplyStandardSettingsToFields (aDataset : TDataset; aStandardFloatFormat : String); overload;
+procedure ApplyStandardSettingsToFields (aFields : TmFields; aStandardFloatFormat : String); overload;
 
 implementation
 
 uses
   SysUtils, StrUtils,
-  mFields;
+  mDataFieldsUtility;
 
 function GenerateDisplayLabel(aSourceString: String): String;
 var
@@ -95,7 +97,28 @@ begin
     if IsSystemField(aDataset.Fields[i].FieldName) then
       aDataset.Fields[i].Visible:= false;
   end;
+end;
 
+procedure ApplyStandardSettingsToFields(aFields: TmFields; aStandardFloatFormat: String);
+var
+  i : integer;
+begin
+  for i := 0 to aFields.Count - 1 do
+  begin
+    if FieldTypeIsFloat(aFields.Get(i).DataType) then
+    begin
+      aFields.Get(i).EditFormat:= aStandardFloatFormat;
+      aFields.Get(i).DisplayFormat := aStandardFloatFormat;
+    end;
+
+    if aFields.Get(i).DisplayLabel <> '' then
+      aFields.Get(i).DisplayLabel := GenerateDisplayLabel(aFields.Get(i).DisplayLabel)
+    else
+      aFields.Get(i).DisplayLabel := GenerateDisplayLabel(aFields.Get(i).FieldName);
+
+    if IsSystemField(aFields.Get(i).FieldName) then
+      aFields.Get(i).Visible:= false;
+  end;
 end;
 
 end.
