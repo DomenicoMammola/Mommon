@@ -36,12 +36,12 @@ end;
 
 function TJavaInterfacedObject._AddRef: Integer;
 begin
-  Result := 1;
+  Result := -1;
 end;
 
 function TJavaInterfacedObject._Release: Integer;
 begin
-  Result := 1;
+  Result := -1;
 end;
 
 end.
