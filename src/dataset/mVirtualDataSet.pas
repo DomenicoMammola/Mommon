@@ -483,9 +483,7 @@ var
   i : integer;
 begin
   for i := 0 to FListeners.Count - 1 do
-  begin
     (FListeners.Items[i] as TNotifyEventShell).event(Self);
-  end;
 end;
 
 procedure TmVirtualDatasetSummaryManager.RegisterListener(aOnRefresh: TNotifyEvent);
