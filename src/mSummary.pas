@@ -159,54 +159,11 @@ type
 
   function TmSummaryOperatorToString (const aOperator : TmSummaryOperator) : String;
 
-  function FieldTypeIsInteger(const aFieldType : TFieldType): boolean;
-  function FieldTypeIsTime(const aFieldType : TFieldType): boolean;
-  function FieldTypeIsDate(const aFieldType : TFieldType): boolean;
-  function FieldTypeIsDateTime(const aFieldType : TFieldType): boolean;
-  function FieldTypeIsFloat(const aFieldType : TFieldType) : boolean;
-  function FieldTypeIsPascalDouble(const aFieldType : TFieldType): boolean;
-  function FieldTypeIsString(const aFieldType : TFieldType) : boolean;
-
 implementation
 
 uses
-  variants;
-
-function FieldTypeIsInteger(const aFieldType : TFieldType): boolean;
-begin
-  Result := aFieldType in [ftInteger, ftSmallint, ftLargeint];
-end;
-
-function FieldTypeIsTime(const aFieldType : TFieldType): boolean;
-begin
-  Result := aFieldType = ftTime;
-end;
-
-function FieldTypeIsDate(const aFieldType : TFieldType): boolean;
-begin
-  Result := aFieldType = ftDate;
-end;
-
-function FieldTypeIsDateTime(const aFieldType : TFieldType): boolean;
-begin
-  Result := (aFieldType in [ftDateTime, ftTimeStamp]);
-end;
-
-function FieldTypeIsFloat(const aFieldType : TFieldType) : boolean;
-begin
-  Result := aFieldType in [ftFloat, ftFMTBcd, ftCurrency];
-end;
-
-function FieldTypeIsPascalDouble(const aFieldType : TFieldType): boolean;
-begin
-  Result := FieldTypeIsFloat(aFieldType) or FieldTypeIsDate(aFieldType) or FieldTypeIsTime(aFieldType) or FieldTypeIsDateTime(aFieldType);
-end;
-
-function FieldTypeIsString(const aFieldType : TFieldType) : boolean;
-begin
-  Result := aFieldType in [ftString, ftWideString, ftMemo, ftWideMemo, ftGuid];
-end;
-
+  variants,
+  mDataFieldsUtility;
 
 function TmSummaryOperatorToString(const aOperator: TmSummaryOperator): String;
 begin
