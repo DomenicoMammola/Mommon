@@ -33,7 +33,7 @@ type
     FSummaryValues : TmSummaryValues;
   protected
     procedure FillFieldDefOfDataset (aSource : TmVirtualFieldDef; aPrefix : string; aFieldDef : TFieldDef; aReadOnly : boolean);
-    procedure FillField(aSource : TmVirtualFieldDef; aPrefix : String; aField : TmField; aReadOnly : boolean);
+    procedure FillField(aSource : TmVirtualFieldDef; aPrefix : String; aField : TmField);
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -49,6 +49,7 @@ type
     procedure CalculateSummaries; virtual; abstract;
 
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly : boolean); virtual;
+    procedure FillFields(aFields : TmFields); virtual;
     procedure SetDefaultVisibilityOfFields (aFields : TFields); virtual;
 
     property SortConditions : TSortByConditions read FSortConditions;
@@ -99,7 +100,7 @@ begin
     aFieldDef.Precision := aSource.Precision;
 end;
 
-procedure TmVirtualDatasetDataProvider.FillField(aSource: TmVirtualFieldDef; aPrefix: String; aField: TmField; aReadOnly: boolean);
+procedure TmVirtualDatasetDataProvider.FillField(aSource: TmVirtualFieldDef; aPrefix: String; aField: TmField);
 var
   newName : string;
 begin
@@ -118,6 +119,20 @@ begin
   begin
     CurrentField := FVirtualFieldDefs[i];
     FillFieldDefOfDataset(CurrentField, '', aFieldDefs.AddFieldDef, aReadOnly);
+  end;
+end;
+
+procedure TmVirtualDatasetDataProvider.FillFields(aFields: TmFields);
+var
+  i : integer;
+  currentVirtualField : TmVirtualFieldDef;
+  curField : TmField;
+begin
+  for i := 0 to FVirtualFieldDefs.Count - 1 do
+  begin
+    currentVirtualField := FVirtualFieldDefs[i];
+    curField := aFields.Add;
+    FillField(currentVirtualField, '', curField);
   end;
 end;
 

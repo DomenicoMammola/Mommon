@@ -18,7 +18,7 @@ interface
 
 uses
   DB, Classes, contnrs, Variants, StrHashMap,
-  mDataProviderInterfaces, mSortConditions, mFilter, mIntList, mLog,
+  mDataProviderInterfaces, mSortConditions, mFilter, mIntList, mLog, mFields,
   mVirtualDataSetJoins, mDataProviderFieldDefs, mVirtualDatasetFormulas, KAParser, mVirtualDatasetProvider;
 
 const
@@ -63,6 +63,7 @@ type
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); override;
     function GetRecordCount : integer; override;
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly: boolean); override;
+    procedure FillFields(aFields : TmFields); override;
     procedure SetDefaultVisibilityOfFields (aFields : TFields); override;
 
     procedure Clear;
@@ -359,6 +360,36 @@ begin
     tmpFieldDef.DataType:= FromTmFormulaFieldTypeToTFieldType(FFormulaFields.Get(k).DataType);
     tmpFieldDef.Size := FFormulaFields.Get(k).Size;
     tmpFieldDef.Attributes := tmpFieldDef.Attributes + [TFieldAttribute.faReadonly];
+  end;
+end;
+
+procedure TReadOnlyVirtualDatasetProvider.FillFields(aFields: TmFields);
+var
+  k, i : integer;
+  CurrentField : TmVirtualFieldDef;
+  CurrentJoin : TmBuiltInJoin;
+  tmpField : TmField;
+begin
+  inherited FillFields(aFields);
+
+  FFieldsFromJoin.Clear;
+  for k := 0 to FBuiltInJoins.Count - 1 do
+  begin
+    CurrentJoin := FBuiltInJoins.Get(k);
+    for i := 0 to CurrentJoin.VirtualFieldDefs.Count -1 do
+    begin
+      CurrentField := CurrentJoin.VirtualFieldDefs[i];
+      tmpField := aFields.Add;
+      Self.FillField(CurrentField, CurrentJoin.Prefix, tmpField);
+      FFieldsFromJoin.Add(tmpField.FieldName);
+    end;
+  end;
+
+  for k := 0 to FFormulaFields.Count -1 do
+  begin
+    tmpField := aFields.Add;
+    tmpField.FieldName:= FFormulaFields.Get(k).Name;
+    tmpField.DataType:= FromTmFormulaFieldTypeToTFieldType(FFormulaFields.Get(k).DataType);
   end;
 end;
 
