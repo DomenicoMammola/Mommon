@@ -86,9 +86,11 @@ type
     function GetIntegerAttribute(const aName: TmXmlString): integer; overload;
     function GetIntegerAttribute(const aName: TmXmlString; const aDefaultValue : integer): integer; overload;
     procedure GetIntegerAttribute(const aName: TmXmlString; aValue : TNullableInteger);
-    procedure SetBooleanAttribute(Name : TmXmlString; Value : Boolean);
-    function GetBooleanAttribute(Name: TmXMLString): boolean; overload;
-    function GetBooleanAttribute(Name: TmXMLString; DefaultValue : boolean): boolean; overload;
+    procedure SetBooleanAttribute(const Name : TmXmlString; const Value : Boolean);
+    procedure SetBooleanAttribute(const aName: TmXmlString; const aValue: TNullableBoolean); overload;
+    function GetBooleanAttribute(const aName: TmXMLString): boolean; overload;
+    function GetBooleanAttribute(const aName: TmXMLString; const aDefaultValue : boolean): boolean; overload;
+    procedure GetBooleanAttribute(const aName: TmXMLString; aValue : TNullableBoolean); overload;
     {$IFDEF GRAPHICS_AVAILABLE}
     procedure SetColorAttribute(const aName: TmXmlString; const aValue: TColor); overload;
     procedure SetColorAttribute(const aName: TmXmlString; const aValue: TNullableColor); overload;
@@ -343,19 +345,35 @@ begin
     aValue.IsNull:= true;
 end;
 
-procedure TmXmlElement.SetBooleanAttribute(Name: TmXmlString; Value: Boolean);
+procedure TmXmlElement.SetBooleanAttribute(const Name: TmXmlString; const Value: Boolean);
 begin
   Self.SetAttribute(Name, BoolToStr(Value, true));
 end;
 
-function TmXmlElement.GetBooleanAttribute(Name: TmXMLString): boolean;
+procedure TmXmlElement.SetBooleanAttribute(const aName: TmXmlString; const aValue: TNullableBoolean);
 begin
-  Result := StrToBool(Self.GetAttribute(Name));
+  if aValue.NotNull  then
+    Self.SetBooleanAttribute(aName, aValue.AsBoolean)
+  else
+    Self.DeleteAttribute(aName);
 end;
 
-function TmXmlElement.GetBooleanAttribute(Name: TmXMLString; DefaultValue: boolean): boolean;
+function TmXmlElement.GetBooleanAttribute(const aName: TmXMLString): boolean;
 begin
-  Result := StrToBool(Self.GetAttribute(Name, BoolToStr(DefaultValue, true)));
+  Result := StrToBool(Self.GetAttribute(aName));
+end;
+
+function TmXmlElement.GetBooleanAttribute(const aName: TmXMLString; const aDefaultValue: boolean): boolean;
+begin
+  Result := StrToBool(Self.GetAttribute(aName, BoolToStr(aDefaultValue, true)));
+end;
+
+procedure TmXmlElement.GetBooleanAttribute(const aName: TmXMLString; aValue: TNullableBoolean);
+begin
+  if Self.HasAttribute(aName) then
+    aValue.Value:= Self.GetBooleanAttribute(aName)
+  else
+    aValue.IsNull:= true;
 end;
 
 {$IFDEF GRAPHICS_AVAILABLE}
