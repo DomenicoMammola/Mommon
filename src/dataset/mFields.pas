@@ -73,6 +73,7 @@ type
     function Add: TmField;
     function Count : integer;
     function Get(const aIndex : integer): TmField;
+    procedure Remove(const aIndex : integer);
 
     procedure Clear;
     procedure Assign(const aSource : TmFields);
@@ -138,6 +139,12 @@ end;
 function TmFields.Get(const aIndex: integer): TmField;
 begin
   Result := FList.Items[aIndex] as TmField;
+end;
+
+procedure TmFields.Remove(const aIndex: integer);
+begin
+  FFieldsDictionary.Remove(Uppercase(Get(aIndex).FieldName));
+  FList.Remove(Get(aIndex));
 end;
 
 procedure TmFields.Clear;
