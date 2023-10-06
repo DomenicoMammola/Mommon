@@ -25,6 +25,7 @@ uses
   function FieldTypeIsFloat(const aFieldType : TFieldType) : boolean;
   function FieldTypeIsPascalDouble(const aFieldType : TFieldType): boolean;
   function FieldTypeIsString(const aFieldType : TFieldType) : boolean;
+  function FieldTypeIsBoolean(const aFieldType : TFieldType) : boolean;
 
 implementation
 
@@ -61,6 +62,11 @@ implementation
   function FieldTypeIsString(const aFieldType : TFieldType) : boolean;
   begin
     Result := aFieldType in [ftString, ftWideString, ftMemo, ftWideMemo, ftGuid];
+  end;
+
+  function FieldTypeIsBoolean(const aFieldType: TFieldType): boolean;
+  begin
+    Result := aFieldType in [ftBoolean];
   end;
 
 end.
