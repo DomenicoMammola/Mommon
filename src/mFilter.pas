@@ -12,13 +12,15 @@ unit mFilter;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$interfaces corba}
 {$ENDIF}
 
 interface
 
 uses
   Contnrs, Classes, Variants, SysUtils,
-  mUtility, mFilterOperators, mMaps;
+  mUtility, mFilterOperators, mMaps,
+  mFields;
 
 type
   TmFilterDataType = (fdtString, fdtDate, fdtDateTime, fdtTime, fdtInteger, fdtFloat, fdtBoolean);
@@ -97,6 +99,11 @@ type
     procedure StartEvaluation (aFilters : TmFilters; aOnGetDataForEvaluation : TmOnGetDataForEvaluation);
     procedure EndEvaluation;
     function Evaluate : boolean;
+  end;
+
+  IFilterPanel = interface
+    ['{27724709-FC36-4A12-B154-B92F566F0E94}']
+    procedure SetFilters (const aFilters : TmFilters; const aFields : TmFields);
   end;
 
 implementation
@@ -446,5 +453,6 @@ begin
   Self.FDisplayValue := aSource.FDisplayValue;
   Self.FDataType:= aSource.FDataType;
 end;
+
 
 end.
