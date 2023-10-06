@@ -22,7 +22,7 @@ uses
   Data.DbConsts,
   {$ENDIF}
   DB,
-  mDatasetStandardSetup, mSortConditions, mDataProviderInterfaces,
+  mDataFieldsStandardSetup, mSortConditions, mDataProviderInterfaces,
   mFilter, mSummary, mFields, mVirtualDatasetProvider;
 
 {$REGION 'Documentation'}
