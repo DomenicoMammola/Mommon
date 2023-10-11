@@ -38,6 +38,7 @@ const
   mpFunction_tan = 'tan';
   mpFunction_frac = 'frac';
   mpFunction_int = 'int';
+  mpFunction_sqrt = 'sqrt';
   mpFunction_if = 'if';
   mpFunction_empty = 'empty';
   mpFunction_len = 'len';
@@ -250,6 +251,7 @@ begin
   aList.Add(mpFunction_tan);
   aList.Add(mpFunction_frac);
   aList.Add(mpFunction_int);
+  aList.Add(mpFunction_sqrt);
   aList.Add(mpFunction_if);
   aList.Add(mpFunction_empty);
   aList.Add(mpFunction_len);
@@ -705,6 +707,9 @@ begin
     else
     if compareText(subFormula, mpFunction_int) = 0 then
       resValue := int(resValue)
+    else
+    if compareText(subFormula, mpFunction_sqrt) = 0 then
+      resValue := Sqrt(resValue)
     else
     begin
       if Assigned(FOnGetValue) then
@@ -1347,7 +1352,7 @@ var
 begin
   temp := LowerCase(functionName);
   Result := (temp=mpFunction_trunc) or (temp=mpFunction_sin) or (temp=mpFunction_cos) or (temp=mpFunction_tan) or
-    (temp=mpFunction_frac) or (temp=mpFunction_int);
+    (temp=mpFunction_frac) or (temp=mpFunction_int) or (temp=mpFunction_sqrt);
 end;
 
 
