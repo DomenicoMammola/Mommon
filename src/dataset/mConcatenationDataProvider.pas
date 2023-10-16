@@ -12,6 +12,7 @@ unit mConcatenationDataProvider;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$interfaces corba}
 {$ENDIF}
 
 interface
@@ -125,10 +126,7 @@ end;
 
 function TConcatenationDataProvider.FindDatumByKey(const aKey: IVDDatumKey): IVDDatum;
 begin
-  {$push}
-  {$warnings off}
-  Result := Self.FindDatumByStringKey(TConcatenationDatumKey(aKey).AsString);
-  {$pop}
+  Result := Self.FindDatumByStringKey(aKey.AsString); // TConcatenationDatumKey(aKey)
 end;
 
 function TConcatenationDataProvider.FindDatumByStringKey(const aStringKey: string): IVDDatum;
