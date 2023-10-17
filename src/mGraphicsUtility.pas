@@ -86,6 +86,9 @@ const
   HLSMAX = 255;
 {$ENDIF}
 
+var
+  _TextExtendBitmap : TBitmap;
+
 {$IFDEF FPC}
 function IsDoubleBufferedNeeded: boolean;
 begin
@@ -109,18 +112,14 @@ end;
 
 procedure GetTextExtend(const aText: String; const aFont: TFont; var aSize: TPoint);
 var
-  bmp: TBitmap;
   sz : TSize;
 begin
-  bmp := TBitmap.Create;
-  try
-    bmp.Canvas.Font.Assign(aFont);
-    sz := bmp.Canvas.TextExtent(aText);
-    aSize.X:= sz.Width;
-    aSize.Y:= sz.Height;
-  finally
-    bmp.Free;
-  end;
+  if not Assigned(_TextExtendBitmap) then
+    _TextExtendBitmap := TBitmap.Create;
+  _TextExtendBitmap.Canvas.Font.Assign(aFont);
+  sz := _TextExtendBitmap.Canvas.TextExtent(aText);
+  aSize.X:= sz.Width;
+  aSize.Y:= sz.Height;
 end;
 
 procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
@@ -580,4 +579,10 @@ end;
 {$IFNDEF GUI}
 ** This unit should not be compiled in a console application **
 {$ENDIF}
+
+initialization
+  _TextExtendBitmap := nil;
+
+finalization
+  FreeAndNil(_TextExtendBitmap);
 end.
