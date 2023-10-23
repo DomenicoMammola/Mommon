@@ -2133,7 +2133,7 @@ end;
 
 function TNullableDouble.ValueIsMoreThan(const aValue: TNullableDouble): boolean;
 begin
-  Result := not Self.ValueIsLessThan(aValue);
+  Result := not Self.ValueIsEqualOrLessThan(aValue);
 end;
 
 class function TNullableDouble.StringToVariant(const aValue: String): Variant;
