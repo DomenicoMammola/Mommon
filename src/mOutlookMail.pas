@@ -116,7 +116,7 @@ var
   Outlook: OLEVariant;
   MailItem, MailInspector, MailRecipient: Variant;
   i : integer;
-  s : WideString;
+  s, signature : WideString;
   tmp, sep : String;
 begin
   // https://docs.microsoft.com/en-us/office/vba/api/outlook.mailitem
@@ -172,10 +172,12 @@ begin
     if FHTMLBody.Count > 0 then
     begin
       s := UTF8Decode(FHTMLBody.Text);
+      MailInspector := MailItem.GetInspector;
+      signature := MailItem.HTMLBody;
+      s := s + signature;
       MailItem.HTMLBody := s;
     end;
     MailItem.Recipients.ResolveAll;
-    MailInspector := MailItem.GetInspector;
     MailInspector.display(aShowModal); //true means modal
  finally
     Outlook := Unassigned; // VarNull
