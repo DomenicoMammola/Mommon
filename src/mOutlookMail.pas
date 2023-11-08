@@ -164,6 +164,7 @@ begin
       s := UTF8Decode(FAttachments.Strings[i]);
       MailItem.Attachments.Add(s);
     end;
+    MailInspector := MailItem.GetInspector;
     if FBody.Count > 0 then
     begin
       s := UTF8Decode(FBody.Text);
@@ -172,7 +173,6 @@ begin
     if FHTMLBody.Count > 0 then
     begin
       s := UTF8Decode(FHTMLBody.Text);
-      MailInspector := MailItem.GetInspector;
       signature := MailItem.HTMLBody;
       s := s + signature;
       MailItem.HTMLBody := s;
