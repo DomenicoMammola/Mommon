@@ -46,6 +46,7 @@ type
     PageWidth : integer;
     PageHeight : integer;
     PDFVersion : string;
+    Encrypted : string;
   end;
 
   { TPopplerToolbox }
@@ -564,6 +565,7 @@ begin
     aInfo.PageWidth := 0;
     aInfo.PageHeight := 0;
     aInfo.PDFVersion := '';
+    aInfo.Encrypted:= '';
     (*
     Title:
     Subject:
@@ -630,7 +632,9 @@ begin
             rotate := true;
       end
       else if ExtractText(curStr, 'PDF version:', value) then
-        aInfo.PDFVersion:= value;
+        aInfo.PDFVersion:= value
+      else if ExtractText(curStr, 'Encrypted:', value) then
+        aInfo.Encrypted:= value;
     end;
 
     if rotate then
