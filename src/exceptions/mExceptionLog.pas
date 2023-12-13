@@ -210,7 +210,8 @@ procedure DumpExceptionCallStack(Sender: TObject; E: Exception; out aWantsToShut
 var
   Report: string;
   i : integer;
-  tmpTitle, tmpTrace: string;
+  tmpTitle, tmpTrace : string;
+  tmpWantsToShutDown : boolean;
 begin
   aWantsToShutDown:= false;
 
@@ -254,7 +255,11 @@ begin
   if Assigned(_ShowProcedures) then
   begin
     for i := 0 to _ShowProcedures.Count -1 do
-      (_ShowProcedures.Items[i] as TRegisteredShowCallStack).ShowProcedure(Report, aWantsToShutDown);
+    begin
+      tmpWantsToShutDown := false;
+      (_ShowProcedures.Items[i] as TRegisteredShowCallStack).ShowProcedure(Report, tmpWantsToShutDown);
+      aWantsToShutDown := aWantsToShutDown or tmpWantsToShutDown;
+    end;
   end;
 end;
 
@@ -285,7 +290,6 @@ begin
   s := TRegisteredShowCallStack.Create;
   s.ShowProcedure:= aShowCallStack;
   _ShowProcedures.Add(s);
-
 end;
 
 { TExceptionLogConfiguration }
