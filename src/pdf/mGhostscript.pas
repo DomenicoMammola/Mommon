@@ -32,7 +32,7 @@ type
   strict private
     class function CheckGhostscript_ExePath : boolean;
   public
-    class function CompressPdf(const aPdfFileName, aDestinationFileName : string; const aResolution : integer = 150) : boolean;
+    class function CompressPdf(const aPdfFileName, aDestinationFileName : string; const aResolution : integer = 150; const aConvertImagesToGrayScale : boolean = false) : boolean;
     class function ConvertToPDFA(const aPdfFileName, aDestinationFileName : string; const aConformity : TPDFAConformity) : boolean;
     class function GetLastError : String;
   end;
@@ -58,9 +58,10 @@ begin
     FLastError := Format(SGhostscript_error_missing_clu, [Ghostscript_gs_ExePath]);
 end;
 
-class function TGhostscriptToolbox.CompressPdf(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 150): boolean;
+class function TGhostscriptToolbox.CompressPdf(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 150; const aConvertImagesToGrayScale : boolean = false): boolean;
 var
   outputString : string;
+  cmds : array of TProcessString;
 begin
   Result := false;
   if not CheckGhostscript_ExePath then
@@ -73,8 +74,15 @@ begin
   end;
 
   // -sDEVICE=pdfwrite -dCompatabilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dBATCH -dColorImageResolution=150 -sOutputFile="pippo.pdf" "TCL_R51M -EU_EN C635.pdf"
-  if RunCommandIndir(ExtractFileDir(aDestinationFileName), Ghostscript_gs_ExePath, ['-sDEVICE=pdfwrite', '-dCompatabilityLevel=1.4',
-      '-dPDFSETTINGS=/ebook', '-dNOPAUSE', '-dBATCH', '-dColorImageResolution=' + IntToStr(aResolution),  '-sOutputFile=' + AnsiQuotedStr(ExtractFileName(aDestinationFileName), '"'), AnsiQuotedStr(aPdfFileName, '"')],
+
+  if aConvertImagesToGrayScale then
+       cmds := ['-sDEVICE=pdfwrite', '-dCompatabilityLevel=1.4',
+         '-dPDFSETTINGS=/ebook', '-dNOPAUSE', '-dBATCH',   '-sProcessColorModel=DeviceGray', '-sColorConversionStrategy=Gray', '-dOverrideICC', '-dColorImageResolution=' + IntToStr(aResolution),  '-sOutputFile=' + AnsiQuotedStr(ExtractFileName(aDestinationFileName), '"'), AnsiQuotedStr(aPdfFileName, '"')]
+  else
+    cmds := ['-sDEVICE=pdfwrite', '-dCompatabilityLevel=1.4',
+      '-dPDFSETTINGS=/ebook', '-dNOPAUSE', '-dBATCH', '-dColorImageResolution=' + IntToStr(aResolution),  '-sOutputFile=' + AnsiQuotedStr(ExtractFileName(aDestinationFileName), '"'), AnsiQuotedStr(aPdfFileName, '"')];
+
+  if RunCommandIndir(ExtractFileDir(aDestinationFileName), Ghostscript_gs_ExePath, cmds,
       outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
     Result := true
   else

@@ -20,7 +20,7 @@ function GetPageType (const aWidth, aHeight : integer): TPDFPaperType;
 
 function ReduceSizeOfPdfWithPoppler (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aReductionPerc : integer; out aError : String; const aResolution : integer = 72) : boolean;
 
-function ReduceSizeOfPdfWithGhostscript (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aReductionPerc : integer; out aError : String; const aResolution : integer = 72) : boolean;
+function ReduceSizeOfPdfWithGhostscript (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aReductionPerc : integer; out aError : String; const aResolution : integer = 72; const aConvertImagesToGrayScale : boolean = false) : boolean;
 
 function ConvertAllPagesToImages (const aSourceFileName, aDestinationFileName : String; aProgress: ImProgress; out aError: String): boolean;
 
@@ -53,12 +53,12 @@ begin
   end;
 end;
 
-function ReduceSizeOfPdfWithGhostscript(const aSourceFileName, aDestinationFileName: String; aProgress: ImProgress; out aReductionPerc: integer; out aError: String; const aResolution: integer): boolean;
+function ReduceSizeOfPdfWithGhostscript(const aSourceFileName, aDestinationFileName: String; aProgress: ImProgress; out aReductionPerc: integer; out aError: String; const aResolution: integer; const aConvertImagesToGrayScale : boolean): boolean;
 var
   sizeSource, sizeDest : integer;
 begin
-  aProgress.Notify('Running optimizer...');
-  Result := TGhostscriptToolbox.CompressPdf(aSourceFileName, aDestinationFileName, aResolution);
+  aProgress.Notify(Format('Running optimizer on %s...', [ExtractFileName(aSourceFileName)]));
+  Result := TGhostscriptToolbox.CompressPdf(aSourceFileName, aDestinationFileName, aResolution, aConvertImagesToGrayScale);
   if not Result then
   begin
     aError:= TGhostscriptToolbox.GetLastError;
