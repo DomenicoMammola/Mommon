@@ -4,7 +4,7 @@ Unit mLazarusVersionInfo;
 // Code by Mike Thompson - mike.cornflake@gmail.com
 // http://forum.lazarus.freepascal.org/index.php/topic,13957.msg73542.html#msg73542
 //
-// Modificated by Domenico Mammola
+// Modified by Domenico Mammola
 
 {$mode objfpc}
 
