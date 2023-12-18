@@ -98,8 +98,9 @@ implementation
 
 uses
 {$IFDEF FPC}
-  FileUtil, LazFileUtils,
+  FileUtil, LazFileUtils, (* if missing LazFileUtils, add LazUtils package to the requirements of the project*)
 {$ENDIF}
+  StrUtils,
   mUtility, mMathUtility;
 
 { TmConsolePublisher }
@@ -204,7 +205,7 @@ begin
   if FFileFolder = '' then
     FFileFolder := ExtractFileDir(FFileName);
   if FFileNameTemplate = '' then
-    FFileNameTemplate:= LazFileUtils.ExtractFileNameOnly(FFileName);
+    FFileNameTemplate:= ExtractFileName(FFileName);
   Result := IncludeTrailingPathDelimiter(FFileFolder) + mUtility.GetTimeStampForFileName(aDay, false) + FFileNameTemplate;
 end;
 
