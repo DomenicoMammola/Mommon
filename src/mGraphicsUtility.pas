@@ -31,6 +31,7 @@ uses
 
 type
   TRectangleSide = (rsCenter, rsTop, rsLeft, rsBottom, rsRight, rsOutside);
+  TTriangleOrientation = (toTop, toBottom, toLeft, toRight);
 
   procedure GetScreenShot (aBitmap : Graphics.TBitmap);
   procedure CropBitmap (aSourceBitmap, aDestBitmap : Graphics.TBitmap; X, Y : integer);
@@ -54,6 +55,7 @@ type
   procedure GetTextExtend(const aText: String; const aFont: TFont; var aSize : TPoint);
 
   procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
+  procedure DrawTriangle(aCanvas: TCanvas; const aRect: TRect; const aOrientation : TTriangleOrientation);
 
   {$IFDEF FPC}
   function IsDoubleBufferedNeeded: boolean;
@@ -210,6 +212,47 @@ begin
   if DrawText(aCanvas.Handle, PChar(aText), -1, tmpRect, TempFlags) = 0 then
     RaiseLastOSError;
   {$ENDIF}
+end;
+
+procedure DrawTriangle(aCanvas: TCanvas; const aRect: TRect; const aOrientation: TTriangleOrientation);
+var
+  P: Array[0..2] of TPoint;
+begin
+  case aOrientation of
+    toTop:
+      begin
+        P[0]:= aRect.CenterPoint;
+        P[0].Y:= aRect.Top;
+        P[1]:= aRect.BottomRight;
+        P[2]:= P[1];
+        P[2].X:= aRect.Left;
+      end;
+    toBottom:
+      begin
+        P[0]:= aRect.CenterPoint;
+        P[0].Y:= aRect.Bottom;
+        P[1]:= aRect.TopLeft;
+        P[2]:= P[1];
+        P[2].X:= aRect.Right;
+      end;
+    toRight:
+      begin
+        P[0]:= aRect.CenterPoint;
+        P[0].X:= aRect.Right;
+        P[1]:= aRect.TopLeft;
+        P[2]:= P[1];
+        P[2].Y:= aRect.Bottom;
+      end
+    else
+      begin
+        P[0]:= aRect.CenterPoint;
+        P[0].X:= aRect.Left;
+        P[1]:= aRect.BottomRight;
+        P[2]:= P[1];
+        P[2].Y:= aRect.Top;
+      end;
+  end;
+  aCanvas.Polygon(P);
 end;
 
 {$IFDEF FPC}
