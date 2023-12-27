@@ -524,17 +524,17 @@ end;
 
 function TmLogMessageList.Empty: boolean;
 begin
- if Assigned(FCriticalSection) and Assigned(FList) then
+ Result := true;
+ if Assigned(FCriticalSection) then
  begin
     FCriticalSection.Acquire;
     try
-      Result := (FList.Count = 0);
+      if Assigned(FList) then
+        Result := (FList.Count = 0);
     finally
       FCriticalSection.Leave;
     end;
- end
- else
-   Result := true;
+ end;
 end;
 
 procedure TmLogMessageList.PushMessage(aLevel: TmLogMessageLevel; aContext, aMessage: string);
