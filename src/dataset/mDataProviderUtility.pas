@@ -43,6 +43,7 @@ begin
               FormattedValue:= aSummaryManager.GetSummaryValues.Get(i).FormattedValue;
               RawValue:= aSummaryManager.GetSummaryValues.Get(i).ValueAsVariant;
               DataType:= aSummaryManager.GetSummaryValues.Get(i).DataType;
+              Definition.Assign(aSummaryManager.GetSummaryValues.Get(i).Definition);
             end;
           end;
           aSummaryPanel.SetSummaryValues(tempList);

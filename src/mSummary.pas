@@ -25,6 +25,8 @@ type
 
   TmSummaryValueType = (svtDouble, svtInteger, svtString, svtDate, svtDateTime);
 
+  TmSummaryDefinition = class;
+
   { TmSummaryScreenValue }
 
   TmSummaryScreenValue = class
@@ -32,12 +34,15 @@ type
     FFormattedValue: string;
     FRawValue: variant;
     FDataType: TmSummaryValueType;
+    FDefinition: TmSummaryDefinition;
   public
     constructor Create;
+    destructor Destroy; override;
 
     property FormattedValue: string read FFormattedValue write FFormattedValue;
     property RawValue: variant read FRawValue write FRawValue;
     property DataType: TmSummaryValueType read FDataType write FDataType;
+    property Definition: TmSummaryDefinition read FDefinition;
   end;
 
   { TmSummaryScreenValues }
@@ -157,6 +162,7 @@ type
     function FindByDefinition(const aDefinition : TmSummaryDefinition): TmSummaryValue;
   end;
 
+
   function TmSummaryOperatorToString (const aOperator : TmSummaryOperator) : String;
 
 implementation
@@ -219,6 +225,13 @@ constructor TmSummaryScreenValue.Create;
 begin
   FFormattedValue:= '';
   FRawValue:= null;
+  FDefinition:= TmSummaryDefinition.Create;
+end;
+
+destructor TmSummaryScreenValue.Destroy;
+begin
+  FDefinition.Free;
+  inherited Destroy;
 end;
 
 { TmSummaryDefinition }
