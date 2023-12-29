@@ -56,6 +56,7 @@ type
 
   procedure WriteText(aCanvas: TCanvas; const aRect: TRect; const aText: string; aTextAlignment: TAlignment; const aAdjustFontSize : boolean);
   procedure DrawTriangle(aCanvas: TCanvas; const aRect: TRect; const aOrientation : TTriangleOrientation);
+  procedure DrawCheckedBox(aCanvas: TCanvas; const aRect: TRect; const aValue : boolean; const aColor, aBackgroundColor, aBorderColor : TColor);
 
   {$IFDEF FPC}
   function IsDoubleBufferedNeeded: boolean;
@@ -253,6 +254,41 @@ begin
       end;
   end;
   aCanvas.Polygon(P);
+end;
+
+procedure DrawCheckedBox(aCanvas: TCanvas; const aRect: TRect; const aValue: boolean; const aColor, aBackgroundColor, aBorderColor : TColor);
+var
+  oldBrushColor, oldColor: TColor;
+  p1, p2, p3 : TPoint;
+  bw : integer;
+  tmpRect : TRect;
+begin
+  oldBrushColor := aCanvas.Brush.Color;
+  oldColor := aCanvas.Pen.Color;
+  aCanvas.Brush.Color:= aBackgroundColor;
+  tmpRect := aRect;
+  aCanvas.FillRect(tmpRect);
+  bw := 2;
+  aCanvas.Pen.Width:= bw;
+  aCanvas.Pen.Color:= aBorderColor;
+  aCanvas.Rectangle(tmpRect);
+  if aValue then
+  begin
+    aCanvas.Pen.Color:= aColor;
+    bw := max(3, tmpRect.Width div 5);
+    InflateRect(tmpRect, -1 * bw, -1 * bw);
+    p1.X := tmpRect.Left;
+    p1.Y := tmpRect.Top + (tmpRect.Height div 2);
+    p2.X := tmpRect.Left + (tmpRect.Width div 2) - (bw div 2);
+    p2.Y := tmpRect.Bottom - (bw div 2);
+    p3.X := tmpRect.Right - (bw div 2);
+    p3.Y := tmpRect.Top;
+    aCanvas.Pen.Width:= bw;
+    aCanvas.Line(p1, p2);
+    aCanvas.Line(p2, p3);
+  end;
+  aCanvas.Brush.Color := oldBrushColor;
+  aCanvas.Pen.Color:= oldColor;
 end;
 
 {$IFDEF FPC}
