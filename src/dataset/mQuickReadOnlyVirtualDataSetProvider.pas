@@ -65,6 +65,7 @@ type
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly: boolean); override;
     procedure FillFields(aFields : TmFields); override;
     procedure SetDefaultVisibilityOfFields (aFields : TFields); override;
+    function GetKeyFieldName: String;
 
     procedure Clear;
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; override;
@@ -405,6 +406,11 @@ begin
         aFields[i].Visible:= false;
     end;
   end;
+end;
+
+function TReadOnlyVirtualDatasetProvider.GetKeyFieldName: String;
+begin
+  Result := FIDataProvider.GetKeyFieldName;
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.Clear;
