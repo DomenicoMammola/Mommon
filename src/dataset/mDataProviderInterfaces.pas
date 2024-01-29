@@ -49,11 +49,25 @@ type
     procedure GetMinimumFields(aFieldsForLookup : TStringList);
   end;
 
+  TInstantQueryManagerAdditionalOptionCallback = procedure(const aValue : boolean) of object;
+
+  TInstantQueryManagerAdditionalOption = class
+  strict private
+    FCaption : String;
+    FDefaultValue : Boolean;
+    FCallback : TInstantQueryManagerAdditionalOptionCallback;
+  public
+    property Caption : String read FCaption write FCaption;
+    property DefaultValue : Boolean read FDefaultValue write FDefaultValue;
+    property Callback : TInstantQueryManagerAdditionalOptionCallback read FCallback write FCallback;
+  end;
+
   IVDInstantQueryManager = interface
     ['{8462163A-558F-41C5-9268-BEAE64C96359}']
     function GetDataProvider: IVDDataProvider;
     procedure FilterDataProvider(const aLookForValue: String);
     procedure Clear;
+    function GetAdditionalOptions: TList;
   end;
 
   ISortableDatasetManager = interface
