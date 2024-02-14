@@ -11,6 +11,11 @@
 // To enable database access throw the sqldb components to MsSqlServer
 // please check:
 // http://wiki.freepascal.org/mssqlconn
+//
+// dblib.dll can be downloaded from:
+// http://downloads.freepascal.org/fpc/contrib/windows/
+// and
+// https://sourceforge.net/projects/zeoslib/files/3rd%20party/FreeTDS/
 
 unit mDatabaseConnectionImplOnSqldb_MsSql;
 
@@ -42,6 +47,9 @@ type
 
   TMSSqlDatabaseCommandImpl = class (TAbstractSqldbDatabaseCommandImpl);
 
+var
+  FreeTDSLibraryName : string = '';
+
 implementation
 
 uses
@@ -58,12 +66,8 @@ begin
   begin
     FConnection := TMSSQLConnection.Create(nil);
     FTransaction.DataBase := FConnection;
-    {$IFDEF WINDOWS}
-    if Pos('v2008', FConnectionInfo.ExtraSettings) > 0 then
-      DBLibLibraryName := 'dblib_2008.dll'
-    else
-      DBLibLibraryName := DBLIBDLL;
-    {$ENDIF}
+    if FreeTDSLibraryName <> '' then
+      DBLibLibraryName := FreeTDSLibraryName;
   end;
 end;
 
