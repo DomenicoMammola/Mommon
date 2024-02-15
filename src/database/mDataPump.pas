@@ -52,7 +52,7 @@ implementation
 
 uses
   SysUtils, md5, variants, contnrs,
-  mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog;
+  mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog, mBaseClassesAsObjects;
 
 const
   KEY_SEPARATOR = '#@#';
@@ -204,10 +204,10 @@ var
   q: integer;
   sourceConnection, destinationConnection: TmDatabaseConnection;
   sourceQuery, destinationQuery: TmDatabaseQuery;
-  SQLBuilderDestination, SQLBuilderInsert, SQLBuilderUpdate, SQLBuilderDelete, SQLBuilderClearAll, SQLBuilderSelectAll: TmSQLBuilder;
+  SQLBuilderDestination, SQLBuilderInsert, SQLBuilderUpdate, SQLBuilderDestinationDelete, SQLBuilderClearAll, SQLBuilderDestinationSelectAll: TmSQLBuilder;
   performInsert, performUpdate: boolean;
   command : TmDatabaseCommand;
-  sourcefld, destinationfld : TField;
+  sourcefield, destinationfield : TField;
   destinationFieldsMap, sourceFieldsMap, sourceKeysMap: TmStringDictionary;
   tmpsql, tmp, msg: String;
   tmpparameter : TmQueryParameter;
@@ -235,9 +235,9 @@ begin
       SQLBuilderDestination:=  TmSQLBuilder.Create;
       SQLBuilderInsert := TmSQLBuilder.Create;
       SQLBuilderUpdate := TmSQLBuilder.Create;
-      SQLBuilderDelete := TmSQLBuilder.Create;
+      SQLBuilderDestinationDelete := TmSQLBuilder.Create;
       SQLBuilderClearAll := TmSQLBuilder.Create;
-      SQLBuilderSelectAll := TmSQLBuilder.Create;
+      SQLBuilderDestinationSelectAll := TmSQLBuilder.Create;
       destinationFieldsMap := TmStringDictionary.Create(true);
       sourceFieldsMap := TmStringDictionary.Create(false);
       sourceKeysMap := TmStringDictionary.Create(false);
@@ -248,9 +248,9 @@ begin
         SQLBuilderDestination.VendorType:= destinationConnection.ConnectionInfo.VendorType;
         SQLBuilderInsert.VendorType:= SQLBuilderDestination.VendorType;
         SQLBuilderUpdate.VendorType:= SQLBuilderDestination.VendorType;
-        SQLBuilderDelete.VendorType:= SQLBuilderDestination.VendorType;
+        SQLBuilderDestinationDelete.VendorType:= SQLBuilderDestination.VendorType;
         SQLBuilderClearAll.VendorType:= SQLBuilderDestination.VendorType;
-        SQLBuilderSelectAll.VendorType:= SQLBuilderDestination.VendorType;
+        SQLBuilderDestinationSelectAll.VendorType:= SQLBuilderDestination.VendorType;
 
         aTable.FieldsMapping.RebuildIndexes;
 
@@ -258,8 +258,8 @@ begin
         SQLBuilderDestination.PrepareSQL(ComposeDestinationSelectQuery(aTable, SQLBuilderDestination));
         SQLBuilderInsert.PrepareSQL(ComposeDestinationInsertQuery(aTable, SQLBuilderInsert));
         SQLBuilderUpdate.PrepareSQL(ComposeDestinationUpdateQuery(aTable, SQLBuilderUpdate));
-        SQLBuilderDelete.PrepareSQL(ComposeDestinationDeleteQuery(aTable, SQLBuilderDelete));
-        SQLBuilderSelectAll.PrepareSQL(ComposeDestinationSelectAllQuery(aTable, SQLBuilderSelectAll));
+        SQLBuilderDestinationDelete.PrepareSQL(ComposeDestinationDeleteQuery(aTable, SQLBuilderDestinationDelete));
+        SQLBuilderDestinationSelectAll.PrepareSQL(ComposeDestinationSelectAllQuery(aTable, SQLBuilderDestinationSelectAll));
 
         if aTable.PerformClearBefore then
         begin
@@ -295,6 +295,7 @@ begin
         sourceFieldsMap.Clear;
         try
           sourceQuery.Open;
+          logger.Info('Opened source query');
         except
           on e : Exception do
           begin
@@ -331,8 +332,8 @@ begin
           curKeyString:= '';
           for q := 0 to aTable.SourceKeyFields.Count - 1 do
           begin
-            sourcefld := sourceFieldsMap.Find(Uppercase(aTable.SourceKeyFields.Strings[q])) as TField;
-            if not Assigned(sourcefld) then
+            sourcefield := sourceFieldsMap.Find(Uppercase(aTable.SourceKeyFields.Strings[q])) as TField;
+            if not Assigned(sourcefield) then
             begin
               msg := 'Field "' + aTable.SourceKeyFields.Strings[q] + '" not found in source query';
               logger.Error(msg);
@@ -340,9 +341,9 @@ begin
                 aResults.AddError(msg);
               raise Exception.Create(msg);
             end;
-            SQLBuilderDestination.ParamByName(aTable.SourceKeyFields.Strings[q]).Assign(sourcefld);
+            SQLBuilderDestination.ParamByName(aTable.SourceKeyFields.Strings[q]).Assign(sourcefield);
             if aTable.AllowDelete then
-              curKeyString:= curKeyString + KEY_SEPARATOR + sourcefld.AsString;
+              curKeyString:= curKeyString + KEY_SEPARATOR + sourcefield.AsString;
           end;
           if aTable.AllowDelete then
             sourceKeysMap.Add(curKeyString, sourceKeysMap);
@@ -363,12 +364,12 @@ begin
           begin
             for q := 0 to aTable.FieldsMapping.Count - 1 do
             begin
-              sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString) as TField;
-              if not Assigned(sourcefld) then
+              sourcefield := sourceFieldsMap.Find(aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString) as TField;
+              if not Assigned(sourcefield) then
                 raise Exception.Create('Source field missing! ' + aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString + ' Source fields map count: ' + IntToStr(sourceFieldsMap.Count));
 
-              destinationfld := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
-              performUpdate := MD5Print(MD5String(sourcefld.AsString)) <> MD5Print(MD5String(destinationfld.AsString));
+              destinationfield := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
+              performUpdate := MD5Print(MD5String(sourcefield.AsString)) <> MD5Print(MD5String(destinationfield.AsString));
               {$IFDEF DEBUG}
               logger.Debug('COMPARING Value [' + destinationfld.AsString +'] of field ' + destinationfld.FieldName + ' of table ' + aTable.DestinationTableName + ' AND [' + sourcefld.AsString + '] of original field ' + sourcefld.FieldName );
               {$ENDIF}
@@ -389,8 +390,8 @@ begin
             begin
               for q := 0 to aTable.FieldsMapping.Count - 1 do
               begin
-                sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
-                if not Assigned(sourcefld) then
+                sourcefield := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
+                if not Assigned(sourcefield) then
                 begin
                   msg := 'Field "' + aTable.FieldsMapping.Get (q).SourceField.AsString + '" not found as source field in configuration';
                   logger.Error(msg);
@@ -398,10 +399,10 @@ begin
                     aResults.AddError(msg);
                   raise Exception.Create(msg);
                 end;
-                tmpparameter := SQLBuilderInsert.ParamByName(sourcefld.FieldName);
+                tmpparameter := SQLBuilderInsert.ParamByName(sourcefield.FieldName);
                 if not Assigned(tmpparameter) then
                 begin
-                  msg := 'Parameter "' + sourcefld.FieldName + '" not found in insert query';
+                  msg := 'Parameter "' + sourcefield.FieldName + '" not found in insert query';
                   logger.Error(msg);
                   if Assigned(aResults) then
                     aResults.AddError(msg);
@@ -418,11 +419,11 @@ begin
                   raise Exception.Create(msg);
                 end;
                 try
-                  tmpparameter.Assign(sourcefld.AsVariant, paramshell.ParamType);
+                  tmpparameter.Assign(sourcefield.AsVariant, paramshell.ParamType);
                 except
                   on e : Exception do
                   begin
-                    msg := 'source field ' + sourcefld.FieldName + ' Error:' + e.Message;
+                    msg := 'source field ' + sourcefield.FieldName + ' Error:' + e.Message;
                     logger.Error(msg);
                     if Assigned(aResults) then
                       aResults.AddError(msg);
@@ -457,8 +458,8 @@ begin
             begin
               for q := 0 to aTable.FieldsMapping.Count - 1 do
               begin
-                sourcefld := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
-                SQLBuilderUpdate.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+                sourcefield := sourceFieldsMap.Find(aTable.FieldsMapping.Get (q).SourceField.AsUppercaseString) as TField;
+                SQLBuilderUpdate.ParamByName(sourcefield.FieldName).Assign(sourcefield.AsVariant, (destinationFieldsMap.Find(aTable.FieldsMapping.Get(q).DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
               end;
               tmpsql:= SQLBuilderUpdate.BuildSQL;
               try
@@ -489,33 +490,41 @@ begin
         end;
         aProgress.Notify(Format(SMsgTableDone,[aTable.DestinationTableName, rows]));
 
+        sourceQuery.Close;
+        logger.Info('Source query closed');
+
+
+
+
+
         if aTable.AllowDelete then
         begin
           deleteOperationsToBePerformed := TStringList.Create;
           try
-            tmpsql := SQLBuilderSelectAll.BuildSQL;
+            tmpsql := SQLBuilderDestinationSelectAll.BuildSQL;
             destinationQuery.SetSQL(tmpsql);
             destinationQuery.Open;
+            // let's read every row of the destination table
             while not destinationQuery.Eof do
             begin
               curKeyString:= '';
               for q := 0 to aTable.SourceKeyFields.Count - 1 do
               begin
+                // composing the key strings that will be searched on the sourcekeysmap
                 curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[q]);
                 if not Assigned(curFieldToField) then
                   raise Exception.Create('Key field ' + aTable.SourceKeyFields.Strings[q] + ' not found in source query');
                 curKeyString := curKeyString + KEY_SEPARATOR + destinationQuery.AsDataset.FieldByName(curFieldToField.DestinationField.AsUppercaseString).AsString;
               end;
 
-              if not Assigned(sourceKeysMap.Find(curKeyString)) then
+              if not Assigned(sourceKeysMap.Find(curKeyString)) then // current row of destination table is not found in source table
               begin
                 for q := 0 to aTable.SourceKeyFields.Count - 1 do
                 begin
                   curFieldToField := aTable.FieldsMapping.GetBySourceFieldName(aTable.SourceKeyFields.Strings[q]);
-                  sourcefld := sourceFieldsMap.Find(curFieldToField.SourceField.AsUppercaseString) as TField;
-                  SQLBuilderDelete.ParamByName(sourcefld.FieldName).Assign(sourcefld.AsVariant, (destinationFieldsMap.Find(curFieldToField.DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
+                  SQLBuilderDestinationDelete.ParamByName(curFieldToField.SourceField.AsString).Assign(destinationQuery.AsDataset.FieldByName(curFieldToField.DestinationField.AsString).AsVariant, (destinationFieldsMap.Find(curFieldToField.DestinationField.AsUppercaseString) as TParameterTypeShell).ParamType);
                 end;
-                deleteOperationsToBePerformed.Add(SQLBuilderDelete.BuildSQL);
+                deleteOperationsToBePerformed.Add(SQLBuilderDestinationDelete.BuildSQL);
               end;
 
               destinationQuery.Next;
@@ -555,9 +564,9 @@ begin
         SQLBuilderDestination.Free;
         SQLBuilderInsert.Free;
         SQLBuilderUpdate.Free;
-        SQLBuilderDelete.Free;
+        SQLBuilderDestinationDelete.Free;
         SQLBuilderClearAll.Free;
-        SQLBuilderSelectAll.Free;
+        SQLBuilderDestinationSelectAll.Free;
         destinationQuery.Free;
         sourceQuery.Free;
         command.Free;
@@ -578,8 +587,8 @@ begin
     sourceConnection.Close;
     destinationConnection.Close;
   finally
-    destinationConnection.Free;
-    sourceConnection.Free;
+    FreeAndNil(destinationConnection);
+    FreeAndNil(sourceConnection);
   end;
 
   logger.Info('Found ' + IntToStr(rows) + ' rows in source table of destination table ' + aTable.DestinationTableName);
