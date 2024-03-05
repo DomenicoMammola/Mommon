@@ -95,6 +95,7 @@ function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 function KeepOnlyNumbers (const aSource : String) : String;
 function KeepOnlyLetters (const aSource : String; const aUnderscoreForSpaces: boolean) : String;
 function KeepOnlyLettersAndNumbers (const aSource : String; const aUnderscoreForSpaces: boolean) : String;
+function ReduceConsecutiveSpaces(const aSource : String; const aMaxConsecutiveSpaces : integer) : String;
 
 function ExtractSameLeftStringPart(const aList : TStringList): String;
 // i.e. source = 'Lazy cat is sleeping' => 'Lazy'
@@ -1128,6 +1129,29 @@ begin
       Result := Result + aSource[i]
     else if aUnderscoreForSpaces and (aSource[i] = ' ') then
       Result := Result + '_';
+  end;
+end;
+
+function ReduceConsecutiveSpaces(const aSource: String; const aMaxConsecutiveSpaces: integer): String;
+var
+  i : integer;
+  curConsecutiveSpaces : integer;
+begin
+  Result := '';
+  curConsecutiveSpaces:= 0;
+  for i := 1 to Length(aSource) do
+  begin
+    if (aSource[i] = ' ') then
+    begin
+      inc(curConsecutiveSpaces);
+      if curConsecutiveSpaces <= aMaxConsecutiveSpaces then
+        Result := Result + aSource[i];
+    end
+    else
+    begin
+      Result := Result + aSource[i];
+      curConsecutiveSpaces:= 0;
+    end;
   end;
 end;
 

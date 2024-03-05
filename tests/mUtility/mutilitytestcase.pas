@@ -23,6 +23,7 @@ type
     procedure TestEncodeDecodeTimestampForFilename;
     procedure TestEscapeString;
     procedure TestDateTimeConversions;
+    procedure TestStringManipulationProcedures;
   end;
 
 implementation
@@ -348,6 +349,17 @@ begin
   CheckEquals(refValue, outValue);
   CheckTrue(TryToUnderstandDateTimeString('30 Apr 2022 11:23:00', outValue));
   CheckEquals(refValue, outValue);
+end;
+
+procedure TTestCaseUtility.TestStringManipulationProcedures;
+begin
+  CheckEquals('CICCIO CICCIO', ReduceConsecutiveSpaces('CICCIO    CICCIO', 1));
+  CheckEquals('CICCIO  CICCIO', ReduceConsecutiveSpaces('CICCIO    CICCIO', 2));
+  CheckEquals('CICCIO   CICCIO', ReduceConsecutiveSpaces('CICCIO    CICCIO', 3));
+  CheckEquals(' CICCIO CICCIO', ReduceConsecutiveSpaces(' CICCIO CICCIO', 1));
+  CheckEquals(' CICCIO ', ReduceConsecutiveSpaces(' CICCIO ', 1));
+  CheckEquals('ABC - 123 -- 345 *ASDF', ReduceConsecutiveSpaces('ABC -  123 -- 345   *ASDF', 1));
+  CheckEquals(' A  B  C D  E FG', ReduceConsecutiveSpaces(' A   B  C D      E FG', 2));
 end;
 
 
