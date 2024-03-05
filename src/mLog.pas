@@ -380,7 +380,8 @@ begin
     end;
   end;
 
-  FEndEvent.SetEvent;
+  if Assigned(FEndEvent) then
+    FEndEvent.SetEvent;
 end;
 
 function TmLogPublisherThread.LevelsAreCompatible(levelOfMessage, levelOfPublisher: TmLogMessageLevel): boolean;
