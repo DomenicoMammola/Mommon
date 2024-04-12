@@ -107,6 +107,11 @@ begin
   newName := aPrefix + aSource.Name;
   aField.FieldName := newName;
   aField.DataType := FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
+  if aSource.DefaultFormat <> '' then
+  begin
+    aField.DisplayFormat:= aSource.DefaultFormat;
+    aField.EditFormat:= aSource.DefaultFormat;
+  end;
 end;
 
 

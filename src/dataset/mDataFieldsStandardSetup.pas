@@ -22,8 +22,8 @@ uses
 
 
 function GenerateDisplayLabel(aSourceString : String) : String;
-procedure ApplyStandardSettingsToFields (aDataset : TDataset; aStandardFloatFormat : String); overload;
-procedure ApplyStandardSettingsToFields (aFields : TmFields; aStandardFloatFormat : String); overload;
+procedure ApplyStandardSettingsToFields (aDataset : TDataset; aStandardFloatFormat : String; const aPreserveDisplayFloatFormatIfAny : boolean = false); overload;
+procedure ApplyStandardSettingsToFields (aFields : TmFields; aStandardFloatFormat : String; const aPreserveDisplayFloatFormatIfAny : boolean = false); overload;
 
 implementation
 
@@ -77,7 +77,7 @@ begin
   *)
 end;
 
-procedure ApplyStandardSettingsToFields(aDataset: TDataset; aStandardFloatFormat : String);
+procedure ApplyStandardSettingsToFields(aDataset: TDataset; aStandardFloatFormat : String; const aPreserveDisplayFloatFormatIfAny : boolean = false);
 var
   i : integer;
 begin
@@ -85,8 +85,11 @@ begin
   begin
     if aDataset.Fields[i] is TFloatField then
     begin
-      (aDataset.Fields[i] as TFloatField).EditFormat:= aStandardFloatFormat;
-      (aDataset.Fields[i] as TFloatField).DisplayFormat:= aStandardFloatFormat;
+      if (not aPreserveDisplayFloatFormatIfAny) or (aPreserveDisplayFloatFormatIfAny and ((aDataset.Fields[i] as TFloatField).EditFormat = '')) then
+      begin
+        (aDataset.Fields[i] as TFloatField).EditFormat:= aStandardFloatFormat;
+        (aDataset.Fields[i] as TFloatField).DisplayFormat:= aStandardFloatFormat;
+      end;
     end;
 
     if aDataset.Fields[i].DisplayLabel <> '' then
@@ -99,7 +102,7 @@ begin
   end;
 end;
 
-procedure ApplyStandardSettingsToFields(aFields: TmFields; aStandardFloatFormat: String);
+procedure ApplyStandardSettingsToFields(aFields: TmFields; aStandardFloatFormat: String; const aPreserveDisplayFloatFormatIfAny : boolean = false);
 var
   i : integer;
 begin
@@ -107,8 +110,11 @@ begin
   begin
     if FieldTypeIsFloat(aFields.Get(i).DataType) then
     begin
-      aFields.Get(i).EditFormat:= aStandardFloatFormat;
-      aFields.Get(i).DisplayFormat := aStandardFloatFormat;
+      if (not aPreserveDisplayFloatFormatIfAny) or (aPreserveDisplayFloatFormatIfAny and (aFields.Get(i).DisplayFormat = '')) then
+      begin
+        aFields.Get(i).EditFormat:= aStandardFloatFormat;
+        aFields.Get(i).DisplayFormat := aStandardFloatFormat;
+      end;
     end;
 
     if aFields.Get(i).DisplayLabel <> '' then
