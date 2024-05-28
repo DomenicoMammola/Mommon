@@ -23,6 +23,7 @@ type
     procedure Close; virtual; abstract;
 
     procedure StartTransaction; virtual; abstract;
+    procedure EndTransaction; virtual; abstract;
     procedure Commit; virtual; abstract;
     procedure Rollback; virtual; abstract;
     function Connected: boolean; virtual; abstract;

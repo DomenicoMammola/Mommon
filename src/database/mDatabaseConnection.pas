@@ -46,6 +46,7 @@ type
     procedure Close; override;
 
     procedure StartTransaction; override;
+    procedure EndTransaction; override;
     procedure Commit; override;
     procedure Rollback; override;
 
@@ -738,6 +739,12 @@ procedure TmDatabaseConnection.StartTransaction;
 begin
   CreateImplementation;
   FImplementation.StartTransaction;
+end;
+
+procedure TmDatabaseConnection.EndTransaction;
+begin
+  CreateImplementation;
+  FImplementation.EndTransaction;
 end;
 
 procedure TmDatabaseConnection.Commit;

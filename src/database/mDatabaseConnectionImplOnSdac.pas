@@ -43,6 +43,7 @@ type
     procedure Close; override;
     function GetName : String; override;
     procedure StartTransaction; override;
+    procedure EndTransaction; override;
     procedure Commit; override;
     procedure Rollback; override;
 
@@ -414,6 +415,11 @@ end;
 procedure TSdacDatabaseConnectionImpl.StartTransaction;
 begin
   FConnection.StartTransaction;
+end;
+
+procedure TSdacDatabaseConnectionImpl.EndTransaction;
+begin
+  FConnection.EndTransaction;
 end;
 
 procedure TSdacDatabaseConnectionImpl.Commit;

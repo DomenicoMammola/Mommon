@@ -40,6 +40,7 @@ type
     procedure Connect; override;
     procedure Close; override;
     procedure StartTransaction; override;
+    procedure EndTransaction; override;
     procedure Commit; override;
     procedure Rollback; override;
     function Connected: boolean; override;
@@ -435,6 +436,11 @@ end;
 procedure TAbstractSqldbDatabaseConnectionImpl.StartTransaction;
 begin
   FTransaction.StartTransaction;
+end;
+
+procedure TAbstractSqldbDatabaseConnectionImpl.EndTransaction;
+begin
+  FTransaction.EndTransaction;
 end;
 
 procedure TAbstractSqldbDatabaseConnectionImpl.Commit;
