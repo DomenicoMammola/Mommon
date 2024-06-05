@@ -54,6 +54,10 @@ procedure GetSerializedFields (const aDataProvider : IVDDataProvider; aFields : 
 
 implementation
 
+uses
+  SysUtils,
+  mFields;
+
 { TSerializedField }
 
 constructor TSerializedField.Create;
@@ -105,7 +109,7 @@ begin
     begin
       newField := aFields.Add;
       newField.OriginalFieldName:= virtualFieldDefs.VirtualFieldDefs[i].Name;
-      newField.SerializedFieldName:= ConvertNamingConvention(newField.OriginalFieldName, aSourceNamingConvention, aDestinationNamingConvention);
+      newField.SerializedFieldName:= ConvertNamingConvention(StringReplace(newField.OriginalFieldName, SEPARATOR_FIELDS_FROM_INTERNAL_REFERENCE, '_', [rfReplaceAll]), aSourceNamingConvention, aDestinationNamingConvention);
       newField.DataType:= virtualFieldDefs.VirtualFieldDefs[i].DataType;
     end;
 
