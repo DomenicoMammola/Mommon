@@ -2427,6 +2427,10 @@ begin
       else
         Result := Result + aSrc[i];
     end;
+  end
+  else if aType = 'html' then
+  begin
+    Result := StringsReplace(aSrc,['&','<','>','"',#39,'’'],['&amp;','&lt;','&gt;','&quot;','&apos;', '&rsquo;'],[rfReplaceAll]);
   end;
 end;
 
@@ -2495,6 +2499,10 @@ begin
     end;
     if curStr <> '' then
       AddStr(Result, curStr);
+  end
+  else if aType = 'html' then
+  begin
+    Result := StringsReplace(aSrc,['&amp;','&lt;','&gt;','&quot;','&apos;','&#39;', '&rsquo;'],['&','<','>','"',#39,#39, '’'],[rfReplaceAll]);
   end;
 end;
 
