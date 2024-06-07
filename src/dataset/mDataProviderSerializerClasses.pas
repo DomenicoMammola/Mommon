@@ -50,7 +50,8 @@ type
     function Add : TSerializedField;
   end;
 
-procedure GetSerializedFields (const aDataProvider : IVDDataProvider; aFields : TSerializedFields; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention);
+procedure GetSerializedFields (const aDataProvider : IVDDataProvider; aFields : TSerializedFields; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention); overload;
+procedure GetSerializedFields (const aFieldDefs : TmVirtualFieldDefs; aFields : TSerializedFields; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention); overload;
 
 implementation
 
@@ -99,22 +100,27 @@ end;
 procedure GetSerializedFields (const aDataProvider : IVDDataProvider; aFields : TSerializedFields; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention);
 var
   virtualFieldDefs : TmVirtualFieldDefs;
-  i : integer;
-  newField : TSerializedField;
 begin
   virtualFieldDefs := TmVirtualFieldDefs.Create;
   try
     aDataProvider.FillVirtualFieldDefs(virtualFieldDefs, '');
-    for i := 0 to virtualFieldDefs.Count - 1 do
-    begin
-      newField := aFields.Add;
-      newField.OriginalFieldName:= virtualFieldDefs.VirtualFieldDefs[i].Name;
-      newField.SerializedFieldName:= ConvertNamingConvention(StringReplace(newField.OriginalFieldName, SEPARATOR_FIELDS_FROM_INTERNAL_REFERENCE, '_', [rfReplaceAll]), aSourceNamingConvention, aDestinationNamingConvention);
-      newField.DataType:= virtualFieldDefs.VirtualFieldDefs[i].DataType;
-    end;
-
+    GetSerializedFields(virtualFieldDefs, aFields, aSourceNamingConvention, aDestinationNamingConvention);
   finally
     virtualFieldDefs.Free;
+  end;
+end;
+
+procedure GetSerializedFields(const aFieldDefs: TmVirtualFieldDefs; aFields: TSerializedFields; const aSourceNamingConvention, aDestinationNamingConvention: TmNamingConvention);
+var
+  i : integer;
+  newField : TSerializedField;
+begin
+  for i := 0 to aFieldDefs.Count - 1 do
+  begin
+    newField := aFields.Add;
+    newField.OriginalFieldName:= aFieldDefs.VirtualFieldDefs[i].Name;
+    newField.SerializedFieldName:= ConvertNamingConvention(StringReplace(newField.OriginalFieldName, SEPARATOR_FIELDS_FROM_INTERNAL_REFERENCE, '_', [rfReplaceAll]), aSourceNamingConvention, aDestinationNamingConvention);
+    newField.DataType:= aFieldDefs.VirtualFieldDefs[i].DataType;
   end;
 end;
 
