@@ -19,9 +19,10 @@ interface
 uses
   mDataProviderInterfaces, mNamingConventions, mDataProviderSerializerClasses;
 
-function SerializeDataProviderToJson (const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention): String;
+
+function SerializeDataProviderToJson (const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction = nil): String;
 function SerializeDatumToJson(const aDatum : IVDDatum; const aFields : TSerializedFields): String; overload;
-function SerializeDatumToJson(const aDatum : IVDDatum; const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention): String; overload;
+function SerializeDatumToJson(const aDatum : IVDDatum; const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction): String; overload;
 
 implementation
 
@@ -37,7 +38,7 @@ uses
 //  ISO8601FormatExtendedUTC_Time='"T"hh":"mm":"ss"Z"';
 
 
-function SerializeDataProviderToJson(const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention): String;
+function SerializeDataProviderToJson(const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction = nil): String;
 var
   i : integer;
   fields : TSerializedFields;
@@ -50,7 +51,7 @@ begin
   begin
     fields := TSerializedFields.Create;
     try
-      GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention);
+      GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention, aAllowedFieldCheckFunction);
 
       for i := 0 to aDataProvider.Count - 1 do
       begin
@@ -100,13 +101,13 @@ begin
   end;
 end;
 
-function SerializeDatumToJson(const aDatum: IVDDatum; const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention: TmNamingConvention): String;
+function SerializeDatumToJson(const aDatum: IVDDatum; const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention: TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction): String;
 var
   fields : TSerializedFields;
 begin
   fields := TSerializedFields.Create;
   try
-    GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention);
+    GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention, aAllowedFieldCheckFunction);
     Result := SerializeDatumToJson(aDatum, fields);
   finally
     fields.Free;
