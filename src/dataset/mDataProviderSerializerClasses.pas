@@ -51,6 +51,9 @@ type
   end;
 
   TAllowFieldInclusionFunction = function (const aFieldName : String) : boolean;
+  TSerializeDateValueFunction = function (const aValue : TDate): String;
+  TSerializeDateTimeValueFunction = function (const aValue : TDateTime): String;
+  TSerializeTimeValueFunction = function (const aValue : {$IFDEF UNIX}TDateTime{$ELSE}TTime{$ENDIF}): String;
 
 procedure GetSerializedFields (const aDataProvider : IVDDataProvider; aFields : TSerializedFields; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction); overload;
 procedure GetSerializedFields (const aFieldDefs : TmVirtualFieldDefs; aFields : TSerializedFields; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction); overload;

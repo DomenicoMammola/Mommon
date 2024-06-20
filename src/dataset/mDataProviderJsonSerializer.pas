@@ -20,9 +20,15 @@ uses
   mDataProviderInterfaces, mNamingConventions, mDataProviderSerializerClasses;
 
 
-function SerializeDataProviderToJson (const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction = nil): String;
-function SerializeDatumToJson(const aDatum : IVDDatum; const aFields : TSerializedFields): String; overload;
-function SerializeDatumToJson(const aDatum : IVDDatum; const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction): String; overload;
+function SerializeDataProviderToJson (const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention;
+  const aSerializeDateFunction : TSerializeDateValueFunction; const aSerializeTimeFunction : TSerializeTimeValueFunction;
+  const aSerializeDateTimeFunction : TSerializeDateTimeValueFunction; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction = nil): String;
+function SerializeDatumToJson(const aDatum : IVDDatum; const aFields : TSerializedFields;
+  const aSerializeDateFunction : TSerializeDateValueFunction; const aSerializeTimeFunction : TSerializeTimeValueFunction;
+  const aSerializeDateTimeFunction : TSerializeDateTimeValueFunction): String; overload;
+function SerializeDatumToJson(const aDatum : IVDDatum; const aDataProvider : IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention;
+  const aSerializeDateFunction : TSerializeDateValueFunction; const aSerializeTimeFunction : TSerializeTimeValueFunction;
+  const aSerializeDateTimeFunction : TSerializeDateTimeValueFunction; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction): String; overload;
 
 implementation
 
@@ -38,7 +44,8 @@ uses
 //  ISO8601FormatExtendedUTC_Time='"T"hh":"mm":"ss"Z"';
 
 
-function SerializeDataProviderToJson(const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction = nil): String;
+function SerializeDataProviderToJson(const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention : TmNamingConvention; const aSerializeDateFunction : TSerializeDateValueFunction; const aSerializeTimeFunction : TSerializeTimeValueFunction;
+  const aSerializeDateTimeFunction : TSerializeDateTimeValueFunction; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction = nil): String;
 var
   i : integer;
   fields : TSerializedFields;
@@ -59,7 +66,7 @@ begin
           Result := Result + ',{'
         else
           Result := Result + '{';
-        Result := Result + SerializeDatumToJson (aDataProvider.GetDatum(i), fields);
+        Result := Result + SerializeDatumToJson (aDataProvider.GetDatum(i), fields, aSerializeDateFunction, aSerializeTimeFunction, aSerializeDateTimeFunction);
         Result := Result + '}';
       end;
       Result := Result + ']';
@@ -70,7 +77,8 @@ begin
   end;
 end;
 
-function SerializeDatumToJson(const aDatum: IVDDatum; const aFields : TSerializedFields): String;
+function SerializeDatumToJson(const aDatum: IVDDatum; const aFields : TSerializedFields; const aSerializeDateFunction : TSerializeDateValueFunction; const aSerializeTimeFunction : TSerializeTimeValueFunction;
+  const aSerializeDateTimeFunction : TSerializeDateTimeValueFunction): String;
 var
   k : integer;
   value : Variant;
@@ -91,9 +99,9 @@ begin
         vftInteger : Result := Result + IntToStr(value);
         vftBoolean : if value then Result := Result + 'true' else Result := Result + 'false';
         vftFloat, vftCurrency : Result := Result + FormatFloat('#.#', value);
-        vftDate : Result := Result + '"' + DateToJsonString(VarToDateTime(value)) + '"';
-        vftTime : Result := Result + '"' + TimeToJsonString(VarToDateTime(value)) + '"';
-        vftDateTime, vftTimeStamp : Result := Result + '"' + DateTimeToJsonString(VarToDateTime(value)) + '"';
+        vftDate : if Assigned(aSerializeDateFunction) then Result := Result + '"' + aSerializeDateFunction(VarToDateTime(value)) + '"' else Result := Result + '"' + DateToJsonString(VarToDateTime(value)) + '"';
+        vftTime : if Assigned(aSerializeTimeFunction) then Result := Result + '"' + aSerializeTimeFunction(VarToDateTime(value)) + '"' else Result := Result + '"' + TimeToJsonString(VarToDateTime(value)) + '"';
+        vftDateTime, vftTimeStamp : if Assigned(aSerializeDateTimeFunction) then Result := Result + '"' + aSerializeDateTimeFunction(VarToDateTime(value)) + '"' else Result := Result + '"' + DateTimeToJsonString(VarToDateTime(value)) + '"';
       else
         Result := Result + '"' + EscapeStringValue(VarToStr(value), 'json') + '"';
       end;
@@ -101,14 +109,16 @@ begin
   end;
 end;
 
-function SerializeDatumToJson(const aDatum: IVDDatum; const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention: TmNamingConvention; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction): String;
+function SerializeDatumToJson(const aDatum: IVDDatum; const aDataProvider: IVDDataProvider; const aSourceNamingConvention, aDestinationNamingConvention: TmNamingConvention;
+  const aSerializeDateFunction : TSerializeDateValueFunction; const aSerializeTimeFunction : TSerializeTimeValueFunction;
+  const aSerializeDateTimeFunction : TSerializeDateTimeValueFunction; const aAllowedFieldCheckFunction : TAllowFieldInclusionFunction): String;
 var
   fields : TSerializedFields;
 begin
   fields := TSerializedFields.Create;
   try
     GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention, aAllowedFieldCheckFunction);
-    Result := SerializeDatumToJson(aDatum, fields);
+    Result := SerializeDatumToJson(aDatum, fields, aSerializeDateFunction, aSerializeTimeFunction, aSerializeDateTimeFunction);
   finally
     fields.Free;
   end;
