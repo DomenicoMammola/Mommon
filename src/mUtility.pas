@@ -902,14 +902,14 @@ begin
         begin
           Day := StrToIntDef(trim(copy(Data, 1, 2)), 0);
           delete(Data, 1, 2);
-        end;
+        end
 
         // Day Sun..Sat (Just remove from data string)
-        if Mask = 'DDD' then
-          delete(Data, 1, 3);
+        else if Mask = 'DDD' then
+          delete(Data, 1, 3)
 
         // Day Sunday..Saturday (Just remove from data string LEN)
-        if Mask = 'DDDD' then
+        else if Mask = 'DDDD' then
         begin
           Tmp := copy(Data, 1, 3);
           for iii := 1 to 7 do
@@ -920,17 +920,17 @@ begin
               Break;
             end;
           end;
-        end;
+        end
 
         // Month 1..12
-        if (Mask = 'MM') then
+        else if (Mask = 'MM') then
         begin
           Month := StrToIntDef(trim(copy(Data, 1, 2)), 0);
           delete(Data, 1, 2);
-        end;
+        end
 
         // Month Jan..Dec
-        if Mask = 'MMM' then
+        else if Mask = 'MMM' then
         begin
           Tmp := copy(Data, 1, 3);
           for iii := 1 to 12 do
@@ -942,10 +942,10 @@ begin
               Break;
             end;
           end;
-        end;
+        end
 
         // Month January..December
-        if Mask = 'MMMM' then
+        else if Mask = 'MMMM' then
         begin
           Tmp := copy(Data, 1, 3);
           for iii := 1 to 12 do
@@ -957,10 +957,10 @@ begin
               Break;
             end;
           end;
-        end;
+        end
 
         // Year 2 Digit
-        if Mask = 'YY' then
+        else if Mask = 'YY' then
         begin
           Year := StrToIntDef(copy(Data, 1, 2), 0);
           delete(Data, 1, 2);
@@ -968,55 +968,55 @@ begin
             Year := (YearOf(Date) div 100) * 100 + Year
           else
             Year := (YearOf(Date) div 100 - 1) * 100 + Year;
-        end;
+        end
 
         // Year 4 Digit
-        if Mask = 'YYYY' then
+        else if Mask = 'YYYY' then
         begin
           Year := StrToIntDef(copy(Data, 1, 4), 0);
           delete(Data, 1, 4);
-        end;
+        end
 
         // Hours
-        if Mask = 'HH' then
+        else if Mask = 'HH' then
         begin
           Hour := StrToIntDef(trim(copy(Data, 1, 2)), 0);
           delete(Data, 1, 2);
-        end;
+        end
 
         // Minutes
-        if Mask = 'NN' then
+        else if Mask = 'NN' then
         begin
           Minute := StrToIntDef(trim(copy(Data, 1, 2)), 0);
           delete(Data, 1, 2);
-        end;
+        end
 
         // Seconds
-        if Mask = 'SS' then
+        else if Mask = 'SS' then
         begin
           Second := StrToIntDef(trim(copy(Data, 1, 2)), 0);
           delete(Data, 1, 2);
-        end;
+        end
 
         // Milliseconds
-        if (Mask = 'ZZ') or (Mask = 'ZZZ') then
+        else if (Mask = 'ZZ') or (Mask = 'ZZZ') then
         begin
           MSec := StrToIntDef(trim(copy(Data, 1, 3)), 0);
           delete(Data, 1, 3);
-        end;
+        end
 
         // AmPm A or P flag
-        if (Mask = 'AP') then
+        else if (Mask = 'AP') then
         begin
           if Data[1] = 'A' then
             AmPm := -1
           else
             AmPm := 1;
           delete(Data, 1, 1);
-        end;
+        end
 
         // AmPm AM or PM flag
-        if (Mask = 'AM') or (Mask = 'AMP') or (Mask = 'AMPM') then
+        else if (Mask = 'AM') or (Mask = 'AMP') or (Mask = 'AMPM') then
         begin
           if copy(Data, 1, 2) = 'AM' then
             AmPm := -1
@@ -1061,16 +1061,30 @@ begin
 end;
 
 function TryToUnderstandJsonDateString(const aInputString: string; out aValue: TDate): boolean;
+var
+  lg : integer;
+  tmp : String;
 begin
   Result := false;
-  aValue := trunc(DateTimeStrEval('yyyy-mm-ddZ', aInputString));
+  tmp := aInputString;
+  lg := Length(tmp);
+  if (lg > 0) and (RightStr(tmp, 1)='Z') then
+    tmp := LeftStr(tmp, lg - 1);
+  aValue := trunc(DateTimeStrEval('yyyy-mm-dd', tmp));
   Result := (aValue > 0);
 end;
 
 function TryToUnderstandJsonTimeString(const aInputString: string; out aValue: {$IFDEF UNIX}TDateTime{$ELSE}TTime{$ENDIF}): boolean;
+var
+  lg : integer;
+  tmp : String;
 begin
   Result := false;
-  aValue := DateTimeStrEval('Thh:mm:ssZ', aInputString);
+  tmp := aInputString;
+  lg := Length(tmp);
+  if (lg > 0) and (RightStr(tmp, 1)='Z') then
+    tmp := LeftStr(tmp, lg - 1);
+  aValue := DateTimeStrEval('Thh:nn:ss', tmp);
   if aValue > 0 then
   begin
     Result := true;
@@ -1079,9 +1093,19 @@ begin
 end;
 
 function TryToUnderstandJsonDateTimeString(const aInputString: string; out aValue: TDateTime): boolean;
+var
+  lg : integer;
+  tmp : String;
 begin
   Result := false;
-  aValue := DateTimeStrEval('yyyy-mm-ddThh:mm:ssZ', aInputString);
+  tmp := aInputString;
+  lg := Length(tmp);
+  if (lg > 0) and (RightStr(tmp, 1)='Z') then
+    tmp := LeftStr(tmp, lg - 1);
+  aValue := DateTimeStrEval('yyyy-mm-ddThh:nn:ss', tmp);
+  //'2025-12-25T23:00:00.000Z'
+  if (aValue = 0) then
+    aValue := DateTimeStrEval('yyyy-mm-ddThh:nn:ss.zzz', tmp);
   Result := (aValue > 0);
 end;
 
