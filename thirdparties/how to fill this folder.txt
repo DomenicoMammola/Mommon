@@ -38,3 +38,9 @@ https://github.com/JuhaManninen/Pascal/blob/master/StrHashMap/StrHashMap.pas
 and put in folder:
 StrHashMap
 
+-----------------------------------------------------------
+
+PdfiumLib
+Clone BRANCH lcl
+https://github.com/DomenicoMammola/PdfiumLib.git
+in folder PdfiumLib
