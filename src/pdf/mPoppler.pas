@@ -23,7 +23,7 @@ uses
   sysutils, Classes;
 
 resourcestring
-  SPoppler_error_missing_clu = 'Missing clu: %s';
+  SPoppler_error_missing_clu = 'Missing command line utility: %s';
   SPoppler_error_file_missing = 'Pdf file is missing: %s';
   SPoppler_pdfunite_error_unable_to_run = 'Unable to run Poppler pdfunite: %s';
   SPoppler_pdfseparate_error_unable_to_run = 'Unable to run Poppler pdfseparate: %s';
