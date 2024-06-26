@@ -17,7 +17,7 @@ type
 
   TPdfiumLibToolbox = class
   public
-    class function ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word;
+    class function ExtractThumbnailOfFrontPageFromPdfAsImage(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word;
       const aAdaptPngSizeToPageSize: boolean; const aBackgroundColor : TColor; out aError : String) : boolean;
   end;
 
@@ -30,14 +30,18 @@ uses
 
 { TPdfiumLibToolbox }
 
-class function TPdfiumLibToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word; const aAdaptPngSizeToPageSize: boolean;
+class function TPdfiumLibToolbox.ExtractThumbnailOfFrontPageFromPdfAsImage(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word; const aAdaptPngSizeToPageSize: boolean;
   const aBackgroundColor : TColor; out aError : String): boolean;
 var
   doc : TPdfDocument;
-  btm : TBitmap;
+  bmp : TBitmap;
+  jpgImg : TJPEGImage;
+  pngImg : TPortableNetworkGraphic;
+  img : TFPImageBitmap;
   relPage, relViewport : Double;
   pageWidth, pageHeight : integer;
   X, Y : integer;
+  ext : String;
 begin
   Result := false;
   aError := '';
@@ -57,7 +61,28 @@ begin
         aError := Format(SPdfiumLib_error_empty_pdf, [aPdfFileName]);
         exit;
       end;
-      btm := TBitmap.Create;
+
+      ext := ExtractFileExt(aThumbnailFileName);
+
+      pngImg := nil;
+      jpgImg := nil;
+      bmp := nil;
+
+      if (CompareText(ext, '.png') = 0) then
+      begin
+        pngImg := TPortableNetworkGraphic.Create;
+        img := pngImg;
+      end
+      else if (CompareText(ext, '.jpg') = 0) or (CompareText(ext, '.jpeg') = 0) then
+      begin
+        jpgImg := TJPEGImage.Create;
+        img := jpgImg;
+      end
+      else
+      begin
+        bmp := TBitmap.Create;
+        img := bmp;
+      end;
       try
         if aAdaptPngSizeToPageSize then
         begin
@@ -65,28 +90,28 @@ begin
           Y := 0;
           if doc.Pages[0].Width > doc.Pages[0].Height then
           begin
-            btm.Width:= aWidth;
+            img.Width:= aWidth;
             pageWidth:= aWidth;
             relPage:= doc.Pages[0].Height / doc.Pages[0].Width;
-            btm.Height:= trunc(aWidth * relPage);
+            img.Height:= trunc(aWidth * relPage);
             pageHeight:= trunc(pageWidth * relPage);
           end
           else
           begin
-            btm.Height:= aHeight;
+            img.Height:= aHeight;
             pageHeight:= aHeight;
             relPage:= doc.Pages[0].Width / doc.Pages[0].Height;
-            btm.Width:= trunc(aHeight * relPage);
+            img.Width:= trunc(aHeight * relPage);
             pageWidth:= trunc(pageHeight * relPage);
           end;
         end
         else
         begin
-          btm.Width:= aWidth;
-          btm.Height:= aHeight;
+          img.Width:= aWidth;
+          img.Height:= aHeight;
 
-          btm.Canvas.Brush.Color:= aBackgroundColor;
-          btm.Canvas.FillRect(btm.Canvas.ClipRect);
+          img.Canvas.Brush.Color:= aBackgroundColor;
+          img.Canvas.FillRect(img.Canvas.ClipRect);
 
           relPage:= doc.Pages[0].Height / doc.Pages[0].Width;
           relViewport:= aHeight / aWidth;
@@ -106,10 +131,12 @@ begin
             Y := 0;
           end;
         end;
-        doc.Pages[0].DrawToCanvas(btm.Canvas, X, Y, pageWidth, pageHeight, prNormal, [], aBackgroundColor);
-        btm.SaveToFile(aThumbnailFileName);
+        doc.Pages[0].DrawToCanvas(img.Canvas, X, Y, pageWidth, pageHeight, prNormal, [], aBackgroundColor);
+        img.SaveToFile(aThumbnailFileName);
       finally
-        btm.Free;
+        FreeAndNil(bmp);
+        FreeAndNil(pngImg);
+        FreeAndNil(jpgImg);
       end;
 
     finally
