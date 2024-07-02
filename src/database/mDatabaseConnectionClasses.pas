@@ -94,7 +94,7 @@ type
     property AsDate : TDate read GetAsDate write SetAsDate;
     property AsTime : TDateTime read GetAsTime write SetAsTime;
     property AsBoolean : Boolean read GetAsBoolean write SetAsBoolean;
-    property Operator : TmFilterOperator read FOperator write FOperator;
+    property FilterOperator : TmFilterOperator read FOperator write FOperator;
   end;
 
   { TmQueryParameters }
@@ -762,8 +762,8 @@ end;
 procedure TmQueryParameter.AssignStrings(const aList: TStringList);
 begin
   Self.FDataType:= ptString;
-  if Self.Operator = foEq then
-    Self.Operator:= foIn;
+  if Self.FilterOperator = foEq then
+    Self.FilterOperator:= foIn;
   if aList.Count = 0 then
     Self.SetNull
   else
@@ -773,8 +773,8 @@ end;
 procedure TmQueryParameter.AssignIntegers(const aList: TIntegerList);
 begin
   Self.FDataType:= ptInteger;
-  if Self.Operator = foEq then
-    Self.Operator:= foIn;
+  if Self.FilterOperator = foEq then
+    Self.FilterOperator:= foIn;
   if aList.Count = 0 then
     Self.SetNull
   else
@@ -784,8 +784,8 @@ end;
 procedure TmQueryParameter.AssignDoubles(const aList: TDoubleList);
 begin
   Self.FDataType:= ptFloat;
-  if Self.Operator = foEq then
-    Self.Operator:= foIn;
+  if Self.FilterOperator = foEq then
+    Self.FilterOperator:= foIn;
   if aList.Count = 0 then
     Self.SetNull
   else
@@ -795,8 +795,8 @@ end;
 procedure TmQueryParameter.AssignDates(const aList: TIntegerList);
 begin
   Self.FDataType:= ptDate;
-  if Self.Operator = foEq then
-    Self.Operator:= foIn;
+  if Self.FilterOperator = foEq then
+    Self.FilterOperator:= foIn;
   if aList.Count = 0 then
     Self.SetNull
   else
@@ -806,8 +806,8 @@ end;
 procedure TmQueryParameter.AssignDateTimes(const aList: TDoubleList);
 begin
   Self.FDataType:= ptDateTime;
-  if Self.Operator = foEq then
-    Self.Operator:= foIn;
+  if Self.FilterOperator = foEq then
+    Self.FilterOperator:= foIn;
   if aList.Count = 0 then
     Self.SetNull
   else

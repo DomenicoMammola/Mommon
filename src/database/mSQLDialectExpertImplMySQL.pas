@@ -73,7 +73,7 @@ begin
         end;
       ptDate:
         begin
-          if (aParam.Operator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -89,7 +89,7 @@ begin
               IntegerList.Free;
             end;
           end
-          else if (aParam.Operator = TmFilterOperator.foBetween) then
+          else if (aParam.FilterOperator = TmFilterOperator.foBetween) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -107,7 +107,7 @@ begin
         end;
       ptTime:
       begin
-        if (aParam.Operator = TmFilterOperator.foIn) then
+        if (aParam.FilterOperator = TmFilterOperator.foIn) then
         begin
           DoubleList := TDoubleList.Create;
           try
@@ -122,7 +122,7 @@ begin
           finally
             DoubleList.Free;
           end;
-        end else if (aParam.Operator = TmFilterOperator.foBetween) then
+        end else if (aParam.FilterOperator = TmFilterOperator.foBetween) then
         begin
           DoubleList := TDoubleList.Create;
           try
@@ -140,7 +140,7 @@ begin
       end;
       ptDateTime:
         begin
-          if (aParam.Operator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) then
           begin
             DoubleList := TDoubleList.Create;
             try
@@ -155,7 +155,7 @@ begin
             finally
               DoubleList.Free;
             end;
-          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          end else if (aParam.FilterOperator = TmFilterOperator.foBetween) then
           begin
             DoubleList := TDoubleList.Create;
             try
@@ -173,7 +173,7 @@ begin
         end;
       ptString:
         begin
-          if (aParam.Operator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) then
           begin
             StringList := TStringList.Create;
             try
@@ -188,7 +188,7 @@ begin
             finally
               StringList.Free;
             end;
-          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          end else if (aParam.FilterOperator = TmFilterOperator.foBetween) then
           begin
             StringList := TStringList.Create;
             try
@@ -200,7 +200,7 @@ begin
             finally
               StringList.Free;
             end;
-          end else if (aParam.Operator = TmFilterOperator.foLike) then
+          end else if (aParam.FilterOperator = TmFilterOperator.foLike) then
           begin
             if AnsiContainsStr(aParam.AsString, '_') then
             begin
@@ -210,7 +210,7 @@ begin
             else
               Result := StringToSQLString('%' + aParam.AsString + '%')
           end
-          else if (aParam.Operator = TmFilterOperator.foStartWith) then
+          else if (aParam.FilterOperator = TmFilterOperator.foStartWith) then
           begin
             if AnsiContainsStr(aParam.AsString, '_') then
             begin
@@ -220,7 +220,7 @@ begin
             else
               Result := StringToSQLString(aParam.AsString + '%');
           end
-          else if (aParam.Operator = TmFilterOperator.foEndWith) then
+          else if (aParam.FilterOperator = TmFilterOperator.foEndWith) then
           begin
             if AnsiContainsStr(aParam.AsString, '_') then
             begin
@@ -235,7 +235,7 @@ begin
         end;
       ptWideString:
         begin
-          if (aParam.Operator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) then
           begin
             StringList := TStringList.Create;
             try
@@ -251,7 +251,7 @@ begin
               StringList.Free;
             end;
           end
-          else if (aParam.Operator = TmFilterOperator.foBetween) then
+          else if (aParam.FilterOperator = TmFilterOperator.foBetween) then
           begin
             StringList := TStringList.Create;
             try
@@ -263,7 +263,7 @@ begin
             finally
               StringList.Free;
             end;
-          end else if (aParam.Operator = TmFilterOperator.foLike) then
+          end else if (aParam.FilterOperator = TmFilterOperator.foLike) then
           begin
             if AnsiContainsStr(aParam.AsString, '_') then
             begin
@@ -273,7 +273,7 @@ begin
             else
               Result := StringToSQLString('%' + aParam.AsString + '%')
           end
-          else if (aParam.Operator = TmFilterOperator.foStartWith) then
+          else if (aParam.FilterOperator = TmFilterOperator.foStartWith) then
           begin
             if AnsiContainsStr(aParam.AsString, '_') then
             begin
@@ -283,7 +283,7 @@ begin
             else
               Result := StringToSQLString(aParam.AsString + '%');
           end
-          else if (aParam.Operator = TmFilterOperator.foEndWith) then
+          else if (aParam.FilterOperator = TmFilterOperator.foEndWith) then
           begin
             if AnsiContainsStr(aParam.AsString, '_') then
             begin
@@ -298,7 +298,7 @@ begin
         end;
       ptInteger:
         begin
-          if (aParam.Operator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -313,7 +313,7 @@ begin
             finally
               IntegerList.Free;
             end;
-          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          end else if (aParam.FilterOperator = TmFilterOperator.foBetween) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -331,7 +331,7 @@ begin
         end;
       ptFloat:
         begin
-          if (aParam.Operator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) then
           begin
             DoubleList := TDoubleList.Create;
             try
@@ -346,7 +346,7 @@ begin
             finally
               DoubleList.Free;
             end;
-          end else if (aParam.Operator = TmFilterOperator.foBetween) then
+          end else if (aParam.FilterOperator = TmFilterOperator.foBetween) then
           begin
             DoubleList := TDoubleList.Create;
             try
@@ -364,7 +364,7 @@ begin
         end;
     end;
   end;
-  if (aParam.Operator = TmFilterOperator.foNotEq) then // NULL-safe not equal, https://9to5answer.com/mysql-null-safe-not-equal-operator
+  if (aParam.FilterOperator = TmFilterOperator.foNotEq) then // NULL-safe not equal, https://9to5answer.com/mysql-null-safe-not-equal-operator
     Result := Result + ')';
 end;
 
