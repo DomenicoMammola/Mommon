@@ -47,7 +47,7 @@ begin
   CSVBuilder := TmCSVBuilder.Create;
   fields := TSerializedFields.Create;
   try
-    GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention);
+    GetSerializedFields(aDataProvider, fields, aSourceNamingConvention, aDestinationNamingConvention, nil);
     CSVBuilder.Stream := stream;
     CSVBuilder.StartWrite;
     CSVBuilder.Delimiter:= aDelimiter;
