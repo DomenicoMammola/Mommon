@@ -16,6 +16,7 @@ unit mGraphicsUtilityNoGUI;
 interface
 
   function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+  function GenerateJPGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
   function CropImage(aSourceFile, aDestFile: String; aOriginX, aOriginY, aWidth, aHeight: integer; out aError: String) : boolean;
 
 implementation
@@ -24,7 +25,7 @@ uses
   Classes, SysUtils,
   BGRABitmap, BGRABitmapTypes, BGRAGraphics;
 
-function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word; out aError: String): boolean;
+function InternalGenerateThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word; out aError: String): boolean;
 var
   sourcePicture, thumbnail: TBGRABitmap;
   rateWidth, rateHeight : Extended;
@@ -59,6 +60,16 @@ begin
       Result := false;
     end;
   end;
+end;
+
+function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word; out aError: String): boolean;
+begin
+  Result := InternalGenerateThumbnailOfImage(aSourceFile, ChangeFileExt(aThumbnailFile, '.png'), aMaxWidth, aMaxHeight, aError);
+end;
+
+function GenerateJPGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word; out aError: String): boolean;
+begin
+  Result := InternalGenerateThumbnailOfImage(aSourceFile, ChangeFileExt(aThumbnailFile, '.jpg'), aMaxWidth, aMaxHeight, aError);
 end;
 
 function CropImage(aSourceFile, aDestFile: String; aOriginX, aOriginY, aWidth, aHeight: integer; out aError: String) : boolean;

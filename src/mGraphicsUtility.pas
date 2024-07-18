@@ -69,6 +69,7 @@ type
   procedure CopyTextToClipboard(aText: string);
 
   function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+  function GenerateJPGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
 
   procedure FlashInWindowsTaskbar(const aFlashEvenIfActive : boolean);
 
@@ -554,10 +555,11 @@ begin
 Result := ({$IFNDEF FPC}GetAsyncKeyState{$ELSE}GetKeyState{$ENDIF}(VK_SHIFT) and $8000 <> 0)
 end;
 
-function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+function InternalGenerateThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word; const aPng : boolean; out aError: String): boolean;
 var
   sourcePicture : TPicture;
-  thumbnail : {$IFDEF FPC} TPortableNetworkGraphic {$ELSE} TPngImage {$ENDIF};
+  thumbnailPNG : {$IFDEF FPC} TPortableNetworkGraphic {$ELSE} TPngImage {$ENDIF};
+
   rateWidth, rateHeight : Extended;
   r : TRect;
 begin
@@ -565,9 +567,9 @@ begin
   try
     sourcePicture := TPicture.Create;
     {$IFDEF FPC}
-    thumbnail := TPortableNetworkGraphic.Create;
+    thumbnailPNG := TPortableNetworkGraphic.Create;
     {$ELSE}
-    thumbnail := TPngImage.Create;
+    thumbnailPNG := TPngImage.Create;
     {$ENDIF}
     try
       sourcePicture.LoadFromFile(aSourceFile);
@@ -575,18 +577,18 @@ begin
       rateHeight := aMaxHeight / sourcePicture.Height;
       if rateWidth > rateHeight then
         rateWidth := rateHeight;
-      thumbnail.SetSize(round(sourcePicture.Width * rateWidth), round(sourcePicture.Height * rateHeight));
-      thumbnail.Canvas.Brush.Color:= clWhite;
-      r := Rect(0, 0, thumbnail.Width, thumbnail.Height);
-      thumbnail.Canvas.FillRect(r);
+      thumbnailPNG.SetSize(round(sourcePicture.Width * rateWidth), round(sourcePicture.Height * rateHeight));
+      thumbnailPNG.Canvas.Brush.Color:= clWhite;
+      r := Rect(0, 0, thumbnailPNG.Width, thumbnailPNG.Height);
+      thumbnailPNG.Canvas.FillRect(r);
       {$IFDEF FPC}
-      thumbnail.Canvas.AntialiasingMode := amON;
+      thumbnailPNG.Canvas.AntialiasingMode := amON;
       {$ENDIF}
-      thumbnail.Canvas.StretchDraw(r, sourcePicture.Graphic);
-      thumbnail.SaveToFile(aThumbnailFile);
+      thumbnailPNG.Canvas.StretchDraw(r, sourcePicture.Graphic);
+      thumbnailPNG.SaveToFile(aThumbnailFile);
     finally
       sourcePicture.Free;
-      thumbnail.Free;
+      thumbnailPNG.Free;
     end;
   except
     on e: Exception do
@@ -595,6 +597,16 @@ begin
       Result := false;
     end;
   end;
+end;
+
+function GeneratePNGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+begin
+  Result := InternalGenerateThumbnailOfImage(aSourceFile, aThumbnailFile, aMaxWidth, aMaxHeight, true, aError);
+end;
+
+function GenerateJPGThumbnailOfImage(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+begin
+  Result := InternalGenerateThumbnailOfImage(aSourceFile, aThumbnailFile, aMaxWidth, aMaxHeight, false, aError);
 end;
 
 // https://stackoverflow.com/questions/20129758/algorithm-to-randomly-generate-a-color-palette-in-delphi
