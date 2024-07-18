@@ -333,11 +333,12 @@ end;
 
 class function TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word): boolean;
 begin
+  Result := ExtractThumbnailOfFrontPageFromPdf(aPdfFileName, aThumbnailFileName, aWidth, aHeight, false);
 end;
 
 class function TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsJpg(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word): boolean;
 begin
-
+  Result := ExtractThumbnailOfFrontPageFromPdf(aPdfFileName, aThumbnailFileName, aWidth, aHeight, true);
 end;
 
 class function TPopplerToolbox.ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution: integer): boolean;
