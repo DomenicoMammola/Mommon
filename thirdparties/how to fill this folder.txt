@@ -1,5 +1,20 @@
-A copy of all the external libraries is already included. The following list is for reference.
+-----------------------------------------------------------
 
+PdfiumLib
+Clone BRANCH lcl
+https://github.com/DomenicoMammola/PdfiumLib.git
+in folder PdfiumLib
+
+-----------------------------------------------------------
+
+Clone https://github.com/bgrabitmap/bgrabitmap.git in folder bgrabitmap
+
+-----------------------------------------------------------
+
+
+
+
+A copy of these external libraries is already included. The following list is for reference.
 
 -----------------------------------------------------------
 
@@ -38,9 +53,3 @@ https://github.com/JuhaManninen/Pascal/blob/master/StrHashMap/StrHashMap.pas
 and put in folder:
 StrHashMap
 
------------------------------------------------------------
-
-PdfiumLib
-Clone BRANCH lcl
-https://github.com/DomenicoMammola/PdfiumLib.git
-in folder PdfiumLib
