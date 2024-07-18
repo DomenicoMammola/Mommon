@@ -62,6 +62,6 @@ end;
 
 initialization
 
-  GetDataConnectionClassesRegister.RegisterImplementations(TPostgreSQLDatabaseConnectionImpl.GetImplementationName, dvPostgresql, '11', TPostgreSQLDatabaseConnectionImpl, TPostgreSQLDatabaseQueryImpl, TPostgreSQLDatabaseCommandImpl);
+  GetDataConnectionClassesRegister.RegisterImplementations(TPostgreSQLDatabaseConnectionImpl.GetImplementationName, dvPostgresql, '*', TPostgreSQLDatabaseConnectionImpl, TPostgreSQLDatabaseQueryImpl, TPostgreSQLDatabaseCommandImpl);
 
 end.

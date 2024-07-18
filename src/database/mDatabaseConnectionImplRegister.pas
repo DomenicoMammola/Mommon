@@ -104,7 +104,7 @@ begin
   for i := 0 to FImplementationsList.Count -1 do
   begin
     TempShell := FImplementationsList[i] as TImplementationClassesShell;
-    if (TempShell.VendorType = aVendorType) and (CompareText(TempShell.DatabaseVersion, aDatabaseVersion) = 0) then
+    if (TempShell.VendorType = aVendorType) and ((TempShell.DatabaseVersion = '') or (TempShell.DatabaseVersion='*') or (CompareText(TempShell.DatabaseVersion, aDatabaseVersion) = 0)) then
     begin
       Result := TempShell.ConnectionClass.Create;
       exit;
