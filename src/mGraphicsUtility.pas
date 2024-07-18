@@ -559,36 +559,51 @@ function InternalGenerateThumbnailOfImage(const aSourceFile, aThumbnailFile: Str
 var
   sourcePicture : TPicture;
   thumbnailPNG : {$IFDEF FPC} TPortableNetworkGraphic {$ELSE} TPngImage {$ENDIF};
-
+  thumbnailJPG : TJPEGImage;
+  tmb : TCustomBitmap;
   rateWidth, rateHeight : Extended;
   r : TRect;
 begin
   Result := true;
   try
     sourcePicture := TPicture.Create;
-    {$IFDEF FPC}
-    thumbnailPNG := TPortableNetworkGraphic.Create;
-    {$ELSE}
-    thumbnailPNG := TPngImage.Create;
-    {$ENDIF}
+    thumbnailPNG := nil;
+    thumbnailJPG := nil;
+    if aPng then
+    begin
+      {$IFDEF FPC}
+      thumbnailPNG := TPortableNetworkGraphic.Create;
+      {$ELSE}
+      thumbnailPNG := TPngImage.Create;
+      {$ENDIF}
+    end
+    else
+      thumbnailJPG := TJPEGImage.Create;
     try
       sourcePicture.LoadFromFile(aSourceFile);
       rateWidth := aMaxWidth / sourcePicture.Width;
       rateHeight := aMaxHeight / sourcePicture.Height;
       if rateWidth > rateHeight then
         rateWidth := rateHeight;
-      thumbnailPNG.SetSize(round(sourcePicture.Width * rateWidth), round(sourcePicture.Height * rateHeight));
-      thumbnailPNG.Canvas.Brush.Color:= clWhite;
+
+      if aPng then
+        tmb := thumbnailPNG
+      else
+        tmb := thumbnailJPG;
+
+      tmb.SetSize(round(sourcePicture.Width * rateWidth), round(sourcePicture.Height * rateHeight));
+      tmb.Canvas.Brush.Color:= clWhite;
       r := Rect(0, 0, thumbnailPNG.Width, thumbnailPNG.Height);
-      thumbnailPNG.Canvas.FillRect(r);
+      tmb.Canvas.FillRect(r);
       {$IFDEF FPC}
-      thumbnailPNG.Canvas.AntialiasingMode := amON;
+      tmb.Canvas.AntialiasingMode := amON;
       {$ENDIF}
-      thumbnailPNG.Canvas.StretchDraw(r, sourcePicture.Graphic);
-      thumbnailPNG.SaveToFile(aThumbnailFile);
+      tmb.Canvas.StretchDraw(r, sourcePicture.Graphic);
+      tmb.SaveToFile(aThumbnailFile);
     finally
       sourcePicture.Free;
-      thumbnailPNG.Free;
+      FreeAndNil(thumbnailPNG);
+      FreeAndNil(thumbnailJPG);
     end;
   except
     on e: Exception do
