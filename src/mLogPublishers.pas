@@ -100,7 +100,6 @@ uses
 {$IFDEF FPC}
   FileUtil, LazFileUtils, (* if missing LazFileUtils, add LazUtils package to the requirements of the project*)
 {$ENDIF}
-  StrUtils,
   mUtility, mMathUtility;
 
 { TmConsolePublisher }
