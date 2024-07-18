@@ -60,10 +60,12 @@ type
     class function CheckPoppler_pdfinfo_ExePath : boolean;
     class function CheckPoppler_pdfimages_ExePath : boolean;
     class function ExtractPagesFromPdfAsImages(const aPdfFileName, aDestinationFileName: string; const aImageType : string; const aResolution : integer; const aJpegQuality : integer; const aOnlyFrontPage : boolean) : boolean;
+    class function ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word; const aJPG : boolean) : boolean;
   public
     class function SplitPdfInPages(const aPdfFileName, aPagesFolder, aFileNameTemplate : string): boolean;
     class function MergePdfFiles (const aFiles : TStrings; const aDestinationFileName : string): boolean;
     class function ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
+    class function ExtractThumbnailOfFrontPageFromPdfAsJpg(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     class function ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution : integer = 72) : boolean;
     class function ExtractPagesFromPdfAsJpeg(const aPdfFileName, aDestinationFolder, aPrefixFileName : string; const aQuality : integer; const aResolution : integer = 72): boolean;
     class function ExtractPagesFromPdfAsPng(const aPdfFileName, aDestinationFolder, aPrefixFileName : string; const aResolution : integer = 72): boolean;
@@ -199,6 +201,65 @@ begin
   end;
 end;
 
+class function TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word; const aJPG: boolean): boolean;
+var
+  outputString : string;
+  tempFile : string;
+  ris : boolean;
+  {$IFNDEF UNIX}
+  cmd: string;
+  {$ENDIF}
+begin
+  Result := false;
+  if not CheckPoppler_pdftoppm_ExePath then
+    exit;
+
+  if not FileExists(aPdfFileName) then
+  begin
+    FLastError := Format(SPoppler_error_file_missing, [aPdfFileName]);
+    exit;
+  end;
+
+  tempFile := IncludeTrailingPathDelimiter(ExtractFilePath(aThumbnailFileName)) + GenerateRandomIdString(10);
+
+  {$IFDEF UNIX}
+  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftoppm_ExePath, ['-singlefile', '-png', aPdfFileName, tempFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
+  {$ELSE}
+  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
+  cmd := '-singlefile -png ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"');
+  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
+  {$ENDIF}
+  begin
+    tempFile := ChangeFileExt(tempFile, '.png');
+    // PPM-root-number.ppm
+    if FileExists(tempFile) then
+    begin
+      if aJPG then
+        ris := GenerateJPGThumbnailOfImage(tempFile, aThumbnailFileName, aWidth, aHeight, outputString)
+      else
+        ris := GeneratePNGThumbnailOfImage(tempFile, aThumbnailFileName, aWidth, aHeight, outputString);
+      if not ris then
+      begin
+        FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
+        DeleteFile(tempFile);
+        exit;
+      end;
+      DeleteFile(tempFile);
+    end
+    else
+    begin
+      FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
+      exit;
+    end;
+  end
+  else
+  begin
+    FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
+    exit;
+  end;
+  Result := true;
+end;
+
 class function TPopplerToolbox.MergePdfFiles(const aFiles: TStrings; const aDestinationFileName: string): boolean;
 var
   outputString : string;
@@ -271,56 +332,12 @@ end;
 
 
 class function TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsPng(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word): boolean;
-var
-  outputString : string;
-  tempFile : string;
-  {$IFNDEF UNIX}
-  cmd: string;
-  {$ENDIF}
 begin
-  Result := false;
-  if not CheckPoppler_pdftoppm_ExePath then
-    exit;
+end;
 
-  if not FileExists(aPdfFileName) then
-  begin
-    FLastError := Format(SPoppler_error_file_missing, [aPdfFileName]);
-    exit;
-  end;
+class function TPopplerToolbox.ExtractThumbnailOfFrontPageFromPdfAsJpg(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight: word): boolean;
+begin
 
-  tempFile := IncludeTrailingPathDelimiter(ExtractFilePath(aThumbnailFileName)) + GenerateRandomIdString(10);
-  {$IFDEF UNIX}
-  if RunCommandIndir(ExtractFileDir(aPdfFileName), Poppler_pdftoppm_ExePath, ['-singlefile', '-png', aPdfFileName, tempFile], outputString,  [poStderrToOutPut, poUsePipes, poWaitOnExit]) then
-  {$ELSE}
-  // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
-  cmd := '-singlefile -png ' + AnsiQuotedStr(aPdfFileName,'"') + ' ' + AnsiQuotedStr(tempFile,'"');
-  if RunCommand(Poppler_pdftoppm_ExePath, [cmd], outputString, [poNoConsole, poWaitOnExit, poStderrToOutPut]) then
-  {$ENDIF}
-  begin
-    tempFile := ChangeFileExt(tempFile, '.png');
-    // PPM-root-number.ppm
-    if FileExists(tempFile) then
-    begin
-      if not GeneratePNGThumbnailOfImage(tempFile, aThumbnailFileName, aWidth, aHeight, outputString) then
-      begin
-        FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
-        DeleteFile(tempFile);
-        exit;
-      end;
-      DeleteFile(tempFile);
-    end
-    else
-    begin
-      FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
-      exit;
-    end;
-  end
-  else
-  begin
-    FLastError := Format(SPoppler_pdftoppm_error_unable_to_run, [outputString]);
-    exit;
-  end;
-  Result := true;
 end;
 
 class function TPopplerToolbox.ExtractFrontPageFromPdfAsPng(const aPdfFileName, aDestinationFileName: string; const aResolution: integer): boolean;
