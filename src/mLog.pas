@@ -122,6 +122,9 @@ var
   InternalLogManager : TmLogManager;
 
 type
+
+  { TmLogPublisherThread }
+
   TmLogPublisherThread = class (TThread)
   strict private
     FStartEvent : TEvent;
@@ -145,6 +148,7 @@ type
     destructor Destroy; override;
     procedure AddPublisher (aPublisher : TmLogPublisher; aOwned : boolean);
     procedure RemovePublisher(aPublisher : TmLogPublisher);
+    procedure ClearEndEvent;
 
     property StartEvent : TEvent read FStartEvent;
     property EndEvent : TEvent read FEndEvent;
@@ -227,12 +231,14 @@ begin
   (FThread as TmLogPublisherThread).Terminate;
   (FThread as TmLogPublisherThread).StartEvent.SetEvent;
   FEndThreadEvent.WaitFor(INFINITE);
+  (FThread as TmLogPublisherThread).ClearEndEvent; // this is necessary to handle random AV when application terminates
   FEndThreadEvent.Free;
   FThread.Free;
 
   (FVCLThread as TmLogPublisherThread).Terminate;
   (FVCLThread as TmLogPublisherThread).StartEvent.SetEvent;
   FVCLEndThreadEvent.WaitFor(INFINITE);
+  (FVCLThread as TmLogPublisherThread).ClearEndEvent;// this is necessary to handle random AV when application terminates
   FVCLEndThreadEvent.Free;
   FVCLThread.Free;
 
@@ -404,6 +410,11 @@ begin
   finally
     FPublishersCriticalSection.Leave;
   end;
+end;
+
+procedure TmLogPublisherThread.ClearEndEvent;
+begin
+  FEndEvent := nil;
 end;
 
 function logManager : TmLogManager;
