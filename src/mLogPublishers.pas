@@ -309,12 +309,12 @@ begin
 
       if FileExists(actualFileName) then
       begin
-        FFileStream := TFileStream.Create(actualFileName, fmOpenWrite);
+        FFileStream := TFileStream.Create(actualFileName, fmOpenWrite or fmShareDenyWrite);
         FFileStream.Seek(0, soFromEnd);
       end
       else
       begin
-        FFileStream := TFileStream.Create(actualFileName, fmCreate);
+        FFileStream := TFileStream.Create(actualFileName, fmCreate or fmShareDenyWrite);
         AddUTF8BOMToStream(FFileStream);
       end;
     end;
