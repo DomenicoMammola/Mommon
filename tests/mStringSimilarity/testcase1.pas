@@ -56,6 +56,7 @@ begin
   CheckTrue(CheckStrings('Boooooohhhh!', 'Booohhh!', false, false) >= 0.55);
   CheckTrue(CheckStrings('AGRINTESA SOC. COOP. AGRICOLA', 'AGRINTESA SOC.AGR.COOP.', false, false) >= 0.6);
   CheckTrue(CheckStrings('AGRINTESA SOC. COOP. AGRICOLA', 'AGRINTESA SOC.AGR.COOP.', false, true) >= 0.8);
+  CheckTrue(CheckStrings('Forli''', 'Forlì', true, false) >= 0.8);
 end;
 
 

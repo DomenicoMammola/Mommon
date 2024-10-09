@@ -27,8 +27,8 @@ function CompareStrings (const aStr1, aStr2 : String; const aIgnorePunctuation :
 implementation
 
 uses
-  mMathUtility,
-  SysUtils, Math;
+  SysUtils, Math,
+  mMathUtility;
 
 
 const punctuationChars : set of Char = ['.', ':', '?', '!', '_', '^', '-', '\', '/', ';', ',', '''', '"'];
@@ -79,7 +79,31 @@ begin
     Result := tmp;
 end;
 
-function MatchChars (const aStr1, aStr2 : String): double;
+function UndoAccent(const aStr : Char) : String;
+var
+  lc : String;
+begin
+  Result := aStr;
+  lc := LowerCase(Result);
+
+  if Pos(lc,'àáâãäå') > 0 then
+    Result := 'a'
+  else if Pos(lc, 'èéêë') > 0 then
+    Result := 'e'
+  else if Pos(lc, 'ìíîï') > 0 then
+    Result := 'i'
+  else if Pos(lc, 'òóôõö') > 0 then
+    Result := 'o'
+  else if Pos(lc, 'ùúûü') > 0 then
+    Result := 'u'
+  else if Pos(lc, 'ýÿ') > 0 then
+    Result := 'y';
+
+  if lc <> aStr then
+    Result := Uppercase(Result);
+end;
+
+function MatchChars (const aStr1, aStr2 : String; const aIgnorePunctuation : boolean): double;
 var
   lun1, lun2, bigLength, smallLength : integer;
   bigString, smallString : String;
@@ -118,7 +142,8 @@ begin
     for k := p to p + 2 do
     begin
       if (k >= 1) and (k <= bigLength) then
-        match := match or (CompareText(bigString[k], smallString[i]) = 0);
+        match := match or (CompareText(bigString[k], smallString[i]) = 0) or
+         (aIgnorePunctuation and (UndoAccent(bigString[k]) =  UndoAccent(smallString[i])));
     end;
     if match then
       inc(matching);
@@ -278,7 +303,7 @@ begin
   end;
   if (l1 > 0) or (l2 > 0) then
     Result := (1 / Max(l1, l2)) * intersection;
-  Result := Max(Result, MatchChars(tmpStr1, tmpStr2));
+  Result := Max(Result, MatchChars(tmpStr1, tmpStr2, aIgnorePunctuation));
 
   if aCheckScrambledWords then
     Result := Max(Result, MatchScrambledWords(aStr1, aStr2));
