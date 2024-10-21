@@ -13,7 +13,11 @@ type
 
   TSynapseSendMail = class (TAbstractSendMail)
   strict private
+    FSynBCCRecipients : TStringList;
   public
+    constructor Create; override;
+    destructor Destroy; override;
+
     function Send(out aErrorMessage: String): boolean; override;
   end;
 
@@ -29,6 +33,18 @@ var
 
 { TSynapseSendMail }
 
+constructor TSynapseSendMail.Create;
+begin
+  inherited Create;
+  FSynBCCRecipients := TStringList.Create;
+end;
+
+destructor TSynapseSendMail.Destroy;
+begin
+  FSynBCCRecipients.Free;
+  inherited Destroy;
+end;
+
 function TSynapseSendMail.Send(out aErrorMessage: String): boolean;
 var
   smtp: TSMTPSend;
@@ -37,7 +53,7 @@ var
   tmpList : TStringList;
   i : integer;
   curAttachment : TAttachedFile;
-  s : String;
+  s, dest : String;
 begin
   Result := false;
 
@@ -50,13 +66,18 @@ begin
 
     tmpList := TStringList.Create;
     try
+      logger.Debug('Recipients: ' + FRecipients);
       tmpList.Delimiter:= ';';
       tmpList.DelimitedText:= FRecipients;
 
       for i := 0 to tmpList.Count - 1 do
       begin
-        if Trim(tmpList.Strings[i]) <> '' then
-          MimeMsg.Header.ToList.Add(trim(tmpList.Strings[i]));
+        dest := trim(tmpList.Strings[i]);
+        if dest <> '' then
+        begin
+          logger.Debug('TO: ' + dest);
+          MimeMsg.Header.ToList.Add(dest);
+        end;
       end;
     finally
       tmpList.Free;
@@ -82,33 +103,46 @@ begin
     try
       tmpList.Delimiter:= ';';
       tmpList.DelimitedText:= FCCRecipients;
+      logger.Debug('CC Recipients: ' + FCCRecipients);
 
       for i := 0 to tmpList.Count - 1 do
       begin
-        if trim(tmpList.Strings[i]) <> '' then
-          MimeMsg.Header.CCList.Add(trim(tmpList.Strings[i]));
+        dest := trim(tmpList.Strings[i]);
+        if dest <> '' then
+        begin
+          logger.Debug('CC: ' + dest);
+          MimeMsg.Header.CCList.Add(dest);
+        end;
       end;
     finally
       tmpList.Free;
     end;
 
+    FSynBCCRecipients.Clear;
+
     tmpList := TStringList.Create;
     try
       tmpList.Delimiter:= ';';
       tmpList.DelimitedText:= FBCCRecipients;
+      logger.Debug('BCC Recipients: ' + FBCCRecipients);
 
       s := '';
       for i := 0 to tmpList.Count - 1 do
       begin
-        if trim(tmpList.Strings[i]) <> '' then
+        dest := trim(tmpList.Strings[i]);
+        if dest <> '' then
         begin
+          FSynBCCRecipients.Add(dest);
           if s = '' then
-            s := InlineEmailEx(trim(tmpList.Strings[i]), UTF_8)
+            s := InlineEmailEx(dest, UTF_8)
           else
-            s := s + ', ' + InlineEmailEx(trim(tmpList.Strings[i]), UTF_8);
+            s := s + ', ' + InlineEmailEx(dest, UTF_8);
         end;
         if s <> '' then
+        begin
           MimeMsg.Header.CustomHeaders.Add('BCC: ' + s);
+          logger.Debug('Custom header BCC: ' + s);
+        end;
       end;
     finally
       tmpList.Free;
@@ -224,11 +258,32 @@ begin
       aErrorMessage := 'SMTP ERROR: MailFrom:' + smtp.EnhCodeString + ' ' + smtp.ResultString;
       exit;
     end;
-    if not smtp.MailTo(FRecipients) then
+
+    for i := 0 to MimeMsg.Header.ToList.Count - 1 do
     begin
-      aErrorMessage := 'SMTP ERROR: MailTo:' + smtp.EnhCodeString + ' ' + smtp.ResultString;
-      exit;
+      if not smtp.MailTo(MimeMsg.Header.ToList.Strings[i]) then
+      begin
+        aErrorMessage := 'SMTP ERROR: MailTo:' + smtp.EnhCodeString + ' ' + smtp.ResultString;
+        exit;
+      end;
     end;
+    for i := 0 to MimeMsg.Header.CCList.Count - 1 do
+    begin
+      if not smtp.MailTo(MimeMsg.Header.CCList.Strings[i]) then
+      begin
+        aErrorMessage := 'SMTP ERROR: MailTo:' + smtp.EnhCodeString + ' ' + smtp.ResultString;
+        exit;
+      end;
+    end;
+    for i := 0 to FSynBCCRecipients.Count - 1 do
+    begin
+      if not smtp.MailTo(FSynBCCRecipients.Strings[i]) then
+      begin
+        aErrorMessage := 'SMTP ERROR: MailTo:' + smtp.EnhCodeString + ' ' + smtp.ResultString;
+        exit;
+      end;
+    end;
+
     if not smtp.MailData(MimeMSg.Lines) then
     begin
       aErrorMessage := 'SMTP ERROR: MailData:' + smtp.EnhCodeString + ' ' + smtp.ResultString;
