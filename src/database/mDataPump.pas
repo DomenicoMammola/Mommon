@@ -371,12 +371,12 @@ begin
               destinationfield := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
               performUpdate := MD5Print(MD5String(sourcefield.AsString)) <> MD5Print(MD5String(destinationfield.AsString));
               {$IFDEF DEBUG}
-              logger.Debug('COMPARING Value [' + destinationfld.AsString +'] of field ' + destinationfld.FieldName + ' of table ' + aTable.DestinationTableName + ' AND [' + sourcefld.AsString + '] of original field ' + sourcefld.FieldName );
+              logger.Debug('COMPARING Value [' + destinationfield.AsString +'] of field ' + destinationfield.FieldName + ' of table ' + aTable.DestinationTableName + ' AND [' + sourcefield.AsString + '] of original field ' + sourcefield.FieldName );
               {$ENDIF}
               if performUpdate then
               begin
                 {$IFDEF DEBUG}
-                logger.Debug('Value [' + destinationfld.AsString +'] of field ' + destinationfld.FieldName + ' of table ' + aTable.DestinationTableName + ' is different from value [' + sourcefld.AsString + '] of original field ' + sourcefld.FieldName );
+                logger.Debug('Value [' + destinationfield.AsString +'] of field ' + destinationfield.FieldName + ' of table ' + aTable.DestinationTableName + ' is different from value [' + sourcefield.AsString + '] of original field ' + sourcefield.FieldName );
                 {$ENDIF}
                 break;
               end;
