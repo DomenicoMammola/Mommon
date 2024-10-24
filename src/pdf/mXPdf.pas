@@ -39,7 +39,7 @@ type
     class function CheckXPdf_pdftotext_ExePath : boolean;
     class function CheckXPdf_pdftopng_ExePath : boolean;
   public
-    class function ExtractTextFromPdf(const aPdfFileName: string; out aText : String): boolean;
+    class function ExtractTextFromPdf(const aPdfFileName: string; const aOptimizeForTables : boolean; out aText : String): boolean;
     class function ExtractThumbnailOfFrontPageFromPdf(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word) : boolean;
     class function GetLastError : String;
   end;
@@ -87,13 +87,17 @@ begin
   Result := true;
 end;
 
-class function TXPdfToolbox.ExtractTextFromPdf(const aPdfFileName: string; out aText: String): boolean;
+class function TXPdfToolbox.ExtractTextFromPdf(const aPdfFileName: string; const aOptimizeForTables : boolean; out aText: String): boolean;
 var
-  outputString, cmd : string;
+  outputString : string;
   tempFile : string;
   list : TStringList;
+  res : boolean;
 begin
   Result := false;
+
+  aText:= '';
+
   if not CheckXPdf_pdftotext_ExePath then
     exit;
 
@@ -106,7 +110,11 @@ begin
   tempFile := IncludeTrailingPathDelimiter(GetTempDir) + mUtility.GenerateRandomIdString + '.txt';
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
   //if RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]) then
-  if RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]) then
+  if aOptimizeForTables then
+    res := RunCommand(XPdf_pdftotext_ExePath, ['-table', AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit])
+  else
+    res := RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]);
+  if res then
   begin
     list := TStringList.Create;
     try
