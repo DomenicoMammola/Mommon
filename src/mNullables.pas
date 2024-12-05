@@ -252,6 +252,7 @@ type
 
       function AsString (const aShowTime : boolean) : String; overload;
       function AsString : String; override; overload;
+      function AsString (const aFormat : String) : String; overload;
       function AsStringForFilename (const aShowTime, aUseSeparators: boolean): String;
       function AsJson(const aFieldName : String; const aSkipIfNull: boolean; const aMaxLength: integer = 0): String; override;
 
@@ -2454,6 +2455,13 @@ end;
 function TNullableDateTime.AsString: String;
 begin
   Result := AsString(true);
+end;
+
+function TNullableDateTime.AsString(const aFormat: String): String;
+begin
+  Result := '';
+  if Self.NotNull then
+    Result := FormatDateTime(aFormat, Self.Value);
 end;
 
 function TNullableDateTime.AsStringForFilename(const aShowTime, aUseSeparators: boolean): String;
