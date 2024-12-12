@@ -19,7 +19,7 @@ interface
 
 uses
   Classes,
-  mDataProviderFieldDefs, mSortConditions, mFilter, mSummary;
+  mDataProviderFieldDefs, mSortConditions, mFilter, mSummary, mIntList;
 
 type
 
@@ -82,7 +82,7 @@ type
 
   IFilterDatasetManager = interface
     ['{6BCEF289-FCB4-4EFE-B594-8D08DBC1B09A}']
-    procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
+    procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList; aOccurrences : TIntegerList);
     function DoFilter : boolean;
     function GetFiltered : boolean;
     function GetFilters : TmFilters;

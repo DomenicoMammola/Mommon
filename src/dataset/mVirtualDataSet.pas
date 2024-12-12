@@ -23,7 +23,7 @@ uses
   {$ENDIF}
   DB,
   mDataFieldsStandardSetup, mSortConditions, mDataProviderInterfaces,
-  mFilter, mSummary, mFields, mVirtualDatasetProvider;
+  mFilter, mSummary, mFields, mVirtualDatasetProvider, mIntList;
 
 {$REGION 'Documentation'}
 {
@@ -354,7 +354,7 @@ type
   protected
     FVirtualDataset : TmCustomVirtualDataset;
   public
-    procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList);
+    procedure GetUniqueStringValuesForField (const aFieldName : string; aList : TStringList; aOccurrences : TIntegerList);
     function DoFilter : boolean;
     function GetFiltered : boolean;
     function GetFilters : TmFilters;
@@ -493,9 +493,9 @@ end;
 
 { TmVirtualDatasetFilterManager }
 
-procedure TmVirtualDatasetFilterManager.GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList);
+procedure TmVirtualDatasetFilterManager.GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList; aOccurrences : TIntegerList);
 begin
-  FVirtualDataset.DatasetDataProvider.GetUniqueStringValuesForField(aFieldName, aList);
+  FVirtualDataset.DatasetDataProvider.GetUniqueStringValuesForField(aFieldName, aList, aOccurrences);
 end;
 
 function TmVirtualDatasetFilterManager.DoFilter: boolean;

@@ -17,8 +17,8 @@ unit mQuickReadOnlyVirtualDataSetProvider;
 interface
 
 uses
-  DB, Classes, contnrs, Variants, StrHashMap,
-  mDataProviderInterfaces, mSortConditions, mFilter, mIntList, mLog, mFields,
+  DB, Classes, contnrs, Variants,
+  mDataProviderInterfaces, mSortConditions, mFilter, mIntList, mLog, mFields, mMaps,
   mVirtualDataSetJoins, mDataProviderFieldDefs, mVirtualDatasetFormulas, KAParser, mVirtualDatasetProvider;
 
 const
@@ -70,7 +70,7 @@ type
     procedure Clear;
     function Refresh (const aDoSort, aDoFilter : boolean): boolean; override;
     procedure CalculateSummaries; override;
-    procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); override;
+    procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList; aOccurrences : TIntegerList); override;
 
     property BuiltInJoins : TmBuiltInJoins read FBuiltInJoins;
     property FieldsFromJoinsAreVisibleByDefault : boolean read FFieldsFromJoinsAreVisibleByDefault write FFieldsFromJoinsAreVisibleByDefault;
@@ -81,7 +81,7 @@ implementation
 
 uses
   SysUtils,
-  mUtility;
+  mUtility, mBaseClassesAsObjects;
 
 type
   TDatumShell = class
@@ -532,14 +532,15 @@ begin
   Result := true;
 end;
 
-procedure TReadOnlyVirtualDatasetProvider.GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList);
+procedure TReadOnlyVirtualDatasetProvider.GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList; aOccurrences : TIntegerList);
 var
   i : integer;
   tmpValue : variant;
-  tmpIndex : TStringHashMap;
+  tmpIndex : TmStringDictionary;
   str : String;
+  cnt : TIntegerObject;
 begin
-  tmpIndex := TStringHashMap.Create;
+  tmpIndex := TmStringDictionary.Create(true);
   try
     for i := 0 to Self.GetRecordCount - 1 do
     begin
@@ -547,13 +548,22 @@ begin
 
       str := VarToStr(tmpValue);
 
-      if not tmpIndex.Contains(str) then
+      cnt := tmpIndex.Find(str) as TIntegerObject;
+      if not Assigned(cnt) then
       begin
-        tmpIndex.Add(str, tmpIndex);
+        cnt := TIntegerObject.Create(0);
+        tmpIndex.Add(str, cnt);
         aList.Add(str);
       end;
+      cnt.Value:= cnt.Value + 1;
     end;
     aList.Sort;
+
+    for i := 0 to aList.Count - 1 do
+    begin
+      cnt := tmpIndex.Find(aList.Strings[i]) as TIntegerObject;
+      aOccurrences.Add(cnt.Value);
+    end;
   finally
     tmpIndex.Free;
   end;

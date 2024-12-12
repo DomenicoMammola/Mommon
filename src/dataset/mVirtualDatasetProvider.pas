@@ -19,7 +19,7 @@ interface
 
 uses
   Classes, DB,
-  mFilter, mSummary, mDataProviderFieldDefs, mFields, mSortConditions;
+  mFilter, mSummary, mDataProviderFieldDefs, mFields, mSortConditions, mIntList;
 
 type
   { TmVirtualDatasetDataProvider }
@@ -45,7 +45,7 @@ type
     procedure InsertRecord (const AIndex : integer; AModifiedFields : TList); virtual; abstract;
 
     function Refresh (const aDoSort, aDoFilter: boolean): boolean; virtual; abstract;
-    procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList); virtual; abstract;
+    procedure GetUniqueStringValuesForField(const aFieldName: string; aList: TStringList; aOccurrences : TIntegerList); virtual; abstract;
     procedure CalculateSummaries; virtual; abstract;
 
     procedure FillFieldDefsOfDataset(aFieldDefs : TFieldDefs; const aReadOnly : boolean); virtual;
