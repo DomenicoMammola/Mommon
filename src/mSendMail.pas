@@ -78,7 +78,7 @@ type
     function SetReceiveReadConfirmation(const aReceiveReadConfirmation: boolean): TAbstractSendMail;
     function SetMessagePriority(const aMessagePriority: TMessagePriority): TAbstractSendMail;
 
-    function AddHTMLImageFile(const aFileName, aReferenceName: String): TAbstractSendMail;
+    function AddHTMLImageFile(const aFileName, aReferenceName, aMIMEType: String): TAbstractSendMail;
     function AddHTMLImage(const aData : TStream; const aMIMEType: String; const aReferenceName : String): TAbstractSendMail;
     function AddHTMLJPEGImage(const aData : TStream; const aReferenceName : String): TAbstractSendMail;
     function AddHTMLPNGImage(const aData : TStream; const aReferenceName: String): TAbstractSendMail;
@@ -256,7 +256,7 @@ begin
 end;
 
 
-function TAbstractSendMail.AddHTMLImageFile(const aFileName, aReferenceName: String): TAbstractSendMail;
+function TAbstractSendMail.AddHTMLImageFile(const aFileName, aReferenceName, aMIMEType: String): TAbstractSendMail;
 var
   tmp : TAttachedFile;
 begin
@@ -267,6 +267,7 @@ begin
   tmp.FileType:= ftFile;
   tmp.FileName:= aFileName;
   tmp.Reference:= aReferenceName;
+  tmp.MIMEType:= aMIMEType;
   Result:= Self;
 end;
 
