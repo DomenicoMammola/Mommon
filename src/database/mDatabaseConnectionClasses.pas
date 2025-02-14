@@ -70,8 +70,8 @@ type
     procedure Assign(const aValue : TNullableDouble); overload;
     procedure Assign(const aValue : TNullableBoolean; const aConvention: TmBooleanParameterConvention; const aValueForTrue : integer = 1; const aValueForFalse : integer = 0); overload;
     procedure Assign(const aFilter : TmFilter); overload;
-    procedure Assign(const aValue : Variant; const aType: TmParameterDataType); overload;
-    procedure Assign(const aField : TField); overload;
+    procedure Assign(const aValue : Variant; const aType: TmParameterDataType; const aOperator : TmFilterOperator = foEq); overload;
+    procedure Assign(const aField : TField; const aOperator : TmFilterOperator = foEq); overload;
     procedure AssignStrings(const aList : TStringList);
     procedure AssignIntegers(const aList : TIntegerList);
     procedure AssignDoubles(const aList: TDoubleList);
@@ -729,7 +729,7 @@ begin
     FValue := aFilter.Value;
 end;
 
-procedure TmQueryParameter.Assign(const aValue: Variant; const aType: TmParameterDataType);
+procedure TmQueryParameter.Assign(const aValue: Variant; const aType: TmParameterDataType; const aOperator : TmFilterOperator = foEq);
 var
   tmpbool : Boolean;
 begin
@@ -752,11 +752,12 @@ begin
     else
       FValue:= aValue;
   end;
+  FOperator:= aOperator;
 end;
 
-procedure TmQueryParameter.Assign(const aField: TField);
+procedure TmQueryParameter.Assign(const aField: TField; const aOperator : TmFilterOperator = foEq);
 begin
-  Self.Assign(aField.AsVariant, DataTypeToParameterDataType(aField.DataType));
+  Self.Assign(aField.AsVariant, DataTypeToParameterDataType(aField.DataType), aOperator);
 end;
 
 procedure TmQueryParameter.AssignStrings(const aList: TStringList);
