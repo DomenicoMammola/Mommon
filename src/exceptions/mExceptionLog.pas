@@ -49,7 +49,7 @@ procedure RegisterExceptionLogPublisher (const aShowCallStack : TExceptionLogSho
 implementation
 
 uses
-  {$IFDEF WINDOWS}windows,{$ENDIF} Dos, contnrs, {$IFDEF GUI} Forms,{$ENDIF}
+  {$IFDEF WINDOWS}windows,{$ENDIF} {$IFDEF LINUX}linux,{$ENDIF} Dos, contnrs, {$IFDEF GUI} Forms,{$ENDIF}
   mUtility, mLazarusVersionInfo, mThreadsBaseClasses;
 
 type
@@ -100,8 +100,25 @@ begin
 end;
 {$ELSE}
 function GetSystemMem: string;
+{$IFDEF LINUX}
+var Info : TSysInfo;
+{$ENDIF}
 begin
- Result := '?';
+  {$IFDEF LINUX}
+  if (SysInfo(@Info)=0) then
+  begin
+    Result:= 'Total ram: ' + BytesToHumanReadableString(Info.totalram);
+    Result:= Result + sLineBreak + 'Available ram: ' + BytesToHumanReadableString(Info.freeram);
+    Result:= Result + sLineBreak + 'Shared ram: ' + BytesToHumanReadableString(Info.sharedram);
+    Result:= Result + sLineBreak + 'Buffer ram: ' + BytesToHumanReadableString(Info.bufferram);
+    Result:= Result + sLineBreak + 'Total swap: ' + BytesToHumanReadableString(Info.totalswap);
+    Result:= Result + sLineBreak + 'Free swap: ' + BytesToHumanReadableString(Info.freeswap);
+  end
+  else
+    Result := '?';
+  {$ELSE}
+  Result := '?';
+  {$ENDIF}
 end;
 {$ENDIF}
 
