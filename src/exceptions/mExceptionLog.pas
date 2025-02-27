@@ -127,6 +127,7 @@ function GetHardwareInfo: string;
 begin
   Result := GetSystemMem;
   Result := Result + sLineBreak + 'Number of cores: ' + IntToStr(GetCPUCores);
+  {$IFDEF WINDOWS}Result := Result + sLineBreak + 'Number of cpu: ' + IntToStr(GetCPUCount);{$ENDIF}
   Result := Result + sLineBreak + 'Disk size: ' + BytesToHumanReadableString(DiskSize(0));
   Result := Result + sLineBreak + 'Free disk space: ' + BytesToHumanReadableString(DiskFree(0));
 end;
