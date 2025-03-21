@@ -13,6 +13,7 @@ unit mNullables;
 {$IFDEF FPC}
   {$MODE DELPHI}
   {$modeswitch advancedrecords}
+  {$warn 6058 off}
 {$ENDIF}
 
 interface
