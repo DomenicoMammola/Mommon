@@ -111,7 +111,7 @@ begin
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
   //if RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]) then
   if aOptimizeForTables then
-    res := RunCommand(XPdf_pdftotext_ExePath, ['-table', AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit])
+    res := RunCommand(XPdf_pdftotext_ExePath, ['-table', '-enc UTF-8', AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit])
   else
     res := RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]);
   if res then
