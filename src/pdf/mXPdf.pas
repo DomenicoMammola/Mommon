@@ -51,7 +51,7 @@ var
 implementation
 
 uses
-  Process, LazUTF8, charencstreams,
+  Process, LazUTF8, //charencstreams,
   mUtility,
   {$IFDEF NOGUI}
   mGraphicsUtilityNoGUI
@@ -91,7 +91,7 @@ class function TXPdfToolbox.ExtractTextFromPdf(const aPdfFileName: string; const
 var
   outputString : string;
   tempFile : string;
-  f : TCharEncStream;
+  f : TStringList;
   res : boolean;
 begin
   Result := false;
@@ -116,10 +116,10 @@ begin
     res := RunCommand(XPdf_pdftotext_ExePath, ['-enc', 'UTF-8', AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]);
   if res then
   begin
-    f := TCharEncStream.Create;
+    f := TStringList.Create;
     try
       f.LoadFromFile(tempFile);
-      aText := f.UTF8Text;
+      aText := f.Text;
     finally
       f.Free;
     end;
