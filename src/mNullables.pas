@@ -205,12 +205,14 @@ type
     procedure Assign(const aSource : TNullableString); overload;
     procedure Assign(const aSourceField : TField; const aAllowBlankValues : boolean); overload;
     procedure Assign(const aValue : Variant); override; overload;
+    procedure Assign(const aValue : Variant; const aAllowBlankValues : boolean); overload;
     procedure Assign(const  aValue : String; const aAllowBlankValue : boolean); overload;
     function CheckIfDifferentAndAssign(const aValue : Variant) : boolean; override;
     function AsVariant: Variant; override;
     procedure Trim();
     procedure Uppercase();
     procedure ChangeToBlankIfNull;
+    procedure ChangeToNullIfBlank;
     function ValueIsEqual (const aValue : String) : boolean; overload;
     function ValueIsEqual (const aValue : TNullableString) : boolean; overload;
     function ValueIsEqualCaseInsensitive (const aValue : String): boolean;
@@ -1892,6 +1894,12 @@ begin
   SetTagChanged(false);
 end;
 
+procedure TNullableString.Assign(const aValue: Variant; const aAllowBlankValues: boolean);
+begin
+  Self.Assign(aValue);
+  Self.ChangeToNullIfBlank;
+end;
+
 procedure TNullableString.Assign(const aValue: String; const aAllowBlankValue: boolean);
 begin
   if (not aAllowBlankValue) and (aValue = '') then
@@ -1947,6 +1955,12 @@ procedure TNullableString.ChangeToBlankIfNull;
 begin
   if Self.IsNull then
     Self.Value:= '';
+end;
+
+procedure TNullableString.ChangeToNullIfBlank;
+begin
+  if (not Self.IsNull) and (Self.Value = '') then
+    Self.IsNull:= true;
 end;
 
 function TNullableString.ValueIsEqual(const aValue: String): boolean;
