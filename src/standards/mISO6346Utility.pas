@@ -46,9 +46,9 @@ function IsContainerCodeValid(const aContainerCode: String; out aErrorMessage: S
 // MOVEMENT REFERENCE NUMBER - MRN
 // -------------------------------
 // http://www.tribalgod.nl/brinkster/Berekening_controlecijfer_MRN-GRN.doc
+// https://carina.gov.hr/UserDocsImages//dokumenti/e-Carina/AES%20faza%201//DDCOM-Main%20Document-20.4.0-v1.00-SfA.pdf
 function CalculateMRNCheckDigit (const aMRNCode : String): integer;
 function IsMRNCodeValid(const aMRNCode: String; out aErrorMessage: String): boolean;
-
 
 implementation
 
@@ -237,6 +237,7 @@ begin
 
   Result := true;
 end;
+
 
 initialization
   _dictionaryInizialized:= false;

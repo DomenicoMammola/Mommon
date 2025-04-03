@@ -71,7 +71,7 @@ type
     class function ExtractPagesFromPdfAsPng(const aPdfFileName, aDestinationFolder, aPrefixFileName : string; const aResolution : integer = 72): boolean;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; out aText : String): boolean; overload;
     class function ExtractTextFromPdf(const aPdfFileName: string; const aPreserveLayout: boolean; aLines : TStringList): boolean; overload;
-    class function GetInfoFromPdf (const aPdfFileName : string; var aInfo : TPopplerPdfInfo): boolean;
+    class function GetInfoFromPdf (const aPdfFileName : string; out aInfo : TPopplerPdfInfo): boolean;
     class function GetImagesInfoFromPdf (const aPdfFileName : string; out aImagesCount : integer): boolean;
     class function GetLastError : String;
   end;
@@ -501,7 +501,7 @@ begin
   end;
 end;
 
-class function TPopplerToolbox.GetInfoFromPdf(const aPdfFileName: string; var aInfo : TPopplerPdfInfo): boolean;
+class function TPopplerToolbox.GetInfoFromPdf(const aPdfFileName: string; out aInfo : TPopplerPdfInfo): boolean;
 var
   outputString, curStr, value, cmd : string;
   tmpList : TStringList;
@@ -515,6 +515,19 @@ var
   {$ENDIF}
 begin
   Result := false;
+
+  aInfo.Title := '';
+  aInfo.Subject := '';
+  aInfo.Creator := '';
+  aInfo.Producer := '';
+  aInfo.CreationDate := 0;
+  aInfo.ModDate := 0;
+  aInfo.Pages := 0;
+  aInfo.PageSize := '';
+  aInfo.PageWidth := 0;
+  aInfo.PageHeight := 0;
+  aInfo.PDFVersion := '';
+  aInfo.Encrypted:= '';
 
   if not CheckPoppler_pdfinfo_ExePath then
     exit;
@@ -572,18 +585,6 @@ begin
     *)
     {$ENDIF}
 
-    aInfo.Title := '';
-    aInfo.Subject := '';
-    aInfo.Creator := '';
-    aInfo.Producer := '';
-    aInfo.CreationDate := 0;
-    aInfo.ModDate := 0;
-    aInfo.Pages := 0;
-    aInfo.PageSize := '';
-    aInfo.PageWidth := 0;
-    aInfo.PageHeight := 0;
-    aInfo.PDFVersion := '';
-    aInfo.Encrypted:= '';
     (*
     Title:
     Subject:

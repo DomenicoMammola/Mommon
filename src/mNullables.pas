@@ -13,6 +13,7 @@ unit mNullables;
 {$IFDEF FPC}
   {$MODE DELPHI}
   {$modeswitch advancedrecords}
+  {$warn 6058 off}
 {$ENDIF}
 
 interface
@@ -1427,13 +1428,21 @@ begin
   end
   else
   begin
-    tmpInt := aValue;
-    if Self.IsNull then
-      Result := true
+    if VarToStr(aValue) = '' then
+    begin
+      Result := Self.NotNull;
+      Self.IsNull := true;
+    end
     else
-      Result := tmpInt <> Self.Value;
-    if Result then
-      Self.InternalSetValue(tmpInt);
+    begin
+      tmpInt := aValue;
+      if Self.IsNull then
+        Result := true
+      else
+        Result := tmpInt <> Self.Value;
+      if Result then
+        Self.InternalSetValue(tmpInt);
+    end;
   end;
   Self.SetTagChanged(SavedIsUnassigned or Result or GetTagChanged);
 end;

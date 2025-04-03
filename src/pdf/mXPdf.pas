@@ -51,7 +51,7 @@ var
 implementation
 
 uses
-  Process, LazUTF8,
+  Process, LazUTF8, //charencstreams,
   mUtility,
   {$IFDEF NOGUI}
   mGraphicsUtilityNoGUI
@@ -91,7 +91,7 @@ class function TXPdfToolbox.ExtractTextFromPdf(const aPdfFileName: string; const
 var
   outputString : string;
   tempFile : string;
-  list : TStringList;
+  f : TStringList;
   res : boolean;
 begin
   Result := false;
@@ -111,17 +111,17 @@ begin
   // UTF8ToWinCP is no longer needed, this bug in TProcess was fixed: https://gitlab.com/freepascal.org/fpc/source/-/issues/29136
   //if RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(UTF8ToWinCP(aPdfFileName),'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]) then
   if aOptimizeForTables then
-    res := RunCommand(XPdf_pdftotext_ExePath, ['-table', AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit])
+    res := RunCommand(XPdf_pdftotext_ExePath, ['-table', '-enc', 'UTF-8', AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit])
   else
-    res := RunCommand(XPdf_pdftotext_ExePath, [AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]);
+    res := RunCommand(XPdf_pdftotext_ExePath, ['-enc', 'UTF-8', AnsiQuotedStr(aPdfFileName,'"'), tempFile], outputString, [poNoConsole, poWaitOnExit]);
   if res then
   begin
-    list := TStringList.Create;
+    f := TStringList.Create;
     try
-      list.LoadFromFile(tempFile);
-      aText := list.Text;
+      f.LoadFromFile(tempFile);
+      aText := f.Text;
     finally
-      list.Free;
+      f.Free;
     end;
     if FileExists(tempFile) then
       DeleteFile(tempFile);
