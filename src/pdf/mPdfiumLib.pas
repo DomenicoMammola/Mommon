@@ -19,6 +19,7 @@ resourcestring
   SPdfiumLib_error_file_missing = 'Pdf file is missing: %s';
   SPdfiumLib_error_empty_pdf = 'Pdf file has no content: %s';
   SPdfiumLib_error_unknown_error = 'Unknown error: %s';
+  SPdfiumLib_error_unsupported_image_format = 'Unsupported image format';
 
 
 type
@@ -29,13 +30,14 @@ type
   public
     class function ExtractThumbnailOfFrontPageFromPdfAsImage(const aPdfFileName, aThumbnailFileName: string; const aWidth, aHeight : word;
       const aAdaptPngSizeToPageSize: boolean; const aBackgroundColor : TColor; out aError : String) : boolean;
+    class function AddImageToPdf(const aPdfFileName, aDestinationPdfFileName, aImageFileName : String; const aPageIndex, aX, aY, aRotation: integer; out aError : String) : boolean;
   end;
 
 implementation
 
 uses
-  SysUtils, Math,
-  PdfiumCore;
+  SysUtils, Math, IntfGraphics,
+  PdfiumCore, PdfiumLib;
 
 
 { TPdfiumLibToolbox }
@@ -141,7 +143,7 @@ begin
             Y := 0;
           end;
         end;
-        doc.Pages[0].DrawToCanvas(img.Canvas, X, Y, pageWidth, pageHeight, prNormal, [], aBackgroundColor);
+        // doc.Pages[0].DrawToCanvas(img.Canvas, X, Y, pageWidth, pageHeight, prNormal, [], aBackgroundColor);
         img.SaveToFile(aThumbnailFileName);
       finally
         FreeAndNil(bmp);
@@ -160,6 +162,82 @@ begin
     end;
   end;
 
+  Result := true;
+end;
+
+class function TPdfiumLibToolbox.AddImageToPdf(const aPdfFileName, aDestinationPdfFileName, aImageFileName : String; const aPageIndex, aX, aY, aRotation: integer; out aError : String) : boolean;
+var
+  doc : TPdfDocument;
+  page_obj_image : FPDF_PAGEOBJECT;
+  bmp : TPdfBitmap;
+  matrix : FS_MATRIX;
+  pngImg : TPortableNetworkGraphic;
+  jpgImg : TJPEGImage;
+  tmpLazImage : TLazIntfImage;
+  ext : String;
+  w, h : integer;
+begin
+  Result := false;
+  aError := '';
+  doc := TPdfDocument.Create;
+  try
+    doc.LoadFromFile(UnicodeString(aPdfFileName));
+    if doc.PageCount < 1 then
+    begin
+      aError := Format(SPdfiumLib_error_empty_pdf, [aPdfFileName]);
+      exit;
+    end;
+
+    ext := LowerCase(ExtractFileExt(aImageFileName));
+
+    if (ext <> '.png') and (ext <> '.jpg') and (ext <> '.jpeg') then
+    begin
+      aError := SPdfiumLib_error_unsupported_image_format;
+      exit;
+    end;
+
+    pngImg := TPortableNetworkGraphic.Create;
+    jpgImg := TJPEGImage.Create;
+    try
+      if ext = '.png' then
+      begin
+        pngImg.LoadFromFile(aImageFileName);
+        tmpLazImage := pngImg.CreateIntfImage;
+        w := pngImg.Width;
+        h := pngImg.Height;
+      end
+      else
+      begin
+        jpgImg.LoadFromFile(aImageFileName);
+        tmpLazImage := jpgImg.CreateIntfImage;
+        w := jpgImg.Width;
+        h := jpgImg.Height;
+      end;
+      bmp := TPdfBitmap.Create(w, h, bfBGRA, tmpLazImage.PixelData, w *  4);
+      try
+        page_obj_image := FPDFPageObj_NewImageObj(doc.Handle);
+        matrix.a:= w - 1;
+        matrix.b:= aRotation;
+        matrix.c:= -1 * aRotation;
+        matrix.d:= w - 1;
+        matrix.e := aX; // x
+        matrix.f := aY; // y
+        FPDFPageObj_SetMatrix(page_obj_image, @matrix);
+        FPDFImageObj_SetBitmap(nil, 0, page_obj_image, bmp.Bitmap);
+        FPDFPage_InsertObject(doc.Pages[aPageIndex].Handle, page_obj_image);
+        FPDFPage_GenerateContent(doc.Pages[aPageIndex].Handle);
+        doc.SaveToFile(UnicodeString(aDestinationPdfFileName));
+      finally
+        bmp.Free;
+        tmpLazImage.Free;
+      end;
+    finally
+      pngImg.Free;
+      jpgImg.Free;
+    end;
+  finally
+    doc.Free;
+  end;
   Result := true;
 end;
 
