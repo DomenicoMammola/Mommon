@@ -610,6 +610,7 @@ function TryToUnderstandTimeString(const aInputString : String; out aValue : TDa
   var
     list : TStringList;
     hour, minutes, seconds : integer;
+    fSeconds : double;
   begin
     Result := false;
     list := TStringList.Create;
@@ -646,6 +647,14 @@ function TryToUnderstandTimeString(const aInputString : String; out aValue : TDa
           seconds := StrToInt(list.Strings[2]);
           if (seconds < 0) or (seconds > 59) then
             exit;
+        end
+        else if IsNumeric(list.Strings[2], true, false) then
+        begin
+          if  not TryToConvertToDouble(list.Strings[2], fSeconds) then
+            exit;
+          if (fSeconds < 0) or (fSeconds >= 60) then
+            exit;
+          seconds:= trunc(fSeconds);
         end;
       end;
       aValue := EncodeTime(hour, minutes, seconds, 0);
@@ -775,7 +784,7 @@ begin
   tmp := Uppercase(Trim(aInputString));
   i := 0;
   for i := Length(tmp) downto 1 do
-    if tmp[i] = ' ' then
+    if (tmp[i] = ' ') or (tmp[i] = 'T') then
       break;
   if i > 1 then
   begin
