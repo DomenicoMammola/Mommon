@@ -2065,7 +2065,7 @@ var
      'spaventano', 'graffiano', 'feriscono', 'urlano', 'macchiano',
      'cercano', 'agitano', 'tremano', 'rimpiccioliscono', 'scrollano',
      'sospirano', 'cantano', 'seggono', 'saltano', 'schiaffeggiano',
-     'dormono', 'aprono', 'scivolano', 'colpiscono', 'russare',
+     'dormono', 'aprono', 'scivolano', 'colpiscono', 'russano',
      'sparpagliano', 'parlano', 'sputano', 'stanno', 'fissano',
      'salgono', 'indovinano', 'chiedono', 'allungano', 'centrano',
      'studiano', 'inciampano', 'galleggiano', 'meditano', 'pensano',
