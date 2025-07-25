@@ -59,27 +59,27 @@ var
 begin
   Result := Format;
 
-  if Pos('<1>', Result) > 0 then
+  if ContainsStr(Result, '<1>') then
     Result := ReplaceText(Result, '<1>', IntToStr(WeekOfTheYear(DateTime)));
-  if Pos('<2>', Result) > 0 then
+  if ContainsStr(Result, '<2>') then
     Result := ReplaceText(Result, '<2>', IntToStr(WeekOfTheMonth(DateTime)));
-  if Pos('<3>', Result) > 0 then
+  if ContainsStr(Result, '<3>') then
     Result := ReplaceText(Result, '<3>', IntToStr(Trunc((MonthOfTheYear(DateTime) -1)/3+1)));
-  if Pos('~', Format) > 0 then
+  if ContainsStr(Result, '~') then
     Result := ReplaceText(Result, '~', LowerCase(LeftStr(FormatDateTime('ddd', DayOfTheWeek(DateTime)), 1)));
-  if Pos('$', Result) > 0 then
+  if ContainsStr(Result, '$') then
     Result := ReplaceText(Result, '$', UpperCase(LeftStr(FormatDateTime('ddd', DayOfTheWeek(DateTime)), 1)));
-  if Pos('<xx>', Result) > 0 then
+  if ContainsText(Result, '<xx>') then
   begin
     Dummy := IntToStr(WeekOfTheYear(DateTime));
     if Length(Dummy) < 2 then
       Dummy := '0' + Dummy;
     Result := ReplaceText(Result, '<xx>', Dummy);
   end;
-  if Pos('<x>', Result) > 0 then
+  if ContainsText(Result, '<x>') then
      Result := ReplaceText(Result, '<x>', IntToStr(WeekOfTheYear(DateTime)));
 
-  if (Pos('<UPPERCASE>', Result) = 1) then
+  if CompareText(LeftStr(Result, 11), '<UPPERCASE>') = 0 then
   begin
     Result := Copy(Result, 12, 100);
     DoUppercase := true;
@@ -89,7 +89,6 @@ begin
   Result := FormatDateTime(Result, DateTime);
   if DoUppercase then
     Result := UpperCase(Result);
-
 end;
 
 function Intersect(const aStart1, aEnd1, aStart2, aEnd2: TDateTime): boolean;
