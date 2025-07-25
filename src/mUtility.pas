@@ -667,7 +667,7 @@ function TryToUnderstandTimeString(const aInputString : String; out aValue : TDa
 var
   tmp, hourStr, minutesStr, secondsStr : string;
   hour, minutes, seconds : integer;
-  l : integer;
+  l, p : integer;
 begin
   Result := false;
   tmp := Uppercase(Trim(aInputString));
@@ -742,6 +742,10 @@ begin
   if not Result then
   begin
     try
+      // 04:30:36.333+02:00
+      p := Pos('+', tmp);
+      if p > 0 then
+        tmp := LeftStr(tmp, p - 1);
       aValue:= StrToTime(tmp);
       Result := true;
     except
