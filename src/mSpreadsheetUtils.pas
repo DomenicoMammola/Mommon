@@ -43,6 +43,7 @@ type
     FSheet: TsWorksheet;
     FDefaultFont : TmSpreadsheetFont;
     FDefaultRowHeight : integer;
+    FDefaultVerticalAlignment : TsVertAlignment;
     procedure WriteDefaultFont(const aRow, aCol : integer);
   public
     constructor Create; overload;
@@ -91,6 +92,7 @@ type
     property Sheet : TsWorksheet read FSheet write FSheet;
     property DefaultFont : TmSpreadsheetFont read FDefaultFont;
     property DefaultRowHeight : integer read FDefaultRowHeight write FDefaultRowHeight;
+    property DefaultVerticalAlignment : TsVertAlignment read FDefaultVerticalAlignment write FDefaultVerticalAlignment;
   end;
 
 procedure spWriteFloat(aSheet: TsWorksheet; const aRow, aCol : integer; const aValue : TNullableDouble; const aFractionalPartDigits : integer); overload;
@@ -314,6 +316,8 @@ end;
 { TmSpreadsheetHelper }
 
 procedure TmSpreadsheetHelper.WriteDefaultFont(const aRow, aCol: integer);
+var
+  cf : TsCellFormat;
 begin
   if FDefaultFont.FontName <> '' then
   begin
@@ -323,6 +327,12 @@ begin
   end;
   if FDefaultRowHeight > 0 then
     Sheet.WriteRowHeight(aRow, FDefaultRowHeight, suPoints);
+
+  if FDefaultVerticalAlignment <> vaDefault then
+  begin
+    cf.SetVertAlignment(FDefaultVerticalAlignment);
+    Sheet.WriteCellFormat(Sheet.GetCell(aRow, aCol), cf);
+  end;
 end;
 
 constructor TmSpreadsheetHelper.Create;
@@ -335,6 +345,7 @@ begin
   FSheet := aSheet;
   FDefaultFont := TmSpreadsheetFont.Create;
   FDefaultRowHeight:= 0;
+  FDefaultVerticalAlignment:= vaDefault;
 end;
 
 destructor TmSpreadsheetHelper.Destroy;
