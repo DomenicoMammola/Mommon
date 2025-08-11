@@ -13,7 +13,8 @@ unit mMathUtility;
 interface
 
 uses
-  Math, strutils;
+  Math, strutils,
+  mIntList;
 
 type
   TRoundingMethod = (rmHalfRoundDown, rmHalfRoundUp, rmHalfRoundTowardsZero, rmHalfRoundAwayFromZero, rmHalfRoundToEven, rmBankerRounding, rmHalfRoundToOdd, rmCeil);
@@ -30,6 +31,7 @@ function TryToConvertToInt64(aValue: string; out aOutValue: Int64): boolean;
 function IsNumeric(const aValue: string; const aAllowFloat, aAllowSigns: Boolean): Boolean;
 function IsInteger(const aValue: string; const aAllowSigns: Boolean; const aThousandsSeparator : String): Boolean;
 function ExtractFirstInteger(aValue: string; out aOutValue: Integer): boolean;
+procedure ExtractIntegers(aValue: string; aList : TIntegerList);
 
 implementation
 
@@ -395,6 +397,26 @@ begin
   end;
   if candidate <> '' then
     Result := TryToConvertToInteger(candidate, aOutValue);
+end;
+
+procedure ExtractIntegers(aValue: string; aList: TIntegerList);
+var
+  i, tmpValue : integer;
+  candidate: String;
+begin
+  aList.Clear;
+  candidate := '';
+  for i := 1 to Length(aValue) do
+  begin
+    if IsNumeric(aValue[i], false, false) then
+      candidate := candidate + aValue[i]
+    else if candidate <> '' then
+    begin
+      if TryToConvertToInteger(candidate, tmpValue) then
+        aList.Add(tmpValue);
+      candidate := '';
+    end;
+  end;
 end;
 
 function RoundToExt(const aValue: double; const aRoundingMethod: TRoundingMethod; const Digits: integer): double;
