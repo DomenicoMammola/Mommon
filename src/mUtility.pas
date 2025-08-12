@@ -742,8 +742,10 @@ begin
   if not Result then
   begin
     try
-      // 04:30:36.333+02:00
+      // 04:30:36.333+02:00    06:10:00-04:00
       p := Pos('+', tmp);
+      if p <= 0 then
+        p := Pos('-', tmp);
       if p > 0 then
         tmp := LeftStr(tmp, p - 1);
       aValue:= StrToTime(tmp);
