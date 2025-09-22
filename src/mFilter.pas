@@ -184,7 +184,7 @@ begin
   FreeAndNil(FValuesAsStrings);
   FreeAndnil(FValuesDictionary);
   FCurrentFilter:= aFilter;
-  if FCurrentFilter.FilterOperator = foIn then
+  if (FCurrentFilter.FilterOperator = foIn) or (FCurrentFilter.FilterOperator = foNotIn) then
   begin
     FValuesAsStrings := TStringList.Create;
     FValuesDictionary := TmStringDictionary.Create();
@@ -325,6 +325,10 @@ begin
     foIn:
       begin
         Result := FValuesDictionary.Contains(lowercase(VarToStr(aActualValue)));
+      end;
+    foNotIn:
+      begin
+        Result := not FValuesDictionary.Contains(lowercase(VarToStr(aActualValue)));
       end;
     foBetween:
       begin

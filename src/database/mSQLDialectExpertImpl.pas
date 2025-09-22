@@ -82,6 +82,8 @@ begin
     Result := '<>'
   else if aOperator = foIn then
     Result := 'IN'
+  else if aOperator = foNotIn then
+    Result := 'NOT IN'
   else if aOperator = foBetween then
     Result := 'BETWEEN'
   else if aOperator = foIs then

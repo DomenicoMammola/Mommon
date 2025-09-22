@@ -68,7 +68,7 @@ begin
           Result := BooleanToSQLString(aParam.AsBoolean);
       ptDate:
         begin
-          if (aParam.FilterOperator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) or (aParam.FilterOperator = TmFilterOperator.foNotIn) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -102,7 +102,7 @@ begin
         end;
       ptTime:
       begin
-        if (aParam.FilterOperator = TmFilterOperator.foIn) then
+        if (aParam.FilterOperator = TmFilterOperator.foIn) or (aParam.FilterOperator = TmFilterOperator.foNotIn) then
         begin
           DoubleList := TDoubleList.Create;
           try
@@ -135,7 +135,7 @@ begin
       end;
       ptDateTime:
         begin
-          if (aParam.FilterOperator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) or (aParam.FilterOperator = TmFilterOperator.foNotIn) then
           begin
             DoubleList := TDoubleList.Create;
             try
@@ -168,7 +168,7 @@ begin
         end;
       ptString:
         begin
-          if (aParam.FilterOperator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) or (aParam.FilterOperator = TmFilterOperator.foNotIn) then
           begin
             StringList := TStringList.Create;
             try
@@ -230,7 +230,7 @@ begin
         end;
       ptWideString:
         begin
-          if (aParam.FilterOperator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) or (aParam.FilterOperator = TmFilterOperator.foNotIn) then
           begin
             StringList := TStringList.Create;
             try
@@ -293,7 +293,7 @@ begin
         end;
       ptInteger:
         begin
-          if (aParam.FilterOperator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) or (aParam.FilterOperator = TmFilterOperator.foNotIn) then
           begin
             IntegerList := TIntegerList.Create;
             try
@@ -326,7 +326,7 @@ begin
         end;
       ptFloat:
         begin
-          if (aParam.FilterOperator = TmFilterOperator.foIn) then
+          if (aParam.FilterOperator = TmFilterOperator.foIn) or (aParam.FilterOperator = TmFilterOperator.foNotIn) then
           begin
             DoubleList := TDoubleList.Create;
             try
