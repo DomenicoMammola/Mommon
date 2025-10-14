@@ -52,7 +52,7 @@ implementation
 
 uses
   SysUtils, md5, variants, contnrs,
-  mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog, mBaseClassesAsObjects;
+  mSQLBuilder, mFilterOperators, mMaps, mUtility, mLog, mBaseClassesAsObjects, mFloatsManagement, mDataFieldsUtility;
 
 const
   KEY_SEPARATOR = '#@#';
@@ -117,16 +117,24 @@ end;
 function ComposeDestinationSelectAllQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
 var
   i : integer;
-  comma : String;
+  tmpAlias, comma : String;
 begin
+  tmpAlias := LowerCase(GenerateRandomIdString(5, true));
   Result := 'select ';
   comma := '';
   for i := 0 to aTable.FieldsMapping.Count - 1 do
   begin
-    Result := Result + comma + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString, foEq);
+    Result := Result + comma + tmpAlias + '.' + aDestinationSB.SQLDialectExpert.GetSQLForFieldname(aTable.FieldsMapping.Get(i).DestinationField.AsString, foEq);
     comma := ','
   end;
-  Result := Result + ' from ' + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
+
+  Result := Result + ' from ';
+
+  if aTable.DestinationSelectQuery <> '' then
+    Result := Result + '(' + aTable.DestinationSelectQuery + ')'
+  else
+    Result := Result + aDestinationSB.SQLDialectExpert.GetSQLForTablename(aTable.DestinationTableName);
+  Result := Result + ' ' + tmpAlias;
 end;
 
 function ComposeDestinationInsertQuery (aTable: TDataReplicaTableToTable; const aDestinationSB : TmSQLBuilder): String;
@@ -367,9 +375,11 @@ begin
               sourcefield := sourceFieldsMap.Find(aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString) as TField;
               if not Assigned(sourcefield) then
                 raise Exception.Create('Source field missing! ' + aTable.FieldsMapping.Get(q).SourceField.AsUppercaseString + ' Source fields map count: ' + IntToStr(sourceFieldsMap.Count));
-
               destinationfield := destinationQuery.AsDataset.FieldByName(aTable.FieldsMapping.Get(q).DestinationField.AsString);
-              performUpdate := MD5Print(MD5String(sourcefield.AsString)) <> MD5Print(MD5String(destinationfield.AsString));
+              if aTable.FieldsMapping.Get(q).Precision.NotNull and FieldTypeIsFloat(sourcefield.DataType) and FieldTypeIsFloat(destinationfield.DataType) and (not sourcefield.IsNull) and (not destinationfield.IsNull) then
+                performUpdate:= DoublesAreNotEqual(sourceField.AsFloat, destinationfield.AsFloat, aTable.FieldsMapping.Get(q).Precision.AsInteger)
+              else
+                performUpdate := MD5Print(MD5String(sourcefield.AsString)) <> MD5Print(MD5String(destinationfield.AsString));
               {$IFDEF DEBUG}
               logger.Debug('COMPARING Value [' + destinationfield.AsString +'] of field ' + destinationfield.FieldName + ' of table ' + aTable.DestinationTableName + ' AND [' + sourcefield.AsString + '] of original field ' + sourcefield.FieldName );
               {$ENDIF}
@@ -536,6 +546,9 @@ begin
               try
                 command.SetSQL(deleteOperationsToBePerformed.Strings[q]);
                 command.Execute;
+                {$IFDEF DEBUG}
+                logger.Debug('Performed delete: ' + deleteOperationsToBePerformed.Strings[q]);
+                {$ENDIF}
               except
                 on e : Exception do
                 begin
