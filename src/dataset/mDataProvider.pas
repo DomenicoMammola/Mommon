@@ -34,6 +34,7 @@ type
     FIndexedFieldNames : TStringList;
     procedure ClearIndexes;
   protected
+    FCaseSensitive : boolean;
     procedure AddIndex (const aFieldName : String);
     procedure InternalAdd(aDatum : TObject);
     procedure InternalRemove(aDatum : TObject);
@@ -109,7 +110,10 @@ function TmDataProvider.InternalFindByString(aStringKey: string): TObject;
 begin
   if FMustRebuildIndex then
     RebuildIndex;
-  Result := FMainIndex.Find(aStringKey);
+  if FCaseSensitive then
+    Result := FMainIndex.Find(aStringKey)
+  else
+    Result := FMainIndex.Find(UpperCase(aStringKey));
   FMustRebuildIndex:=false;
 end;
 
@@ -128,7 +132,7 @@ var
   i, k : integer;
   tmpIndex : TmStringDictionary;
   tmpValue : Variant;
-  tmpStringValue : String;
+  tmpStringValue, str : String;
 begin
   ClearIndexes;
 
@@ -140,15 +144,20 @@ begin
 
   for i := 0 to Self.Count -1 do
   begin
-    if FMainIndex.Contains(Self.GetDatum(i).GetDatumKey.AsString) then
-      raise Exception.Create('Duplicate key: ' + Self.GetDatum(i).GetDatumKey.AsString);
-    FMainIndex.Add(Self.GetDatum(i).GetDatumKey.AsString, Self.InternalGetDatum(i));
+    str := Self.GetDatum(i).GetDatumKey.AsString;
+    if not FCaseSensitive then
+      str := UpperCase(str);
+    if FMainIndex.Contains(str) then
+      raise Exception.Create('Duplicate key: ' + str);
+    FMainIndex.Add(str, Self.InternalGetDatum(i));
 
     for k := 0 to FIndexedFieldNames.Count - 1 do
     begin
       tmpIndex := FIndexes.Find(FIndexedFieldNames.Strings[k]) as TmStringDictionary;
       tmpValue := Self.GetDatum(i).GetPropertyByFieldName(FIndexedFieldNames.Strings[k]);
       tmpStringValue := VarToStr(tmpValue);
+      if not FCaseSensitive then
+        tmpStringValue:= UpperCase(tmpStringValue);
       if tmpIndex.Contains(tmpStringValue) then
         raise Exception.Create('Duplicate value for index: ' + tmpStringValue);
       tmpIndex.Add(tmpStringValue, Self.InternalGetDatum(i));
@@ -169,6 +178,7 @@ begin
   FMustRebuildIndex:= true;
   FIndexes := TmStringDictionary.Create(true);
   FIndexedFieldNames := TStringList.Create;
+  FCaseSensitive:= true;
 end;
 
 destructor TmDataProvider.Destroy;
@@ -215,7 +225,12 @@ begin
     RebuildIndex;
   tmpIndex := FIndexes.Find(aIndexedFieldName) as TmStringDictionary;
   if Assigned(tmpIndex) then
-    Result := tmpIndex.Find(aValue) as IVDDatum;
+  begin
+    if FCaseSensitive then
+      Result := tmpIndex.Find(aValue) as IVDDatum
+    else
+      Result := tmpIndex.Find(UpperCase(aValue)) as IVDDatum
+  end;
   FMustRebuildIndex:=false;
 end;
 
