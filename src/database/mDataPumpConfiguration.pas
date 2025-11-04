@@ -28,12 +28,14 @@ type
   strict private
     FSourceField : TNullableString;
     FDestinationField : TNullableString;
+    FPrecision : TNullableInteger;
   public
     constructor Create;
     destructor Destroy; override;
 
-    property SourceField : TNullableString read FSourceField;
-    property DestinationField : TNullableString read FDestinationField;
+    property SourceField : TNullableString read FSourceField; // the name of a field from the source dataset
+    property DestinationField : TNullableString read FDestinationField; // the name of the corresponding field in the destination dataset
+    property Precision : TNullableInteger read FPrecision; // if set this enables the comparison between float/double values instead of the string representation of the values
   end;
 
   { TDataReplicaFields }
@@ -215,12 +217,14 @@ constructor TDataReplicaFieldToField.Create;
 begin
   FSourceField := TNullableString.Create();
   FDestinationField := TNullableString.Create();
+  FPrecision := TNullableInteger.Create();
 end;
 
 destructor TDataReplicaFieldToField.Destroy;
 begin
   FSourceField.Free;
   FDestinationField.Free;
+  FPrecision.Free;
   inherited Destroy;
 end;
 
