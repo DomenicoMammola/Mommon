@@ -174,6 +174,7 @@ uses
 
 var
   _LastSQLScript: string;
+  _LastSQLDateOfExecution : TDateTime;
   _LastSQLScriptCriticalSection: TCriticalSection;
   _CreateImplementationCriticalSection: TCriticalSection;
   _ConnectionsCache : TmDatabaseConnectionsCache;
@@ -183,6 +184,7 @@ begin
   _LastSQLScriptCriticalSection.Acquire;
   try
     _LastSQLScript:= aSQLScript;
+    _LastSQLDateOfExecution:= Now;
   finally
     _LastSQLScriptCriticalSection.Leave;
   end;
@@ -191,7 +193,10 @@ end;
 function GetLastSQLScript(out aTitle: string): string;
 begin
   aTitle := 'LAST SQL SCRIPT';
-  Result := _LastSQLScript;
+  if _LastSQLScript <> '' then
+    Result := Concat('[', FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', _LastSQLDateOfExecution), '] ', _LastSQLScript)
+  else
+    Result := '';
 end;
 
 { TmDatabaseConnectionsCache }
