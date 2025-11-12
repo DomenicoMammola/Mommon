@@ -22,9 +22,8 @@ uses
   {$IFDEF FPC}
   LCLIntf,
   LclType,
-  LclProc,
+  //LclProc,
   LResources,
-  LMessages,
   InterfaceBase,
   {$ENDIF}
   {$IFDEF WINDOWS}Windows,{$ENDIF} Forms, Controls, Graphics, Types, Classes;
@@ -297,6 +296,9 @@ end;
   var
     HW, SW, LW: Word;
   begin
+    HW := 0;
+    LW := 0;
+    SW := 0;
     ColorRGBToHLS(ColorToRgb(aColor), HW, LW, SW);
     H := HW / HLSMAX;
     L := LW / HLSMAX;
@@ -314,6 +316,9 @@ end;
   var
     H, S, L: Double;
   begin
+    H := 0;
+    L := 0;
+    S := 0;
     RGBToHLS(ColorToRgb(aColor), H, L, S);
     Result := L;
   end;
@@ -322,6 +327,9 @@ end;
   var
     H, S, L: double;
   begin
+    H := 0;
+    L := 0;
+    S := 0;
     RGBToHLS(ColorToRgb(aColor), H, L, S);
     luminance := Max(0, Min(luminance, 1));
     Result := HLSToRGB(H, luminance, S);
