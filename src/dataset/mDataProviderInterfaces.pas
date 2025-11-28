@@ -56,10 +56,12 @@ type
     FCaption : String;
     FDefaultValue : Boolean;
     FCallback : TInstantQueryManagerAdditionalOptionCallback;
+    FOnlyLabel : boolean;
   public
     property Caption : String read FCaption write FCaption;
     property DefaultValue : Boolean read FDefaultValue write FDefaultValue;
     property Callback : TInstantQueryManagerAdditionalOptionCallback read FCallback write FCallback;
+    property OnlyLabel : boolean read FOnlyLabel write FOnlyLabel default false;
   end;
 
   IVDInstantQueryManager = interface
