@@ -46,6 +46,7 @@ type
     FFiltersEvaluator: TmFiltersEvaluator;
 
     function OnCompare(Item1: Pointer;Item2: Pointer):Integer;
+    function OnCompareVariantShells(Item1: Pointer; Item2: Pointer): Integer;
     procedure InternalGetFieldValue (const aFieldName : string; const AIndex: Cardinal; out AValue: variant);
     procedure GetFieldValueFromDatum (const aDatum : IVDDatum; const aFieldName : string; out aValue :variant);
     procedure GetValueForParser(Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
@@ -90,6 +91,12 @@ type
     Idx : integer;
   end;
 
+  TVariantValueShell = class
+  public
+    Value : Variant;
+    Idx : integer;
+  end;
+
 var
   logger : TmLog;
 
@@ -101,10 +108,8 @@ var
   i : integer;
   val1, val2 : Variant;
 begin
-
   d1 := TDatumShell(Item1);
   d2 := TDatumShell(Item2);
-
 
   Result := -1;
   for i := 0 to SortConditions.Count -1 do
@@ -127,6 +132,16 @@ begin
       break;
     end;
   end;
+end;
+
+function TReadOnlyVirtualDatasetProvider.OnCompareVariantShells(Item1: Pointer; Item2: Pointer): Integer;
+var
+  d1, d2 : TVariantValueShell;
+begin
+  d1 := TVariantValueShell(Item1);
+  d2 := TVariantValueShell(Item2);
+
+  Result := CompareVariants(d1.Value, d2.Value);
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.InternalGetFieldValue(const aFieldName: string; const AIndex: Cardinal; out AValue: variant);
@@ -539,7 +554,12 @@ var
   tmpIndex : TmStringDictionary;
   str : String;
   cnt : TIntegerObject;
+  toBeSortedList : TFPList;
+  tmp : TVariantValueShell;
+  tmpGarbage : TObjectList;
 begin
+  tmpGarbage := TObjectList.Create(true);
+  toBeSortedList := TFPList.Create;
   tmpIndex := TmStringDictionary.Create(true);
   try
     for i := 0 to Self.GetRecordCount - 1 do
@@ -551,21 +571,31 @@ begin
       cnt := tmpIndex.Find(str) as TIntegerObject;
       if not Assigned(cnt) then
       begin
+        tmp := TVariantValueShell.Create;
+        tmpGarbage.Add(tmp);
+        tmp.Value := tmpValue;
+        tmp.Idx:= i;
+        toBeSortedList.Add(tmp);
+
         cnt := TIntegerObject.Create(0);
         tmpIndex.Add(str, cnt);
-        aList.Add(str);
       end;
       cnt.Value:= cnt.Value + 1;
     end;
-    aList.Sort;
 
-    for i := 0 to aList.Count - 1 do
+    MergeSort(toBeSortedList, OnCompareVariantShells);
+
+    for i := 0 to toBeSortedList.Count -1 do
     begin
-      cnt := tmpIndex.Find(aList.Strings[i]) as TIntegerObject;
+      str := VarToStr(TVariantValueShell(toBeSortedList.Items[i]).Value);
+      aList.Add(str);
+      cnt := tmpIndex.Find(str) as TIntegerObject;
       aOccurrences.Add(cnt.Value);
     end;
   finally
     tmpIndex.Free;
+    toBeSortedList.Free;
+    tmpGarbage.Free;
   end;
 end;
 
