@@ -39,6 +39,7 @@ type
     destructor Destroy; override;
 
     procedure CreateMail(const aShowModal : boolean);
+    function SendReplyInConversation(const aSubject : string; const aReplyAll, aShowModal : boolean) : boolean;
     function SetSubject(const aValue : String): TmOutlookMailFactory;
     function AddRecipient(const aValue : String): TmOutlookMailFactory;
     function AddCCRecipient(const aValue : String): TmOutlookMailFactory;
@@ -54,7 +55,7 @@ type
 implementation
 
 uses
-  StrUtils, SysUtils
+  StrUtils, SysUtils, Variants
 {$ifdef windows}
   ,comobj
 {$endif}
@@ -183,6 +184,148 @@ begin
     Outlook := Unassigned; // VarNull
   end;
 end;
+
+function TmOutlookMailFactory.SendReplyInConversation(const aSubject: string; const aReplyAll, aShowModal: boolean) : boolean;
+var
+  Outlook: OLEVariant;
+  Namespace: OLEVariant;
+  Store: OleVariant;
+  OriginalMail, MailInspector, Mail, MailRecipient: Variant;
+  i: Integer;
+  s, signature : WideString;
+  tmp, sep : String;
+  idDeletedItems, idDrafts, idJunk : string;
+
+  procedure InitExclusions(aNameSpace : OLEVariant);
+  begin
+    idDeletedItems := aNameSpace.GetDefaultFolder(3).EntryID;
+    idDrafts := aNameSpace.GetDefaultFolder(16).EntryID;
+    idJunk := aNameSpace.GetDefaultFolder(23).EntryID;
+  end;
+
+  procedure ProcessFolder(aFolder : Variant);
+  var
+    i: Integer;
+    SubFolder: OleVariant;
+    Item: OleVariant;
+    Items: Variant;
+    currentID: String;
+  begin
+    currentID := aFolder.EntryID;
+    if not (currentID = idDeletedItems) or (currentID = idDrafts) or (currentID = idJunk) then
+    begin
+      if (aFolder.DefaultItemType = 0) then
+      begin
+        Items := aFolder.Items;
+        Items.IncludeRecurrences := True;
+        Items.Sort('[ReceivedTime]', True);
+        for i := 1 to Items.Count do
+        begin
+          Item := Items.Item(i);
+          if (Item.MessageClass = 'IPM.Note') and
+             (Pos(aSubject, Item.Subject) > 0) then
+          begin
+            OriginalMail := Item;
+            Exit;
+          end;
+        end;
+      end;
+    end;
+
+    for i := 1 to aFolder.Folders.Count do
+    begin
+      SubFolder := aFolder.Folders.Item(i);
+      ProcessFolder(SubFolder);
+      if not VarIsEmpty(OriginalMail) then
+        Exit;
+    end;
+  end;
+begin
+  Result := false;
+  try
+    Outlook:= GetActiveOleObject('Outlook.Application') ;
+  except
+    Outlook:= CreateOleObject('Outlook.Application') ;
+  end;
+  try
+    Namespace := Outlook.GetNamespace('MAPI');
+    InitExclusions(Namespace);
+    Store := Namespace.GetDefaultFolder(6).Parent;
+
+    OriginalMail := Unassigned;
+    ProcessFolder(Store);
+
+    if not VarIsEmpty(OriginalMail) then
+    begin
+      Mail := OriginalMail.ReplyAll;
+      if not aReplyAll then
+      begin
+        while Mail.Recipients.Count > 0 do
+          Mail.Recipients.Remove(1);
+
+        tmp := '';
+        sep := '';
+        for i := 0 to FRecipients.Count - 1 do
+        begin
+          s := UTF8Decode(FRecipients.Strings[i]);
+          MailRecipient := Mail.Recipients.Add(s);
+          MailRecipient.Resolve;
+        end;
+        tmp := '';
+        sep := '';
+        for i := 0 to FCCRecipients.Count -  1 do
+        begin
+          tmp := tmp + sep + FCCRecipients.Strings[i];
+          sep := ';';
+        end;
+        if tmp <> '' then
+        begin
+          s := UTF8Decode(tmp);
+          Mail.CC := s;
+        end;
+        tmp := '';
+        sep := '';
+        for i := 0 to FBCCRecipients.Count -  1 do
+        begin
+          tmp := tmp + sep + FBCCRecipients.Strings[i];
+          sep := ';';
+        end;
+        if tmp <> '' then
+        begin
+          s := UTF8Decode(tmp);
+          Mail.BCC := s;
+        end;
+      end;
+
+      for i := 0 to FAttachments.Count - 1 do
+      begin
+        s := UTF8Decode(FAttachments.Strings[i]);
+        Mail.Attachments.Add(s);
+      end;
+      MailInspector := Mail.GetInspector;
+      if FBody.Count > 0 then
+      begin
+        s := UTF8Decode(FBody.Text);
+        Mail.Body := s;
+      end;
+      if FHTMLBody.Count > 0 then
+      begin
+        s := UTF8Decode(FHTMLBody.Text);
+        signature := Mail.HTMLBody;
+        s := s + signature;
+        Mail.HTMLBody := s;
+      end;
+      Mail.Recipients.ResolveAll;
+      MailInspector.display(aShowModal);
+      Result := true;
+    end;
+  finally
+    Outlook := Unassigned;
+    Mail := Unassigned;
+    OriginalMail := Unassigned;
+  end;
+end;
+
 {$else}
 begin
   raise Exception.Create ('Not supported in this system. Available only under Windows.');
