@@ -184,8 +184,14 @@ begin
     Outlook := Unassigned; // VarNull
   end;
 end;
+{$else}
+begin
+  raise Exception.Create ('Not supported in this system. Available only under Windows.');
+end;
+{$endif}
 
 function TmOutlookMailFactory.SendReplyInConversation(const aSubject: string; const aReplyAll, aOverrideSubject, aShowModal: boolean) : boolean;
+{$ifdef windows}
 var
   Outlook: OLEVariant;
   Namespace: OLEVariant;
@@ -332,7 +338,6 @@ begin
     OriginalMail := Unassigned;
   end;
 end;
-
 {$else}
 begin
   raise Exception.Create ('Not supported in this system. Available only under Windows.');
