@@ -371,9 +371,9 @@ end;
 function TSQLDialectExpertImplMySQL.GetSQLForConditionOperator(const aOperator: TmFilterOperator): string;
 begin
   if (aOperator = foEq) then
-    Result := '<=>' // NULL-safe equal, https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_equal-to
+    Result := '='
   else if (aOperator = foNotEq) then
-    Result := '<=>' // NULL-safe not equal, https://9to5answer.com/mysql-null-safe-not-equal-operator
+    Result := '<=>' // NULL-safe not equal, https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_equal-to
   else
     Result:=inherited GetSQLForConditionOperator(aOperator);
 end;
@@ -381,7 +381,7 @@ end;
 function TSQLDialectExpertImplMySQL.GetSQLForFieldname(const aFieldName: String; const aOperator: TmFilterOperator): String;
 begin
   if (aOperator = foNotEq) then
-      Result := ' NOT(' + aFieldName  // NULL-safe not equal, https://9to5answer.com/mysql-null-safe-not-equal-operator
+      Result := ' NOT(' + aFieldName  // NULL-safe not equal, https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_equal-to
   else
     Result:=inherited GetSQLForFieldname(aFieldName, aOperator);
 end;
