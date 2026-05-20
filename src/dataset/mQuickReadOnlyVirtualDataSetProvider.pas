@@ -200,7 +200,12 @@ begin
             if (tmpFormulaField.DataType = fftDateTime) and (tmpDouble = 0) then
               aValue := Null
             else
-              aValue := tmpDouble
+            begin
+              if (tmpFormulaField.DataType = fftDateTime) then
+                aValue := TDateTime(tmpDouble)
+              else
+                aValue := tmpDouble;
+            end;
           end
           else
             aValue := Null;

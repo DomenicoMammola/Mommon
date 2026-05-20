@@ -54,8 +54,8 @@ function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarte
 function TryToUnderstandDateString(const aInputString : String; out aValue : TDateTime) : boolean;
 // try to convert the input text from the user as a time value, if it fails it returns false
 // user can edit time as hhmm or hhmmss or with separators like ':', '.', ....
-function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
-function TryToUnderstandDateTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
+function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime; const aResetToGMT : boolean = false) : boolean;
+function TryToUnderstandDateTimeString(const aInputString : String; out aValue : TDateTime; const aResetToGMT : boolean = false) : boolean;
 {$IFDEF GRAPHICS_AVAILABLE}
 function TryToUndestandColorString(const aInputString : String; out Value : TColor) : boolean;
 {$ENDIF}
@@ -604,12 +604,12 @@ begin
   end;
 end;
 
-function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime) : boolean;
+function TryToUnderstandTimeString(const aInputString : String; out aValue : TDateTime; const aResetToGMT : boolean) : boolean;
 
   function DecodeWithDelimiter (const aDelimiter : Char; const aText : String) : boolean;
   var
     list : TStringList;
-    hour, minutes, seconds : integer;
+    hour, minutes, seconds, millis : integer;
     fSeconds : double;
   begin
     Result := false;
@@ -622,6 +622,7 @@ function TryToUnderstandTimeString(const aInputString : String; out aValue : TDa
       hour := 0;
       minutes := 0;
       seconds := 0;
+      millis := 0;
       if list.Count >= 1 then
       begin
         if IsNumeric(list.Strings[0], false, false) then
@@ -655,18 +656,85 @@ function TryToUnderstandTimeString(const aInputString : String; out aValue : TDa
           if (fSeconds < 0) or (fSeconds >= 60) then
             exit;
           seconds:= trunc(fSeconds);
+          millis := round((fSeconds - seconds) * 1000);
+          if (millis < 0) or (millis >= 1000) then
+            exit;
         end;
       end;
-      aValue := EncodeTime(hour, minutes, seconds, 0);
+      aValue := EncodeTime(hour, minutes, seconds, millis);
       Result := true;
     finally
       list.Free;
     end;
   end;
 
+  function DecodeShift(const aShift : String; out aHours, aMinutes : integer): boolean;
+  var
+    i, sign, shiftHour, shiftMin : integer;
+    strHour, strMin : String;
+    processHour : boolean;
+  begin
+    Result := false;
+    sign := 0;
+    aHours:= 0;
+    aMinutes:= 0;
+    strHour := '';
+    strMin := '';
+    processHour := true;
+    for i := 1 to Length(aShift) do
+    begin
+      if (i = 1) then
+      begin
+        if aShift[i] = '+' then
+          sign := 1
+        else if aShift[i] = '-' then
+          sign := -1
+        else
+          exit;
+      end
+      else
+      begin
+        if IsNumeric(aShift[i], false, false) then
+        begin
+          if processHour then
+            strHour := strHour + aShift[i]
+          else
+            strMin:= strMin + aShift[i];
+        end
+        else
+        begin
+          if processHour then
+            processHour := false
+          else
+            exit;
+        end;
+      end;
+    end;
+
+    shiftHour:= 0;
+    shiftMin:= 0;
+    if strHour <> '' then
+    begin
+      shiftHour:= StrToInt(strHour);
+      if shiftHour > 23 then
+        exit;
+    end;
+    if strMin <> '' then
+    begin
+      shiftMin:= StrToInt(strMin);
+      if shiftMin > 59 then
+        exit;
+    end;
+
+    aHours:= sign * shiftHour;
+    aMinutes:= sign * shiftMin;
+
+    Result := true;
+  end;
+
 var
-  tmp, hourStr, minutesStr, secondsStr : string;
-  hour, minutes, seconds : integer;
+  tmp, hourStr, minutesStr, secondsStr, shift : string;
+  hour, minutes, seconds, shiftHours, shiftMinutes : integer;
   l, p : integer;
 begin
   Result := false;
@@ -743,12 +811,34 @@ begin
   begin
     try
       // 04:30:36.333+02:00    06:10:00-04:00
+      shift := '';
       p := Pos('+', tmp);
       if p <= 0 then
         p := Pos('-', tmp);
       if p > 0 then
+      begin
         tmp := LeftStr(tmp, p - 1);
-      aValue:= StrToTime(tmp);
+        shift := Copy(tmp, p, 999);
+      end;
+      if ContainsText(tmp, ':') then
+      begin
+        if not DecodeWithDelimiter(':', tmp) then
+          aValue := StrToTime(tmp);
+      end
+      else
+        aValue:= StrToTime(tmp);
+
+      if aResetToGMT and (shift <> '') then
+      begin
+        shiftHours := 0;
+        shiftMinutes:= 0;
+        if not DecodeShift(shift, shiftHours, shiftMinutes) then
+          exit;
+        if shiftHours <> 0 then
+          IncHour(aValue, shiftHours);
+        if shiftMinutes <> 0 then
+          IncMinute(aValue, shiftMinutes);
+      end;
       Result := true;
     except
       on e: Exception do
@@ -779,7 +869,7 @@ begin
 
 end;
 
-function TryToUnderstandDateTimeString(const aInputString: String; out aValue: TDateTime): boolean;
+function TryToUnderstandDateTimeString(const aInputString: String; out aValue: TDateTime; const aResetToGMT : boolean): boolean;
 var
   i : integer;
   tmpDate : TDateTime;
@@ -795,7 +885,7 @@ begin
   if i > 1 then
   begin
     if TryToUnderstandDateString(Copy(tmp, 1, i-1), tmpDate) then
-      if TryToUnderstandTimeString(Copy(tmp, i + 1, 999), tmpTime) then
+      if TryToUnderstandTimeString(Copy(tmp, i + 1, 999), tmpTime, aResetToGMT) then
       begin
         aValue := tmpDate + tmpTime;
         Result := true;

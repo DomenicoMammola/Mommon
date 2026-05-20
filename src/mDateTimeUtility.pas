@@ -22,6 +22,7 @@ interface
   function ExtFormatDateTime(const Format: String; DateTime: TDateTime): String;
 
   function Intersect (const aStart1, aEnd1, aStart2, aEnd2 : TDateTime) : boolean;
+  function StartOfQuarter(const aDate : TDateTime): TDateTime;
   function EndOfQuarter(const aDate : TDateTime): TDateTime;
 
   // https://forum.lazarus.freepascal.org/index.php?topic=9310.0
@@ -104,6 +105,16 @@ begin
     c4 := mFloatsManagement.DoubleIsLessThan(aEnd1, aEnd2);
     Result := ((not c3) and c4) or (c1 and (not c4));
   end;
+end;
+
+function StartOfQuarter(const aDate: TDateTime): TDateTime;
+var
+  endOfQ : TDateTime;
+  d, m, y: Word;
+begin
+  endOfQ := EndOfQuarter(aDate);
+  DecodeDate(endOfQ, y, m, d);
+  Result := StartOfAMonth(y, m - 2);
 end;
 
 function EndOfQuarter(const aDate: TDateTime): TDateTime;

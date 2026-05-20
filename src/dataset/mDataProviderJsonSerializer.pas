@@ -82,8 +82,12 @@ function SerializeDatumToJson(const aDatum: IVDDatum; const aFields : TSerialize
 var
   k : integer;
   value : Variant;
+  curFormatSettings : TFormatSettings;
 begin
   Result := '';
+  curFormatSettings := DefaultFormatSettings;
+  curFormatSettings.DecimalSeparator:= '.';
+
   for k := 0 to aFields.Count - 1 do
   begin
     if k > 0 then
@@ -98,7 +102,7 @@ begin
       case aFields.Get(k).DataType of
         vftInteger : Result := Result + IntToStr(value);
         vftBoolean : if value then Result := Result + 'true' else Result := Result + 'false';
-        vftFloat, vftCurrency : Result := Result + FormatFloat('#.#', value);
+        vftFloat, vftCurrency : Result := Result + FormatFloat('#.#', value, curFormatSettings);
         vftDate : if Assigned(aSerializeDateFunction) then Result := Result + '"' + aSerializeDateFunction(VarToDateTime(value)) + '"' else Result := Result + '"' + DateToJsonString(VarToDateTime(value)) + '"';
         vftTime : if Assigned(aSerializeTimeFunction) then Result := Result + '"' + aSerializeTimeFunction(VarToDateTime(value)) + '"' else Result := Result + '"' + TimeToJsonString(VarToDateTime(value)) + '"';
         vftDateTime, vftTimeStamp : if Assigned(aSerializeDateTimeFunction) then Result := Result + '"' + aSerializeDateTimeFunction(VarToDateTime(value)) + '"' else Result := Result + '"' + DateTimeToJsonString(VarToDateTime(value)) + '"';

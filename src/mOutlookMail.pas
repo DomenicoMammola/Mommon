@@ -39,7 +39,7 @@ type
     destructor Destroy; override;
 
     procedure CreateMail(const aShowModal : boolean);
-    function SendReplyInConversation(const aSubject : string; const aReplyAll, aShowModal : boolean) : boolean;
+    function SendReplyInConversation(const aSubject : string; const aReplyAll, aOverrideSubject, aShowModal : boolean) : boolean;
     function SetSubject(const aValue : String): TmOutlookMailFactory;
     function AddRecipient(const aValue : String): TmOutlookMailFactory;
     function AddCCRecipient(const aValue : String): TmOutlookMailFactory;
@@ -184,8 +184,14 @@ begin
     Outlook := Unassigned; // VarNull
   end;
 end;
+{$else}
+begin
+  raise Exception.Create ('Not supported in this system. Available only under Windows.');
+end;
+{$endif}
 
-function TmOutlookMailFactory.SendReplyInConversation(const aSubject: string; const aReplyAll, aShowModal: boolean) : boolean;
+function TmOutlookMailFactory.SendReplyInConversation(const aSubject: string; const aReplyAll, aOverrideSubject, aShowModal: boolean) : boolean;
+{$ifdef windows}
 var
   Outlook: OLEVariant;
   Namespace: OLEVariant;
@@ -258,6 +264,13 @@ begin
     if not VarIsEmpty(OriginalMail) then
     begin
       Mail := OriginalMail.ReplyAll;
+
+      if aOverrideSubject then
+      begin
+        s := UTF8Decode(FSubject);
+        Mail.Subject := s;
+      end;
+
       if not aReplyAll then
       begin
         while Mail.Recipients.Count > 0 do
@@ -325,7 +338,6 @@ begin
     OriginalMail := Unassigned;
   end;
 end;
-
 {$else}
 begin
   raise Exception.Create ('Not supported in this system. Available only under Windows.');
