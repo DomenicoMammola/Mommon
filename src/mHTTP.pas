@@ -35,7 +35,7 @@ implementation
 
 uses
   Classes, sysutils, fphttpclient, {$IFDEF LINUX}FileUtil,{$ENDIF}
-  IdHTTP, IdGlobal, IdSSLOpenSSLHeaders, IdSSLOpenSSL;
+  IdHTTP, IdGlobal, IdSSLOpenSSLHeaders;
 
 function PostJSONData(const aURI, aJSONMessage: String; out aResponseBody, aResponseText: String; out aErrorMessage: string): boolean;
 begin
@@ -92,50 +92,40 @@ function PatchJSONDataWithBasicAuthentication(const aURI, aJSONMessage: String; 
 var
   HTTP: TIdHTTP;
   RequestBody: TStream;
-  SSLHandler: TIdSSLIOHandlerSocketOpenSSL;
-  ResponseStream: TStringStream;
 begin
   Result := true;
   aErrorMessage := '';
-
-  HTTP := TIdHTTP.Create(nil);
-  SSLHandler := TIdSSLIOHandlerSocketOpenSSL.Create(HTTP);
+  HTTP := TIdHTTP.Create;
   try
     try
-      SSLHandler.SSLOptions.Method := sslvTLSv1_2;
-      SSLHandler.SSLOptions.SSLVersions := [sslvTLSv1_2];
-      HTTP.IOHandler := SSLHandler;
-
-      RequestBody := TStringStream.Create(aJSONMessage, TEncoding.UTF8);
-      ResponseStream := TStringStream.Create('', TEncoding.UTF8);
+      RequestBody := TStringStream.Create(UTF8Encode(aJSONMessage));
       try
         HTTP.Request.Accept := 'application/json';
         HTTP.Request.ContentType := 'application/json';
 
         if (aUsername <> '') or (aPassword <> '') then
         begin
-          HTTP.Request.BasicAuthentication := True;
-          HTTP.Request.Username := aUsername;
-          HTTP.Request.Password := aPassword;
+          HTTP.Request.BasicAuthentication:=True;
+          if aUsername <> '' then
+            HTTP.Request.Username:= aUsername;
+          if aPassword <> '' then
+            HTTP.Request.Password:= aPassword;
         end;
 
-        HTTP.Patch(aURI, RequestBody, ResponseStream);
-
-        aResponseBody := ResponseStream.DataString;
+        aResponseBody := HTTP.Patch(aURI, RequestBody);
         aResponseText := HTTP.ResponseText;
       finally
-        ResponseStream.Free;
         RequestBody.Free;
       end;
     except
       on E: EIdHTTPProtocolException do
       begin
-        aErrorMessage := E.Message + sLineBreak + E.ErrorMessage;
+        aErrorMessage:= E.Message + sLineBreak + E.ErrorMessage;
         Result := false;
       end;
       on E: Exception do
       begin
-        aErrorMessage := E.Message;
+        aErrorMessage:= E.Message;
         Result := false;
       end;
     end;
