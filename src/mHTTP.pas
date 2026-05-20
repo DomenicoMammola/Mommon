@@ -26,6 +26,7 @@ type
 
 function PostJSONData (const aURI, aJSONMessage : String; out aResponseBody, aResponseText : String; out aErrorMessage : string) : boolean;
 function PostJSONDataWithBasicAuthentication (const aURI, aJSONMessage : String; const aUsername, aPassword:  String; out aResponseBody, aResponseText : String; out aErrorMessage : string) : boolean;
+function PatchJSONDataWithBasicAuthentication (const aURI, aJSONMessage : String; const aUsername, aPassword:  String; out aResponseBody, aResponseText : String; out aErrorMessage : string) : boolean;
 
 function GetHTMLPage (const aURI : String; out aResponseBody: String; out aErrorMessage: String): boolean; overload;
 function GetHTMLPage (const aURI : String; const aHeaders : THTTPHeaders; out aResponseBody: String; out aErrorMessage: String): boolean; overload;
@@ -66,6 +67,52 @@ begin
         end;
 
         aResponseBody := HTTP.Post(aURI, RequestBody);
+        aResponseText := HTTP.ResponseText;
+      finally
+        RequestBody.Free;
+      end;
+    except
+      on E: EIdHTTPProtocolException do
+      begin
+        aErrorMessage:= E.Message + sLineBreak + E.ErrorMessage;
+        Result := false;
+      end;
+      on E: Exception do
+      begin
+        aErrorMessage:= E.Message;
+        Result := false;
+      end;
+    end;
+  finally
+    HTTP.Free;
+  end;
+end;
+
+function PatchJSONDataWithBasicAuthentication(const aURI, aJSONMessage: String; const aUsername, aPassword: String; out aResponseBody, aResponseText: String; out aErrorMessage: string): boolean;
+var
+  HTTP: TIdHTTP;
+  RequestBody: TStream;
+begin
+  Result := true;
+  aErrorMessage := '';
+  HTTP := TIdHTTP.Create;
+  try
+    try
+      RequestBody := TStringStream.Create(UTF8Encode(aJSONMessage));
+      try
+        HTTP.Request.Accept := 'application/json';
+        HTTP.Request.ContentType := 'application/json';
+
+        if (aUsername <> '') or (aPassword <> '') then
+        begin
+          HTTP.Request.BasicAuthentication:=True;
+          if aUsername <> '' then
+            HTTP.Request.Username:= aUsername;
+          if aPassword <> '' then
+            HTTP.Request.Password:= aPassword;
+        end;
+
+        aResponseBody := HTTP.Patch(aURI, RequestBody);
         aResponseText := HTTP.ResponseText;
       finally
         RequestBody.Free;
