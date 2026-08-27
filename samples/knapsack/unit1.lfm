@@ -6,7 +6,7 @@ object Form1: TForm1
   Caption = 'Form1'
   ClientHeight = 240
   ClientWidth = 320
-  LCLVersion = '1.8.2.0'
+  LCLVersion = '4.8.0.0'
   object Panel1: TPanel
     Left = 0
     Height = 50
@@ -22,8 +22,17 @@ object Form1: TForm1
       Top = 16
       Width = 75
       Caption = 'Optimize 1'
-      OnClick = Button1Click
       TabOrder = 0
+      OnClick = Button1Click
+    end
+    object Button2: TButton
+      Left = 95
+      Height = 25
+      Top = 16
+      Width = 75
+      Caption = 'Optimize 2'
+      TabOrder = 1
+      OnClick = Button2Click
     end
   end
   object Memo1: TMemo

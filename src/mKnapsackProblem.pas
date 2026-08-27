@@ -65,7 +65,10 @@ procedure OptimizeKnapsack(const aKnapsackWeight : integer; const aEquipmentList
 var
   i, j, maxValue, weightLeft : integer;
   maxArray : array of array of integer;
+  item : TEquipment;
 begin
+  aOptimizedEquipmentList.Clear;
+
   SetLength(maxArray, aEquipmentList.Count + 1, aKnapsackWeight + 1);
 
   for j := 0 to aKnapsackWeight do
@@ -73,52 +76,73 @@ begin
 
   for i := 0 to aEquipmentList.Count - 1 do
   begin
+    item := aEquipmentList.Get(i);
     for j := 0 to aKnapsackWeight do
     begin
-      if aEquipmentList.Get(i).Weight > j then
+      if item.Weight > j then
         maxArray[i + 1, j] := maxArray[i, j]
       else
-        maxArray[i + 1, j] := max(maxArray[i, j], maxArray[i, j- aEquipmentList.Get(i).Weight] + aEquipmentList.Get(i).Value);
+        maxArray[i + 1, j] := max(maxArray[i, j], maxArray[i, j - item.Weight] + item.Value);
     end;
   end;
 
-  //get the highest total value by testing every value
-  maxValue := 0;
-  for i := 0 to aEquipmentList.Count - 1 do
-  begin
-    for j := 0 to aKnapsackWeight do
-    begin
-      if maxArray[i + 1,j] > maxValue then
-          maxValue := maxArray[i + 1, j];
-    end;
-  end;
-
+  //the DP table is non-decreasing in both dimensions, so the global maximum is the last cell
+  maxValue := maxArray[aEquipmentList.Count, aKnapsackWeight];
 
   //Work backwards through the items to find those items that go in the Knapsack
   weightLeft:= aKnapsackWeight;
   for i := aEquipmentList.Count -1  downto 0 do
   begin
+    item := aEquipmentList.Get(i);
     if maxArray[i + 1, weightLeft] = maxValue then
     begin
-      if maxArray[i, weightLeft - aEquipmentList.Get(i).Weight] = maxValue - aEquipmentList.Get(i).Value then
+      if (item.Weight <= weightLeft) and (maxArray[i, weightLeft - item.Weight] = maxValue - item.Value) then
       begin
-        aOptimizedEquipmentList.Add(aEquipmentList.Get(i).Reference);
-        maxValue:= maxValue - aEquipmentList.Get(i).Value;
-        weightLeft:= weightLeft - aEquipmentList.Get(i).Weight;
+        aOptimizedEquipmentList.Add(item.Reference);
+        maxValue:= maxValue - item.Value;
+        weightLeft:= weightLeft - item.Weight;
       end;
     end;
   end;
 end;
 
-procedure OptimizeKnapsackMarteLLoToth(const aKnapsackWeight: integer; const aEquipmentList: TEquipmentList; aOptimizedEquipmentList: TList);
+procedure OptimizeKnapsackMartelloToth(const aKnapsackWeight: integer; const aEquipmentList: TEquipmentList; aOptimizedEquipmentList: TList);
 var
   n: integer;
   p, w, x: array of integer;
+  origIndex, selectedOriginal : array of integer;
   v : integer;
-  profit, count : integer;
+  profit, count, selectedCount : integer;
   d, i, j, k, L, LL, lim, m, pp, q, r, t, ww: integer;
   b, step2, step4, step56, step7, stop: boolean;
   min, pd, wd, y, zd : array of integer;
+
+  // the algorithm requires items sorted by non-increasing value/weight ratio;
+  // its bound computations (lim, the trunc(p/w) fractional bounds) are only
+  // valid under that ordering. Sort here and remember the original indices
+  // so results can be mapped back to the caller's equipment list.
+  procedure SortByDecreasingEfficiency;
+  var
+    a, idx, tmpI, tmpP, tmpW : integer;
+  begin
+    for a := 1 to n - 1 do
+    begin
+      tmpP := p[a];
+      tmpW := w[a];
+      tmpI := origIndex[a];
+      idx := a - 1;
+      while (idx >= 0) and (Int64(p[idx]) * tmpW < Int64(tmpP) * w[idx]) do
+      begin
+        p[idx+1] := p[idx];
+        w[idx+1] := w[idx];
+        origIndex[idx+1] := origIndex[idx];
+        idx := idx - 1;
+      end;
+      p[idx+1] := tmpP;
+      w[idx+1] := tmpW;
+      origIndex[idx+1] := tmpI;
+    end;
+  end;
 
   procedure WorkVar;
   var
@@ -157,30 +181,36 @@ begin
   SetLength(p, n+1);
   SetLength(w, n+1);
   SetLength(x, n);
-  SetLength(min, n);
+  SetLength(min, n+1);
   SetLength(pd, n);
   SetLength(wd, n);
   SetLength(y, n);
   SetLength(zd, n);
+  SetLength(origIndex, n);
 
   for i := 0 to aEquipmentList.Count -1 do
   begin
     p[i] := aEquipmentList.Get(i).Value;
     w[i] := aEquipmentList.Get(i).Weight;
+    origIndex[i] := i;
   end;
+  SortByDecreasingEfficiency;
   v := aKnapsackWeight;
 
   count:= 1;
   pp:= 0;
   ww:= v;
   L:= 0;
-  while ww >= w[L] do
+  while (L < n) and (ww >= w[L]) do
   begin
     L := L + 1;
     pp:= pp + p[L-1];
     ww:= ww - w[L-1];
   end;
-  stop := (ww=0);
+  //if every item already fits (L = n), taking them all is trivially optimal,
+  //regardless of any leftover capacity - and there is no (L+1)-th item left
+  //to compute a fractional bound on, which would read p/w out of bounds below.
+  stop := (ww = 0) or (L = n);
   if stop then
   begin // the GREEDY solution is optimal
     profit := pp;
@@ -416,11 +446,31 @@ begin
   end; // not stop
 
   aOptimizedEquipmentList.Clear;
-  for i := 0 to n -1 do
+  //x is indexed in the sorted-by-efficiency order; map back to original indices
+  SetLength(selectedOriginal, n);
+  selectedCount := 0;
+  for i := 0 to n - 1 do
   begin
     if x[i] = 1 then
-      aOptimizedEquipmentList.Add(aEquipmentList.Get(i).Reference);
+    begin
+      selectedOriginal[selectedCount] := origIndex[i];
+      selectedCount := selectedCount + 1;
+    end;
   end;
+  //iterate in decreasing original-index order to match OptimizeKnapsack's result ordering
+  for i := 1 to selectedCount - 1 do
+  begin
+    j := i;
+    while (j > 0) and (selectedOriginal[j-1] < selectedOriginal[j]) do
+    begin
+      t := selectedOriginal[j-1];
+      selectedOriginal[j-1] := selectedOriginal[j];
+      selectedOriginal[j] := t;
+      j := j - 1;
+    end;
+  end;
+  for i := 0 to selectedCount - 1 do
+    aOptimizedEquipmentList.Add(aEquipmentList.Get(selectedOriginal[i]).Reference);
 end;
 
 { TEquipment }
