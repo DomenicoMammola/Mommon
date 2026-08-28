@@ -19,32 +19,34 @@ type
 
   TReducableIntFunc = function (a, b : Integer) : Integer;
   TMapableIntFunc = function (a : Integer) : Integer;
+  TFilterIntFunc = function (a: Integer) : boolean;
 
   TReducableStrFunc = function (a, b : String) : String;
   TMapableStrFunc = function (a : String) : String;
+  TFilterStrFunc = function (a: String) : boolean;
 
   TReducableObjFunc = function (a, b : TObject) : TObject;
   TMapableObjFunc = function (a : TObject) : TObject;
+  TFilterObjFunc = function (a: TObject) : boolean;
 
+function IntMap(fn : TMapableIntFunc; fnFilter: TFilterIntFunc; a: TIntegerArray) : TIntegerArray;
+function IntReduce(fn : TReducableIntFunc; fnFilter: TFilterIntFunc; a : TIntegerArray; init : Integer): Integer;
 
-function IntReduce(fn : TReducableIntFunc; a : TIntegerArray; init : Integer): Integer;
-procedure IntMap(fn : TMapableIntFunc; a: TIntegerArray);
+function StrMap(fn : TMapableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray) : TStringArray;
+function StrReduce(fn : TReducableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray; init : string) : string;
 
-procedure StrMap(fn : TMapableStrFunc; a : TStringArray);
-function StrReduce(fn : TReducableStrFunc; a : TStringArray; init : string) : string;
-
-procedure ObjMap(fn : TMapableObjFunc; a : TObjectArray);
-function ObjReduce(fn : TReducableObjFunc; a : TObjectArray; init : TObject) : TObject;
+function ObjMap(fn : TMapableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray) : TObjectArray;
+function ObjReduce(fn : TReducableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray; init : TObject) : TObject;
 
 (*
-function sumInts(a : TIntegerArray) : Integer;
+function JoinStrFunc(a, b : String) : String;
 begin
-    Result :=  IntReduce( SumIntFunc, a, 0 );
+ Result := a + b;
 end;
 
 function joinStrings(a : TStringArray) : String;
 begin
-  Result := StrReduce( JoinStrFunc, a, "" );
+  Result := StrReduce( JoinStrFunc, nil, a, "" );
 end;
 
 function SumIntFunc(a, b : Integer) : Integer;
@@ -52,67 +54,103 @@ begin
  Result := a + b;
 end;
 
-function JoinStrFunc(a, b : String) : String;
+function sumInts(a : TIntegerArray) : Integer;
 begin
- Result := a + b;
+    Result :=  IntReduce( SumIntFunc, nil, a, 0 );
 end;
 *)
 
 implementation
 
-function IntReduce(fn : TReducableIntFunc; a : TIntegerArray; init : Integer): Integer;
+function IntReduce(fn : TReducableIntFunc; fnFilter: TFilterIntFunc; a : TIntegerArray; init : Integer): Integer;
 var
   s, i : Integer;
 begin
   s := init;
   for i := 0 to Length(a)-1 do
+  begin
+    if Assigned(fnFilter) and (not fnFilter(a[i])) then 
+      continue;
     s := fn( s, a[i] );
+  end;
   Result := s;
 end;
 
-procedure IntMap(fn : TMapableIntFunc; a: TIntegerArray);
+function IntMap(fn : TMapableIntFunc; fnFilter: TFilterIntFunc; a: TIntegerArray) : TIntegerArray;
 var
-  i : integer;
+  i, count : Integer;
 begin
+  SetLength(Result, Length(a));
+  count := 0;
   for i := 0 to Length(a) - 1 do
-    a[i] := fn(a[i]);
+  begin
+    if Assigned(fnFilter) and (not fnFilter(a[i])) then
+      continue;
+    Result[count] := fn(a[i]);
+    Inc(count);
+  end;
+  SetLength(Result, count); // shrink to actual survivor count
 end;
 
-function StrReduce(fn : TReducableStrFunc; a : TStringArray; init : string) : string;
+function StrReduce(fn : TReducableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray; init : string) : string;
 var
   i : Integer;
   s : String;
 begin
   s := init;
   for i := 0 to Length(a)-1 do
+  begin
+    if Assigned(fnFilter) and (not fnFilter(a[i])) then 
+      continue;
     s := fn( s, a[i] );
+  end;
   Result := s;
 end;
 
-procedure StrMap(fn : TMapableStrFunc; a : TStringArray);
+function StrMap(fn : TMapableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray): TStringArray;
 var
-  i : integer;
+  i, count : Integer;
 begin
+  SetLength(Result, Length(a));
+  count := 0;
   for i := 0 to Length(a) - 1 do
-    a[i] := fn(a[i]);
+  begin
+    if Assigned(fnFilter) and (not fnFilter(a[i])) then
+      continue;
+    Result[count] := fn(a[i]);
+    Inc(count);
+  end;
+  SetLength(Result, count); // shrink to actual survivor count
 end;
 
-procedure ObjMap(fn : TMapableObjFunc; a : TObjectArray);
+function ObjMap(fn : TMapableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray): TObjectArray;
 var
-  i : integer;
+  i, count : Integer;
 begin
+  SetLength(Result, Length(a));
+  count := 0;
   for i := 0 to Length(a) - 1 do
-    a[i] := fn(a[i]);
+  begin
+    if Assigned(fnFilter) and (not fnFilter(a[i])) then
+      continue;
+    Result[count] := fn(a[i]);
+    Inc(count);
+  end;
+  SetLength(Result, count); // shrink to actual survivor count
 end;
 
-function ObjReduce(fn : TReducableObjFunc; a : TObjectArray; init : TObject) : TObject;
+function ObjReduce(fn : TReducableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray; init : TObject) : TObject;
 var
   i : Integer;
   s : TObject;
 begin
   s := init;
   for i := 0 to Length(a)-1 do
+  begin
+    if Assigned(fnFilter) and (not fnFilter(a[i])) then 
+      continue;
     s := fn( s, a[i] );
+  end;
   Result := s;
 end;
 

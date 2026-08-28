@@ -1,4 +1,7 @@
 unit TestMapReduce;
+
+{$MODE Delphi}
+
 {
 
   Delphi DUnit Test Case
@@ -14,7 +17,7 @@ interface
 uses
   {$IFDEF FPC}fpcunit, testutils, testregistry,
   {$ELSE}TestFramework,{$ENDIF}
-  Classes, mMapReduce;
+  Classes{, mMapReduce};
 
 type
   // Test methods for class TCustomIntegerList
