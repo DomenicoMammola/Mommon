@@ -138,6 +138,7 @@ type
     FCurrentPublisher : TmLogPublisher;
     FCurrentMsg : TmLogMessage;
     FTrashMessagesOnQuit : boolean;
+    FPublishersCopyList : TList;
 
     procedure PublishOnMainThread;
     function LevelsAreCompatible(levelOfMessage, levelOfPublisher : TmLogMessageLevel) : boolean;
@@ -154,16 +155,6 @@ type
     property EndEvent : TEvent read FEndEvent;
     property Messages : TmLogMessageList read FMessages;
     property TrashMessagesOnQuit : boolean read FTrashMessagesOnQuit write FTrashMessagesOnQuit;
-  end;
-
-  TmDeleteLogPublisherThread = class (TThread)
-  private
-    FPublisher : TmLogPublisher;
-    procedure DeletePublisher;
-  protected
-    procedure Execute; override;
-  public
-    constructor Create (aPublisher : TmLogPublisher);
   end;
 
 { TmLogManager }
@@ -302,6 +293,7 @@ begin
   FOwnedPublishers := TList.Create;
   FPublishersCriticalSection := TCriticalSection.Create;
   FTrashMessagesOnQuit := false;
+  FPublishersCopyList := TList.Create;;
 end;
 
 destructor TmLogPublisherThread.Destroy;
@@ -312,6 +304,7 @@ begin
   FreeAndNil(FMessages);
   FreeAndNil(FPublishers);
   FreeAndNil(FPublishersCriticalSection);
+  FreeAndNil(FPublishersCopyList);
   if Assigned(FCurrentMsg) then
     FreeAndNil(FCurrentMsg);
   try
@@ -328,12 +321,27 @@ end;
 procedure TmLogPublisherThread.Execute;
 var
   i : integer;
+  letsSyncronize : boolean;
 begin
   FStartEvent.WaitFor(INFINITE);
 
   if not Self.Terminated then
   begin
+    FStartEvent.ResetEvent;
+
     try
+      FPublishersCopyList.Clear;
+      FPublishersCriticalSection.Acquire;
+      try
+        if Assigned(FPublishers) then
+        begin
+          for i := 0 to FPublishers.Count - 1 do
+            FPublishersCopyList.Add(FPublishers[i]);
+        end;
+      finally
+        FPublishersCriticalSection.Leave;
+      end;
+
       while (not Self.Terminated) or ((not FTrashMessagesOnQuit) and Assigned(FMessages) and (not FMessages.Empty)) do
       begin
         FreeAndNil(FCurrentMsg);
@@ -342,27 +350,30 @@ begin
         begin
           if (not FTrashMessagesOnQuit) or (not Self.Terminated) then
           begin
-            FPublishersCriticalSection.Acquire;
-            try
-              if Assigned(FPublishers) then
-              begin
-                for i := 0 to FPublishers.Count - 1 do
-                begin
-                  FCurrentPublisher := FPublishers.Items[i] as TmLogPublisher;
-                  if FCurrentPublisher.Active then
-                  begin
-                    if LevelsAreCompatible(FCurrentMsg.Level, FCurrentPublisher.Level) then
-                    begin
-                      if FCurrentPublisher.ActInsideMainThread then
-                        Self.Synchronize(PublishOnMainThread)
-                      else
-                        FCurrentPublisher.Publish(FCurrentMsg.Context, logMessageLevelToStr(FCurrentMsg.Level), FCurrentMsg.Message, FCurrentMsg.DateTime);
-                    end;
-                  end;
-                end;
+            for i := 0 to FPublishersCopyList.Count - 1 do
+            begin
+              FCurrentPublisher := TmLogPublisher(FPublishersCopyList.Items[i]);
+              letsSyncronize:= false;
+
+              FPublishersCriticalSection.Acquire;
+              try
+                if (FPublishers.IndexOf(FCurrentPublisher) < 0 then // removed?
+                  continue;
+
+                if not (FCurrentPublisher.Active and LevelsAreCompatible(FCurrentMsg.Level, FCurrentPublisher.Level)) then
+                  continue;
+
+                if FCurrentPublisher.ActInsideMainThread then
+                  letsSyncronize:= true;
+                else
+                  FCurrentPublisher.Publish(FCurrentMsg.Context, logMessageLevelToStr(FCurrentMsg.Level), FCurrentMsg.Message, FCurrentMsg.DateTime);
+              finally
+                FPublishersCriticalSection.Leave;
               end;
-            finally
-              FPublishersCriticalSection.Leave;
+
+              if (letsSyncronize) then
+                Self.Synchronize(PublishOnMainThread);
+
             end;
             FreeAndNil(FCurrentMsg);
             FCurrentMsg := FMessages.PullMessage;
@@ -373,7 +384,6 @@ begin
 
         if not Self.Terminated then
         begin
-          FStartEvent.ResetEvent;
           FStartEvent.WaitFor(INFINITE);
         end;
       end;
@@ -473,30 +483,6 @@ begin
   else
     Result := 'UNKNOWN';
   end;
-end;
-
-{ TmDeleteLogPublisherThread }
-
-constructor TmDeleteLogPublisherThread.Create(aPublisher: TmLogPublisher);
-begin
-  inherited Create(false);
-  FPublisher := aPublisher;
-  Self.FreeOnTerminate := true;
-end;
-
-procedure TmDeleteLogPublisherThread.DeletePublisher;
-begin
-end;
-
-procedure TmDeleteLogPublisherThread.Execute;
-begin
-(*  FPublisher.FCriticalSection.Acquire;
-  logManager.FPublishersCriticalSection.Acquire;
-  try
-    Self.Synchronize(DeletePublisher);
-  finally
-    logManager.FPublishersCriticalSection.Free;
-  end;*)
 end;
 
 { TmLogMessageList }
