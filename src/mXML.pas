@@ -12,9 +12,7 @@ unit mXML;
 
 interface
 
-{$IFDEF FPC}
-  {$MODE DELPHI}
-{$ENDIF}
+{$mode objfpc}{$H+}
 
 {$I mDefines.inc}
 
