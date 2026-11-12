@@ -1866,7 +1866,7 @@ begin
     tmpRegistry.DeleteKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\');
 
     {$WARNINGS OFF}
-    keyOpened := tmpRegistry.OpenKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\OpenW​ithProgids\', True);
+    keyOpened := tmpRegistry.OpenKey('\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.' + tmpFileExt + '\OpenWithProgids\', True);
     {$WARNINGS ON}
     if keyOpened then
       tmpRegistry.WriteBinaryData(tmpFileExt + 'file', a, 1)
