@@ -10,12 +10,16 @@
 
 unit mMapReduce;
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 type
-  TIntegerArray = array of Integer;
-  TStringArray = array of String;
-  TObjectArray = array of TObject;
+  TmrIntegerArray = array of Integer;
+  TmrStringArray = array of String;
+  TmrObjectArray = array of TObject;
 
   TReducableIntFunc = function (a, b : Integer) : Integer;
   TMapableIntFunc = function (a : Integer) : Integer;
@@ -29,14 +33,14 @@ type
   TMapableObjFunc = function (a : TObject) : TObject;
   TFilterObjFunc = function (a: TObject) : boolean;
 
-function IntMap(fn : TMapableIntFunc; fnFilter: TFilterIntFunc; a: TIntegerArray) : TIntegerArray;
-function IntReduce(fn : TReducableIntFunc; fnFilter: TFilterIntFunc; a : TIntegerArray; init : Integer): Integer;
+function IntMap(fn : TMapableIntFunc; fnFilter: TFilterIntFunc; const a: TmrIntegerArray) : TmrIntegerArray;
+function IntReduce(fn : TReducableIntFunc; fnFilter: TFilterIntFunc; const a : TmrIntegerArray; init : Integer): Integer;
 
-function StrMap(fn : TMapableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray) : TStringArray;
-function StrReduce(fn : TReducableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray; init : string) : string;
+function StrMap(fn : TMapableStrFunc; fnFilter: TFilterStrFunc; const a : TmrStringArray) : TmrStringArray;
+function StrReduce(fn : TReducableStrFunc; fnFilter: TFilterStrFunc; const a : TmrStringArray; init : string) : string;
 
-function ObjMap(fn : TMapableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray) : TObjectArray;
-function ObjReduce(fn : TReducableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray; init : TObject) : TObject;
+function ObjMap(fn : TMapableObjFunc; fnFilter: TFilterObjFunc; const a : TmrObjectArray) : TmrObjectArray;
+function ObjReduce(fn : TReducableObjFunc; fnFilter: TFilterObjFunc; const a : TmrObjectArray; init : TObject) : TObject;
 
 (*
 function JoinStrFunc(a, b : String) : String;
@@ -44,7 +48,7 @@ begin
  Result := a + b;
 end;
 
-function joinStrings(a : TStringArray) : String;
+function joinStrings(a : TmrStringArray) : String;
 begin
   Result := StrReduce( JoinStrFunc, nil, a, "" );
 end;
@@ -54,7 +58,7 @@ begin
  Result := a + b;
 end;
 
-function sumInts(a : TIntegerArray) : Integer;
+function sumInts(a : TmrIntegerArray) : Integer;
 begin
     Result :=  IntReduce( SumIntFunc, nil, a, 0 );
 end;
@@ -62,7 +66,7 @@ end;
 
 implementation
 
-function IntReduce(fn : TReducableIntFunc; fnFilter: TFilterIntFunc; a : TIntegerArray; init : Integer): Integer;
+function IntReduce(fn : TReducableIntFunc; fnFilter: TFilterIntFunc; const a : TmrIntegerArray; init : Integer): Integer;
 var
   s, i : Integer;
 begin
@@ -76,7 +80,7 @@ begin
   Result := s;
 end;
 
-function IntMap(fn : TMapableIntFunc; fnFilter: TFilterIntFunc; a: TIntegerArray) : TIntegerArray;
+function IntMap(fn : TMapableIntFunc; fnFilter: TFilterIntFunc; const a: TmrIntegerArray) : TmrIntegerArray;
 var
   i, count : Integer;
 begin
@@ -92,7 +96,7 @@ begin
   SetLength(Result, count); // shrink to actual survivor count
 end;
 
-function StrReduce(fn : TReducableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray; init : string) : string;
+function StrReduce(fn : TReducableStrFunc; fnFilter: TFilterStrFunc; const a : TmrStringArray; init : string) : string;
 var
   i : Integer;
   s : String;
@@ -107,7 +111,7 @@ begin
   Result := s;
 end;
 
-function StrMap(fn : TMapableStrFunc; fnFilter: TFilterStrFunc; a : TStringArray): TStringArray;
+function StrMap(fn : TMapableStrFunc; fnFilter: TFilterStrFunc; const a : TmrStringArray): TmrStringArray;
 var
   i, count : Integer;
 begin
@@ -123,7 +127,7 @@ begin
   SetLength(Result, count); // shrink to actual survivor count
 end;
 
-function ObjMap(fn : TMapableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray): TObjectArray;
+function ObjMap(fn : TMapableObjFunc; fnFilter: TFilterObjFunc; const a : TmrObjectArray): TmrObjectArray;
 var
   i, count : Integer;
 begin
@@ -139,7 +143,7 @@ begin
   SetLength(Result, count); // shrink to actual survivor count
 end;
 
-function ObjReduce(fn : TReducableObjFunc; fnFilter: TFilterObjFunc; a : TObjectArray; init : TObject) : TObject;
+function ObjReduce(fn : TReducableObjFunc; fnFilter: TFilterObjFunc; const a : TmrObjectArray; init : TObject) : TObject;
 var
   i : Integer;
   s : TObject;
