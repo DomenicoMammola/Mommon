@@ -357,14 +357,14 @@ begin
 
               FPublishersCriticalSection.Acquire;
               try
-                if (FPublishers.IndexOf(FCurrentPublisher) < 0 then // removed?
+                if (FPublishers.IndexOf(FCurrentPublisher) < 0) then // removed?
                   continue;
 
                 if not (FCurrentPublisher.Active and LevelsAreCompatible(FCurrentMsg.Level, FCurrentPublisher.Level)) then
                   continue;
 
                 if FCurrentPublisher.ActInsideMainThread then
-                  letsSyncronize:= true;
+                  letsSyncronize:= true
                 else
                   FCurrentPublisher.Publish(FCurrentMsg.Context, logMessageLevelToStr(FCurrentMsg.Level), FCurrentMsg.Message, FCurrentMsg.DateTime);
               finally
