@@ -10,6 +10,10 @@
 
 unit mArrays;
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses

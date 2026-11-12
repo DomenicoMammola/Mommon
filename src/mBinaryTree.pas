@@ -12,6 +12,10 @@
 
 unit mBinaryTree;
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses classes;

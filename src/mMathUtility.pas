@@ -10,6 +10,10 @@
 
 unit mMathUtility;
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses

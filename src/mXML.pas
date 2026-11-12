@@ -12,6 +12,10 @@ unit mXML;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 {$I mDefines.inc}
 
 uses
