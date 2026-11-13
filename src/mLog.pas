@@ -293,7 +293,7 @@ begin
   FOwnedPublishers := TList.Create;
   FPublishersCriticalSection := TCriticalSection.Create;
   FTrashMessagesOnQuit := false;
-  FPublishersCopyList := TList.Create;;
+  FPublishersCopyList := TList.Create;
 end;
 
 destructor TmLogPublisherThread.Destroy;
@@ -330,20 +330,20 @@ begin
     FStartEvent.ResetEvent;
 
     try
-      FPublishersCopyList.Clear;
-      FPublishersCriticalSection.Acquire;
-      try
-        if Assigned(FPublishers) then
-        begin
-          for i := 0 to FPublishers.Count - 1 do
-            FPublishersCopyList.Add(FPublishers[i]);
-        end;
-      finally
-        FPublishersCriticalSection.Leave;
-      end;
-
       while (not Self.Terminated) or ((not FTrashMessagesOnQuit) and Assigned(FMessages) and (not FMessages.Empty)) do
       begin
+        FPublishersCopyList.Clear;
+        FPublishersCriticalSection.Acquire;
+        try
+          if Assigned(FPublishers) then
+          begin
+            for i := 0 to FPublishers.Count - 1 do
+              FPublishersCopyList.Add(FPublishers[i]);
+          end;
+        finally
+          FPublishersCriticalSection.Leave;
+        end;
+
         FreeAndNil(FCurrentMsg);
         FCurrentMsg := FMessages.PullMessage;
         while (FCurrentMsg <> nil) do
@@ -385,6 +385,7 @@ begin
         if not Self.Terminated then
         begin
           FStartEvent.WaitFor(INFINITE);
+          FStartEvent.Reset;
         end;
       end;
     except
