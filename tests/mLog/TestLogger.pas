@@ -57,14 +57,9 @@ begin
 //  logManager.RemovePublisher(FMemoPublisher);
   FMemoPublisher.Active := false;
   tmp := logManager.AddLog('test1');
-  try
-    tmp.Info('not visible');
-    FMemoPublisher.Active := true;
-    tmp.Info('visible');
-  finally
-    tmp.Free;
-  end;
-
+  tmp.Info('not visible');
+  FMemoPublisher.Active := true;
+  tmp.Info('visible');
 end;
 
 procedure TTestLogger.TestFileLog;
@@ -80,12 +75,8 @@ begin
   end;
 
   tmp := logManager.AddLog('test1');
-  try
-    tmp.Error('error1');
-    tmp.Error('error2');
-  finally
-    tmp.Free;
-  end;
+  tmp.Error('error1');
+  tmp.Error('error2');
 end;
 
 procedure TTestLogger.TestSimpleLog;
@@ -94,11 +85,7 @@ var
 begin
   FMemoPublisher.Active := true;
   tmp := logManager.AddLog('test1');
-  try
-    tmp.Debug('ciccio');
-  finally
-    tmp.Free;
-  end;
+  tmp.Debug('ciccio');
 end;
 
 initialization
@@ -110,14 +97,17 @@ initialization
   RegisterTest(TTestLogger.Suite);
   {$ENDIF}
   FMemoPublisher := TmMemoPublisher.Create;
-  FMemoPublisher.Active := true;
   logManager.AddPublisher(FMemoPublisher, false);
   FFilePublisher := nil;
 
 finalization
-  FMemoPublisher.Free;
+  logManager.RemovePublisher(FMemoPublisher);
+  FreeAndNil(FMemoPublisher);
   if Assigned(FFilePublisher) then
-    FFilePublisher.Free;
+  begin
+    logManager.RemovePublisher(FFilePublisher);
+    FreeAndNil(FFilePublisher);
+  end;
 
 
 end.

@@ -385,7 +385,8 @@ begin
         if not Self.Terminated then
         begin
           FStartEvent.WaitFor(INFINITE);
-          FStartEvent.Reset;
+          if (not Self.Terminated) and Assigned(FStartEvent) then
+            FStartEvent.ResetEvent;
         end;
       end;
     except
